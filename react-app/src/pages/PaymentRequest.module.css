@@ -1,0 +1,305 @@
+.container {
+    display: flex;
+    height: 100vh;
+    font-family: 'Outfit', sans-serif;
+    overflow: hidden;
+    background: var(--bg);
+}
+
+.formSection {
+    width: 450px;
+    padding: 30px;
+    background: rgba(255, 255, 255, 0.9);
+    border-right: 1px solid var(--border-color);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+    z-index: 10;
+    backdrop-filter: blur(10px);
+}
+
+.formHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.homeBtn {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+
+.homeBtn:hover {
+    background: #f1f5f9;
+}
+
+.inputGroup {
+    margin-bottom: 16px;
+}
+
+.inputLabel {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    background: white;
+    transition: border-color 0.2s;
+}
+
+.select:focus {
+    border-color: var(--primary);
+    outline: none;
+}
+
+.flexRow {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+}
+
+.gridCols2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.divider {
+    border: 0;
+    height: 1px;
+    background: var(--border-color);
+    margin: 24px 0;
+}
+
+.buttonGroup {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.previewSection {
+    flex: 1;
+    background: #525659;
+    padding: 40px;
+    overflow-y: auto;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+.printArea {
+    width: 210mm;
+    min-height: 297mm;
+    background: white;
+    padding: 10mm;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+    display: block;
+    box-sizing: border-box;
+    transform-origin: top center;
+}
+
+/* Table Styles - Preserving Original Print Layout */
+.gridTable {
+    width: 100%;
+    border-collapse: collapse;
+    border: 2px solid #000;
+}
+
+.gridTable th,
+.gridTable td {
+    border: 1px solid #000;
+    padding: 10px;
+    font-size: 11pt;
+    height: 45px;
+}
+
+.headerRow {
+    background-color: #e3effb;
+    text-align: center;
+    font-weight: bold;
+    font-size: 14pt;
+    color: #000;
+}
+
+.labelCell {
+    width: 30%;
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 10pt;
+    color: #000;
+}
+
+.valueCell {
+    text-align: left;
+    color: #000;
+}
+
+.billStatusContainer {
+    display: flex;
+    width: 100%;
+    height: 100%;
+}
+
+.statusBox {
+    flex: 1;
+    padding: 0;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11pt;
+}
+
+.rupeesSection {
+    background-color: #f2f2f2;
+    border: 2px solid #000;
+    border-top: none;
+    padding-bottom: 70px;
+}
+
+.rupeesValue {
+    min-height: 100px;
+    padding: 20px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 13pt;
+    color: #000;
+}
+
+.footerGrid {
+    display: grid;
+    grid-template-columns: 1.25fr 1fr 1fr 1fr;
+    background-color: #f2f2f2;
+    border: 2px solid #000;
+    border-top: none;
+}
+
+.footerItem {
+    border-right: 1px solid #000;
+    padding: 20px 5px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 11pt;
+    text-transform: uppercase;
+    color: #000;
+}
+
+.footerItem:last-child {
+    border-right: none;
+}
+
+/* Modal */
+.modalOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.3s ease;
+}
+
+.modalContent {
+    background: white;
+    padding: 30px;
+    border-radius: 16px;
+    width: 90%;
+    max-width: 450px;
+    box-shadow: var(--shadow-2xl);
+    animation: slideUp 0.3s ease;
+}
+
+.modalTitle {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 20px;
+    color: var(--text-main);
+}
+
+.modalActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@media print {
+    @page {
+        margin: 0;
+    }
+
+    .formSection,
+    .modalOverlay {
+        display: none !important;
+    }
+
+    .previewSection {
+        padding: 0;
+        margin: 0;
+        background: white;
+        height: auto;
+        overflow: visible;
+        display: block;
+    }
+
+    .printArea {
+        box-shadow: none;
+        width: 100%;
+        padding: 10mm;
+        margin: 0;
+    }
+
+    .container {
+        height: auto;
+        overflow: visible;
+        display: block;
+        background: white;
+    }
+}

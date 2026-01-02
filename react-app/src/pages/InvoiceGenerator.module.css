@@ -1,0 +1,330 @@
+.container {
+    display: flex;
+    height: 100vh;
+    font-family: 'Outfit', sans-serif;
+    overflow: hidden;
+    background: var(--bg);
+}
+
+.sidebar {
+    width: 450px;
+    background: rgba(255, 255, 255, 0.9);
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    padding: 30px;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+    z-index: 10;
+    backdrop-filter: blur(10px);
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.homeBtn {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+
+.homeBtn:hover {
+    background: #f1f5f9;
+}
+
+.previewArea {
+    flex: 1;
+    padding: 40px;
+    overflow-y: auto;
+    display: flex;
+    justify-content: center;
+    background: #525659;
+}
+
+.invoicePaper {
+    width: 210mm;
+    min-height: 297mm;
+    background: white;
+    padding: 15mm;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+    position: relative;
+    box-sizing: border-box;
+    color: #000;
+}
+
+.borderBox {
+    border: 1px solid #000;
+    margin-bottom: -1px;
+}
+
+.headerTitle {
+    text-align: center;
+    font-weight: bold;
+    padding: 5px;
+    font-size: 14pt;
+    border-bottom: 1px solid #000;
+}
+
+.vendorDetails {
+    text-align: center;
+    padding: 10px;
+    border-bottom: 1px solid #000;
+    margin-top: -1px;
+}
+
+.previewVendorName {
+    color: var(--primary);
+    text-align: center;
+    font-size: 22pt;
+    font-weight: bold;
+    margin: 10px 0 5px 0;
+}
+
+.panNo {
+    text-align: right;
+    font-size: 10pt;
+    padding-bottom: 5px;
+}
+
+.infoGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-bottom: 1px solid #000;
+    margin-top: -1px;
+}
+
+.infoItem {
+    padding: 5px 10px;
+}
+
+.toSection {
+    padding: 5px 10px 0 10px;
+    font-weight: bold;
+}
+
+.clientName {
+    padding: 0 10px 5px 10px;
+    font-weight: bold;
+}
+
+.projectName {
+    text-align: center;
+    font-weight: bold;
+    padding: 10px;
+    border-top: 1px solid #000;
+    border-bottom: 1px solid #000;
+    margin-top: -1px;
+}
+
+.previewTable {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: -1px;
+}
+
+.previewTable th,
+.previewTable td {
+    border: 1px solid #000;
+    padding: 10px;
+    text-align: center;
+}
+
+.previewTable th:first-child,
+.previewTable td:first-child {
+    border-left: none;
+}
+
+.previewTable th:last-child,
+.previewTable td:last-child {
+    border-right: none;
+}
+
+.descCol {
+    text-align: left;
+    width: 50%;
+    white-space: pre-wrap;
+    vertical-align: top;
+}
+
+.amountCol {
+    text-align: right;
+    width: 20%;
+}
+
+.wordsSection {
+    padding: 10px;
+    text-align: center;
+    font-weight: bold;
+    border-top: 1px solid #000;
+    border-bottom: 1px solid #000;
+    margin-top: -1px;
+}
+
+.bankDetails {
+    margin-top: 20px;
+    line-height: 1.6;
+    font-size: 11pt;
+}
+
+.footerSig {
+    margin-top: 40px;
+    text-align: right;
+    padding-right: 20px;
+    font-weight: bold;
+}
+
+/* Form Styles */
+.inputGroup {
+    margin-bottom: 16px;
+}
+
+.label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.row {
+    display: flex;
+    gap: 12px;
+}
+
+.grid2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    transition: 0.2s;
+}
+
+.select:focus {
+    border-color: var(--primary);
+    outline: none;
+}
+
+.textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: white;
+    color: var(--text-main);
+    transition: 0.2s;
+    font-size: 0.95rem;
+    font-family: inherit;
+    resize: vertical;
+    min-height: 80px;
+}
+
+.textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.itemsFormTable {
+    width: 100%;
+    margin-bottom: 16px;
+    border-collapse: collapse;
+}
+
+.itemsFormTable th {
+    text-align: left;
+    font-size: 0.8rem;
+    padding-bottom: 8px;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.itemsFormTable td {
+    padding: 4px 0;
+    vertical-align: top;
+}
+
+.itemInput {
+    width: 100%;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 8px;
+    font-size: 0.9rem;
+}
+
+.itemInput:focus {
+    border-color: var(--primary);
+    outline: none;
+}
+
+.removeBtn {
+    background: none;
+    border: none;
+    color: var(--danger);
+    font-size: 1.2rem;
+    font-weight: bold;
+    cursor: pointer;
+    margin-left: 8px;
+}
+
+.divider {
+    border: 0;
+    height: 1px;
+    background: var(--border-color);
+    margin: 24px 0;
+}
+
+@media print {
+    @page {
+        margin: 0;
+        size: a4;
+    }
+
+    .sidebar {
+        display: none;
+    }
+
+    .previewArea {
+        padding: 0;
+        margin: 0;
+        display: block;
+        background: white;
+        overflow: visible;
+        height: auto;
+    }
+
+    .invoicePaper {
+        box-shadow: none;
+        margin: 0;
+        border: none;
+        padding: 15mm;
+        width: 100%;
+    }
+
+    .container {
+        display: block;
+        height: auto;
+        overflow: visible;
+    }
+}

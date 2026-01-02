@@ -1,0 +1,185 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    padding: 0 20px;
+    background: transparent;
+    /* Let body gradient show through */
+}
+
+.header {
+    width: 100%;
+    padding: 80px 20px 60px;
+    text-align: center;
+    position: relative;
+}
+
+.companyName {
+    font-size: 3.5rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-transform: uppercase;
+    letter-spacing: -1px;
+    margin-bottom: 12px;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+.tagline {
+    font-size: 1.5rem;
+    color: var(--text-muted);
+    font-weight: 400;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.dashboardLabel {
+    margin-top: 40px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--primary-dark);
+    background: rgba(255, 255, 255, 0.6);
+    padding: 8px 24px;
+    border-radius: 99px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: var(--shadow-sm);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.dashboardLabel::before {
+    content: '';
+    display: block;
+    width: 8px;
+    height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+.navGrid {
+    margin-top: 40px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 30px;
+    width: 100%;
+    max-width: 1200px;
+    padding-bottom: 60px;
+}
+
+.navCard {
+    background: rgba(255, 255, 255, 0.6);
+    padding: 40px;
+    border-radius: 24px;
+    text-decoration: none;
+    color: var(--text-main);
+    transition: var(--transition-smooth);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.navCard:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--shadow-xl);
+    background: rgba(255, 255, 255, 0.85);
+    border-color: var(--primary-light);
+}
+
+.icon {
+    width: 64px;
+    height: 64px;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: white;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 24px;
+    font-size: 28px;
+    transition: var(--transition-smooth);
+    box-shadow: var(--shadow-md);
+}
+
+.navCard:hover .icon {
+    transform: scale(1.1) rotate(5deg);
+    box-shadow: 0 10px 20px -5px rgba(59, 130, 246, 0.4);
+}
+
+.cardTitle {
+    font-size: 1.5rem;
+    margin-bottom: 12px;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.cardText {
+    color: var(--text-muted);
+    font-size: 1rem;
+    line-height: 1.6;
+}
+
+/* Add a visual arrow or indicator */
+.navCard::after {
+    content: '→';
+    position: absolute;
+    bottom: 30px;
+    right: 30px;
+    font-size: 1.5rem;
+    color: var(--primary);
+    opacity: 0;
+    transform: translateX(-10px);
+    transition: var(--transition-smooth);
+}
+
+.navCard:hover::after {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.footer {
+    width: 100%;
+    padding: 40px 20px;
+    text-align: center;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    margin-top: auto;
+}
+
+.devTag {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.devTag a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 600;
+    transition: var(--transition-fast);
+}
+
+.devTag a:hover {
+    color: var(--primary-dark);
+}
+
+@media (max-width: 768px) {
+    .companyName {
+        font-size: 2.5rem;
+    }
+
+    .header {
+        padding: 40px 20px;
+    }
+}
