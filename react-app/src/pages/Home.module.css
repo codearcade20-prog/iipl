@@ -183,3 +183,181 @@
         padding: 40px 20px;
     }
 }
+
+.logoutBtn {
+    background: white;
+    border: 1px solid #e2e8f0;
+    padding: 8px 16px;
+    border-radius: 8px;
+    color: #ef4444;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.9rem;
+}
+
+.logoutBtn:hover {
+    background: #fef2f2;
+    border-color: #fecaca;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+
+/* History Module Styles */
+.historySection {
+    width: 100%;
+    max-width: 1200px;
+    margin-bottom: 60px;
+}
+
+.card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+}
+
+.cardHeader {
+    padding: 20px 30px;
+    border-bottom: 1px solid var(--border-color);
+    background: #f8fafc;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.cardTitle {
+    font-weight: 700;
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    margin-bottom: 0;
+    /* Reset margin from navCard usage if any conflict */
+}
+
+.tableWrapper {
+    overflow-x: auto;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 0.9rem;
+}
+
+.table th {
+    background: #f1f5f9;
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    padding: 16px 24px;
+    letter-spacing: 0.5px;
+}
+
+.table td {
+    padding: 16px 24px;
+    border-bottom: 1px solid #f1f5f9;
+    color: var(--text-secondary);
+}
+
+.table tr:last-child td {
+    border-bottom: none;
+}
+
+.table tr:hover {
+    background-color: #f8fafc;
+}
+
+/* Badges */
+.badge {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    display: inline-block;
+}
+
+.badgeInvoice {
+    background: #f3e8ff;
+    color: #7e22ce;
+}
+
+.badgePayment {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.badgePaid {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+/* Status Colors (Text/Badge) */
+.statusPending {
+    color: #c2410c;
+    background: #fff7ed;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.statusApproved {
+    color: #1d4ed8;
+    background: #eff6ff;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.statusPaid {
+    color: #15803d;
+    background: #f0fdf4;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.statusRejected {
+    color: #b91c1c;
+    background: #fef2f2;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+/* Refresh Button */
+.refreshBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #64748b;
+}
+
+.refreshBtn:hover {
+    background: #f1f5f9;
+    color: #334155;
+}
+
+.statusSelect {
+    padding: 8px 12px;
+    min-width: 150px;
+    height: 40px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: white;
+    font-weight: 500;
+}

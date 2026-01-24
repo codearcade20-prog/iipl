@@ -9,11 +9,15 @@ export function Card({ children, className = "", ...props }) {
     );
 }
 
-export function Input({ label, id, className = "", ...props }) {
+export function Input({ label, id, className = "", multiline = false, rows = 3, ...props }) {
     return (
         <div className={styles.inputWrapper}>
             {label && <label htmlFor={id} className={styles.label}>{label}</label>}
-            <input id={id} className={`${styles.input} ${className}`} {...props} />
+            {multiline ? (
+                <textarea id={id} className={`${styles.input} ${className}`} rows={rows} {...props} />
+            ) : (
+                <input id={id} className={`${styles.input} ${className}`} {...props} />
+            )}
         </div>
     );
 }
@@ -28,3 +32,4 @@ export function Select({ label, id, children, className = "", ...props }) {
         </div>
     );
 }
+export { LoadingOverlay, LoadingSpinner } from './Loading';

@@ -1,0 +1,654 @@
+/* Scoped styles for VendorSiteDashboard */
+.dashboardContainer {
+    font-family: 'Outfit', sans-serif;
+    color: #0f172a;
+    background-color: #f8fafc;
+    /* var(--background) */
+    height: 100vh;
+    /* Or auto if embedded */
+    display: flex;
+    overflow: hidden;
+}
+
+.dashboardContainer * {
+    box-sizing: border-box;
+}
+
+/* Sidebar */
+.sidebar {
+    width: 260px;
+    background-color: #1e293b;
+    /* var(--sidebar-bg) */
+    color: #e2e8f0;
+    /* var(--sidebar-text) */
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+    transition: width 0.3s ease;
+}
+
+.sidebar.open {
+    left: 0;
+}
+
+.brand {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 3rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: #fff;
+}
+
+.navLinks {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.navItem {
+    background: transparent;
+    border: none;
+    color: #e2e8f0;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    text-align: left;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    transition: all 0.2s ease;
+}
+
+.navItem:hover,
+.navItemActive {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.navItemActive {
+    background-color: #4f46e5;
+    /* var(--primary) */
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+}
+
+.sidebarFooter {
+    margin-top: auto;
+    font-size: 0.7rem;
+    text-align: center;
+    color: #94a3b8;
+    padding-top: 2rem;
+}
+
+.sidebarFooter a {
+    color: #cbd5e1;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.sidebarFooter a:hover {
+    color: #fff;
+}
+
+/* Main Content */
+.mainContent {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.topBar {
+    background-color: #ffffff;
+    /* var(--card-bg) */
+    padding: 1rem 2rem;
+    border-bottom: 1px solid #e2e8f0;
+    /* var(--border) */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    /* Hide top bar when printing master report */
+}
+
+/* Mobile Toggle */
+.menuToggle {
+    display: none;
+    background: transparent;
+    border: none;
+    color: #0f172a;
+    cursor: pointer;
+    padding: 0.5rem;
+}
+
+.pageTitle h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.subtitle {
+    font-size: 0.875rem;
+    color: #64748b;
+    /* var(--text-muted) */
+}
+
+.searchBar {
+    position: relative;
+    width: 300px;
+}
+
+.searchBar svg {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #64748b;
+    pointer-events: none;
+}
+
+.searchBar input {
+    width: 100%;
+    padding: 0.6rem 1rem 0.6rem 2.5rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 2rem;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.searchBar input:focus {
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+}
+
+.contentArea {
+    flex: 1;
+    overflow-y: auto;
+    padding: 2rem;
+}
+
+/* Stats Cards */
+.statsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.statCard {
+    background: #ffffff;
+    padding: 1.5rem;
+    border-radius: 1rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    transition: transform 0.2s;
+}
+
+.statCard:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.statIcon {
+    width: 60px;
+    height: 60px;
+    border-radius: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+}
+
+.bgGradient1 {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.bgGradient2 {
+    background: linear-gradient(135deg, #2af598 0%, #009efd 100%);
+}
+
+.bgGradient3 {
+    background: linear-gradient(135deg, #fed373 0%, #f15245 100%);
+}
+
+.statInfo h3 {
+    font-size: 0.875rem;
+    color: #64748b;
+    margin-bottom: 0.25rem;
+}
+
+.statInfo p {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+/* Grids / Tables */
+.gridContainer {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.5rem;
+}
+
+.infoCard {
+    background: #ffffff;
+    border-radius: 1rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+    cursor: pointer;
+}
+
+.infoCard:hover {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    border-color: #4f46e5;
+}
+
+.cardHeader {
+    padding: 1rem 1.5rem;
+    background: #f1f5f9;
+    font-weight: 600;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.cardBody {
+    padding: 1.5rem;
+}
+
+.listItem {
+    padding: 0.75rem 0;
+    border-bottom: 1px dashed #e2e8f0;
+}
+
+.listItem:last-child {
+    border-bottom: none;
+}
+
+.listItemTitle {
+    font-weight: 500;
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.listItemSub {
+    font-size: 0.85rem;
+    color: #64748b;
+    display: block;
+}
+
+.backBtn {
+    background: transparent;
+    border: 1px solid #e2e8f0;
+    color: #64748b;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    font-size: 0.875rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-right: 1rem;
+    transition: all 0.2s;
+}
+
+.backBtn:hover {
+    background: #f8fafc;
+    color: #4f46e5;
+    border-color: #4f46e5;
+}
+
+.pdfBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0.5rem;
+    background: #eff6ff;
+    color: #4f46e5;
+    border-radius: 0.5rem;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+
+.pdfBtn:hover {
+    background: #4f46e5;
+    color: white;
+}
+
+.detailHeader {
+    display: flex;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+/* Forms */
+.formContainer {
+    max-width: 600px;
+    margin: 0 auto;
+    background: #ffffff;
+    padding: 2rem;
+    border-radius: 1rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.formGroup {
+    margin-bottom: 1.5rem;
+}
+
+.formLabel {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #0f172a;
+}
+
+.formInput {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.formInput:focus {
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.advanceList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.advanceItem {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.removeAdvanceBtn {
+    background: #fee2e2;
+    color: #ef4444;
+    border: none;
+    border-radius: 0.5rem;
+    width: 40px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.btnPrimary {
+    background: #4f46e5;
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+    width: 100%;
+}
+
+.btnPrimary:hover {
+    background: #4338ca;
+}
+
+.btnSecondary {
+    background: white;
+    color: #0f172a;
+    border: 1px solid #e2e8f0;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    cursor: pointer;
+    margin-top: 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btnSecondary:hover {
+    background: #f8fafc;
+}
+
+/* Admin Table */
+.tableContainer {
+    background: #ffffff;
+    border-radius: 1rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    overflow-x: auto;
+}
+
+.adminTable {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 800px;
+}
+
+.adminTable th,
+.adminTable td {
+    padding: 1rem 1.5rem;
+    text-align: left;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.adminTable th {
+    background: #f8fafc;
+    font-weight: 600;
+    color: #64748b;
+}
+
+.actionBtn {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    transition: background 0.2s;
+}
+
+.editBtn {
+    color: #3b82f6;
+}
+
+.deleteBtn {
+    color: #ef4444;
+}
+
+.viewToggle {
+    display: flex;
+    background: #e2e8f0;
+    padding: 2px;
+    border-radius: 0.5rem;
+    margin-right: 1rem;
+}
+
+.toggleBtn {
+    background: transparent;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 0.35rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.toggleBtn.active {
+    background: white;
+    color: #4f46e5;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Master Table Styles */
+/* Container for the scrollable table area in statements view */
+
+
+.masterTable {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid #000;
+    font-size: 0.8rem;
+    min-width: 800px;
+    /* Ensure it doesn't squish too much */
+}
+
+.masterTable th,
+.masterTable td {
+    border: 1px solid #000;
+    padding: 4px 8px;
+    white-space: nowrap;
+    /* Prevent wrapping in cells generally */
+}
+
+.masterTable th {
+    background-color: #fca5a5;
+    /* Light Red/Peach match */
+    text-align: center;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+/* Printing Overrides */
+/* Printing Overrides */
+@media print {
+
+    /* Show ONLY the dashboard container when printing THIS component */
+    .dashboardContainer,
+    .dashboardContainer * {
+        visibility: visible;
+    }
+
+
+    /* Print Specific Hiding */
+    :global(.print-hide),
+    .printHide,
+    .sidebar,
+    .topBar,
+    .menuToggle {
+        display: none !important;
+    }
+
+    .dashboardContainer {
+        height: auto;
+        overflow: visible;
+        display: block;
+        background: white;
+    }
+
+    .mainContent {
+        overflow: visible;
+        display: block;
+        margin: 0;
+        padding: 0;
+    }
+
+    .contentArea {
+        padding: 0;
+        overflow: visible;
+    }
+
+    /* Target the Master Table specifically */
+    .masterTable {
+        font-size: 0.6rem;
+        /* Smaller font for print */
+        width: 100%;
+        table-layout: auto;
+    }
+
+    .masterTable th,
+    .masterTable td {
+        white-space: normal;
+        /* Allow wrapping */
+        word-wrap: break-word;
+        /* Prevent overflow */
+        max-width: 150px;
+        /* Limit column width */
+    }
+
+    /* Ensure table fits */
+    .statementContainer {
+        width: 100% !important;
+        transform: scale(1);
+        /* Reset any scale */
+    }
+
+    /* Ensure colors print */
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+}
+
+
+@media (max-width: 768px) {
+    .menuToggle {
+        display: block;
+    }
+
+    .sidebar {
+        position: fixed;
+        left: -260px;
+        height: 100%;
+        z-index: 100;
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .advanceItem {
+        flex-direction: column;
+    }
+
+    .removeAdvanceBtn {
+        width: 100%;
+        margin-top: 0.25rem;
+    }
+}
+
+/* Modal Styles */
+.modalOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.3s ease;
+}
+
+.modalContent {
+    background: white;
+    padding: 30px;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 550px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}

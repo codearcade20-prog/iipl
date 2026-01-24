@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui';
+import { Input, LoadingOverlay } from '../components/ui';
 import styles from './PaymentRequest.module.css';
 import { numberToWords } from '../utils';
 
@@ -12,18 +12,24 @@ const PaymentRequest = () => {
     const [formData, setFormData] = useState({
         vendorName: '', pan: '', address: '', phone: '',
         accName: '', acc: '', bank: '', ifsc: '',
-        invoiceNo: '', date: '', project: '',
+        invoiceNo: '', date: '', woDate: '', project: '',
         nature: '', amount: '', woValue: '', billStatus: ''
     });
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [newVendor, setNewVendor] = useState({
-        name: '', pan: '', phone: '', address: '', acc_name: '', acc: '', bank: '', ifsc: ''
+        name: '', pan: '', phone: '', address: '', acc_name: '', acc: '', bank: '', ifsc: '', vendorType: 'both'
     });
 
     // History Modal State
     const [historyModalOpen, setHistoryModalOpen] = useState(false);
     const [historyList, setHistoryList] = useState([]);
+    const [historyVendorSearch, setHistoryVendorSearch] = useState('');
+
+    const [loading, setLoading] = useState(false);
+
+    // PAN field visibility control
+    const [showPan, setShowPan] = useState(true);
 
     // Supabase Maps
     const DB_COLUMNS = {
@@ -42,10 +48,12 @@ const PaymentRequest = () => {
     }, []);
 
     const fetchVendors = async () => {
+        setLoading(true);
         try {
             const { data, error } = await supabase
                 .from('vendors')
                 .select('*')
+                .in('vendor_type', ['payment_request', 'both'])
                 .order(DB_COLUMNS.NAME, { ascending: true });
 
             if (error) throw error;
@@ -53,7 +61,7 @@ const PaymentRequest = () => {
         } catch (e) {
             console.error(e);
             alert('Could not fetch vendors. Please check connection.');
-        }
+        } finally { setLoading(false); }
     };
 
     const handleVendorChange = (e) => {
@@ -73,6 +81,7 @@ const PaymentRequest = () => {
     };
 
     const saveNewVendor = async () => {
+        setLoading(true);
         try {
             const data = {
                 [DB_COLUMNS.NAME]: newVendor.name,
@@ -83,6 +92,7 @@ const PaymentRequest = () => {
                 [DB_COLUMNS.ACC]: newVendor.acc,
                 [DB_COLUMNS.BANK]: newVendor.bank,
                 [DB_COLUMNS.IFSC]: newVendor.ifsc.toUpperCase(),
+                vendor_type: newVendor.vendorType
             };
 
             const { error } = await supabase.from('vendors').insert([data]);
@@ -93,15 +103,44 @@ const PaymentRequest = () => {
             fetchVendors();
         } catch (e) {
             alert('Save Failed: ' + e.message);
+        } finally { setLoading(false); }
+    };
+
+    const validateForm = () => {
+        const required = [
+            { k: 'vendorName', l: 'Vendor Name' },
+            { k: 'address', l: 'Address' },
+            { k: 'invoiceNo', l: 'Work Order No / Invoice No' },
+            { k: 'woDate', l: 'Work Order Date' },
+            { k: 'project', l: 'Project' },
+            { k: 'nature', l: 'Nature of Work' },
+            { k: 'amount', l: 'Invoice Amount' },
+            { k: 'woValue', l: 'WO Value' },
+            { k: 'billStatus', l: 'Bill Status' },
+            { k: 'accName', l: 'Account Holder Name' },
+            { k: 'acc', l: 'Account Number' },
+            { k: 'ifsc', l: 'IFSC Code' }
+        ];
+
+        for (let f of required) {
+            if (!formData[f.k]) {
+                alert(`${f.l} is required`);
+                return false;
+            }
+        }
+        return true;
+    };
+
+    const handlePrint = () => {
+        if (validateForm()) {
+            window.print();
         }
     };
 
     const saveToHistory = async () => {
-        if (!formData.vendorName || !formData.amount) {
-            alert('Please fill Vendor Name and Amount');
-            return;
-        }
+        if (!validateForm()) return;
 
+        setLoading(true);
         try {
             const payload = {
                 type: 'payment_request',
@@ -110,9 +149,13 @@ const PaymentRequest = () => {
                 amount: parseFloat(formData.amount) || 0,
                 wo_value: parseFloat(formData.woValue) || 0,
                 bill_status: formData.billStatus,
-                date: formData.date,
+                date: new Date().toISOString().split('T')[0],
+                wo_date: formData.woDate,
                 invoice_no: formData.invoiceNo,
+                nature_of_work: formData.nature,
                 status: 'Pending',
+                paid_amount: 0,
+                remaining_amount: parseFloat(formData.amount) || 0,
                 created_at: new Date().toISOString()
             };
 
@@ -123,10 +166,11 @@ const PaymentRequest = () => {
         } catch (e) {
             console.error(e);
             alert('Failed to save history: ' + e.message);
-        }
+        } finally { setLoading(false); }
     };
 
     const openHistoryModal = async () => {
+        setLoading(true);
         try {
             const { data, error } = await supabase
                 .from('payment_history')
@@ -140,7 +184,7 @@ const PaymentRequest = () => {
             setHistoryModalOpen(true);
         } catch (e) {
             alert(e.message);
-        }
+        } finally { setLoading(false); }
     };
 
     const loadHistoryItem = async (item) => {
@@ -160,13 +204,29 @@ const PaymentRequest = () => {
 
             invoiceNo: item.invoice_no || '',
             date: item.date || '',
+            woDate: item.wo_date || '',
             project: item.project || '',
-            nature: '', // History doesn't store nature currently, leave blank or add to DB later
+            nature: item.nature_of_work || '',
             amount: item.amount || '',
             woValue: item.wo_value || '',
             billStatus: item.bill_status || ''
         });
         setHistoryModalOpen(false);
+    };
+
+    const deleteHistoryItem = async (id, e) => {
+        e.stopPropagation();
+        if (window.confirm('Are you sure you want to delete this history record?')) {
+            setLoading(true);
+            try {
+                const { error } = await supabase.from('payment_history').delete().eq('id', id);
+                if (error) throw error;
+                // Update local list
+                setHistoryList(prev => prev.filter(item => item.id !== id));
+            } catch (err) {
+                alert('Error deleting record: ' + err.message);
+            } finally { setLoading(false); }
+        }
     };
 
     const formatDate = (d) => {
@@ -177,8 +237,14 @@ const PaymentRequest = () => {
         return `${day}-${m}-${y}`;
     };
 
+    // Filter history by vendor name
+    const filteredHistoryList = historyList.filter(item =>
+        !historyVendorSearch || item.vendor_name?.toLowerCase().includes(historyVendorSearch.toLowerCase())
+    );
+
     return (
         <div className={styles.container}>
+            {loading && <LoadingOverlay message="Please wait..." />}
             <div className={styles.formSection}>
                 <div className={styles.formHeader}>
                     <h2 className={styles.title}>Payment Request</h2>
@@ -199,18 +265,29 @@ const PaymentRequest = () => {
                     <Button onClick={() => setIsModalOpen(true)} style={{ padding: '8px 12px' }}>+</Button>
                 </div>
 
+                <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <input
+                        type="checkbox"
+                        id="showPanCheckbox"
+                        checked={showPan}
+                        onChange={(e) => setShowPan(e.target.checked)}
+                        style={{ cursor: 'pointer' }}
+                    />
+                    <label htmlFor="showPanCheckbox" style={{ cursor: 'pointer', userSelect: 'none' }}>Include PAN No</label>
+                </div>
+
                 <div className={styles.gridCols2}>
-                    <Input label="PAN NO" value={formData.pan} onChange={e => setFormData({ ...formData, pan: e.target.value })} />
+                    {showPan && <Input label="PAN NO" value={formData.pan} onChange={e => setFormData({ ...formData, pan: e.target.value })} />}
                     <Input label="Phone" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} />
                 </div>
                 <div style={{ marginTop: '12px' }}>
-                    <Input label="Address" value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} />
+                    <Input label="Address" multiline={true} rows={3} value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} />
                 </div>
 
                 <hr className={styles.divider} />
                 <div className={styles.gridCols2}>
-                    <Input label="Invoice No" value={formData.invoiceNo} onChange={e => setFormData({ ...formData, invoiceNo: e.target.value })} />
-                    <Input type="date" label="Date" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
+                    <Input label="Work Order No / Invoice No" value={formData.invoiceNo} onChange={e => setFormData({ ...formData, invoiceNo: e.target.value })} />
+                    <Input type="date" label="Work Order Date" value={formData.woDate} onChange={e => setFormData({ ...formData, woDate: e.target.value })} />
                 </div>
                 <div style={{ marginTop: '12px' }}>
                     <Input label="Project" value={formData.project} onChange={e => setFormData({ ...formData, project: e.target.value })} />
@@ -237,7 +314,7 @@ const PaymentRequest = () => {
                 </div>
 
                 <div className={styles.buttonGroup}>
-                    <Button variant="secondary" style={{ flex: 1 }} onClick={() => window.print()}>Print Request</Button>
+                    <Button variant="secondary" style={{ flex: 1 }} onClick={handlePrint}>Print Request</Button>
                     <Button style={{ flex: 1 }} onClick={saveToHistory}>Save Record</Button>
                 </div>
             </div>
@@ -267,7 +344,7 @@ const PaymentRequest = () => {
                             </tr>
                             <tr>
                                 <td className={styles.labelCell}>WO-DATE</td>
-                                <td className={styles.valueCell}>{formatDate(formData.date)}</td>
+                                <td className={styles.valueCell}>{formatDate(formData.woDate)}</td>
                             </tr>
                             <tr>
                                 <td className={styles.labelCell}>WO-VALUE</td>
@@ -285,10 +362,12 @@ const PaymentRequest = () => {
                                 <td className={styles.labelCell}>IFSC</td>
                                 <td className={styles.valueCell}>{formData.ifsc}</td>
                             </tr>
-                            <tr>
-                                <td className={styles.labelCell}>PAN NO</td>
-                                <td className={styles.valueCell}>{formData.pan}</td>
-                            </tr>
+                            {showPan && (
+                                <tr>
+                                    <td className={styles.labelCell}>PAN NO</td>
+                                    <td className={styles.valueCell}>{formData.pan}</td>
+                                </tr>
+                            )}
                             <tr>
                                 <td className={styles.labelCell}>REQUEST DATE</td>
                                 <td className={styles.valueCell}>{formatDate(new Date().toISOString().split('T')[0])}</td>
@@ -343,11 +422,24 @@ const PaymentRequest = () => {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                             <Input placeholder="Vendor Name" value={newVendor.name} onChange={e => setNewVendor({ ...newVendor, name: e.target.value })} />
                             <Input placeholder="Account Holder Name" value={newVendor.acc_name} onChange={e => setNewVendor({ ...newVendor, acc_name: e.target.value })} />
+                            <div style={{ marginBottom: '12px' }}>
+                                <label style={{ display: 'block', marginBottom: '6px', fontWeight: 500, fontSize: '0.9rem' }}>Vendor Type</label>
+                                <select
+                                    className={styles.select}
+                                    value={newVendor.vendorType}
+                                    onChange={e => setNewVendor({ ...newVendor, vendorType: e.target.value })}
+                                    style={{ width: '100%', padding: '10px' }}
+                                >
+                                    <option value="both">Both (Payment Request & Invoice)</option>
+                                    <option value="payment_request">Payment Request Only</option>
+                                    <option value="invoice">Invoice Only</option>
+                                </select>
+                            </div>
                             <div className={styles.gridCols2}>
                                 <Input placeholder="PAN" value={newVendor.pan} onChange={e => setNewVendor({ ...newVendor, pan: e.target.value })} />
                                 <Input placeholder="Phone" value={newVendor.phone} onChange={e => setNewVendor({ ...newVendor, phone: e.target.value })} />
                             </div>
-                            <Input placeholder="Address" value={newVendor.address} onChange={e => setNewVendor({ ...newVendor, address: e.target.value })} />
+                            <Input placeholder="Address" multiline={true} rows={3} value={newVendor.address} onChange={e => setNewVendor({ ...newVendor, address: e.target.value })} />
                             <Input placeholder="Acc No" value={newVendor.acc} onChange={e => setNewVendor({ ...newVendor, acc: e.target.value })} />
                             <div className={styles.gridCols2}>
                                 <Input placeholder="Bank" value={newVendor.bank} onChange={e => setNewVendor({ ...newVendor, bank: e.target.value })} />
@@ -370,6 +462,15 @@ const PaymentRequest = () => {
                             <h3 className={styles.modalTitle} style={{ margin: 0 }}>Previous Requests</h3>
                             <button onClick={() => setHistoryModalOpen(false)} style={{ border: 'none', background: 'none', fontSize: '1.2rem', cursor: 'pointer' }}>×</button>
                         </div>
+                        <div style={{ marginBottom: '15px' }}>
+                            <input
+                                type="text"
+                                placeholder="Search by vendor name..."
+                                value={historyVendorSearch}
+                                onChange={(e) => setHistoryVendorSearch(e.target.value)}
+                                style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border-color)', borderRadius: '8px', fontSize: '0.9rem' }}
+                            />
+                        </div>
                         <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
                             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
                                 <thead style={{ background: '#f8fafc', position: 'sticky', top: 0 }}>
@@ -381,17 +482,24 @@ const PaymentRequest = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {historyList.map(item => (
+                                    {filteredHistoryList.map(item => (
                                         <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                                             <td style={{ padding: '8px' }}>{item.date}</td>
                                             <td style={{ padding: '8px' }}>{item.vendor_name}</td>
                                             <td style={{ padding: '8px', textAlign: 'right', fontWeight: 'bold' }}>₹{item.amount}</td>
-                                            <td style={{ padding: '8px', textAlign: 'center' }}>
+                                            <td style={{ padding: '8px', textAlign: 'center', display: 'flex', gap: '8px', justifyContent: 'center' }}>
                                                 <Button variant="secondary" style={{ padding: '2px 8px', fontSize: '0.8rem' }} onClick={() => loadHistoryItem(item)}>Load</Button>
+                                                <button
+                                                    onClick={(e) => deleteHistoryItem(item.id, e)}
+                                                    style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '1rem' }}
+                                                    title="Delete"
+                                                >
+                                                    🗑️
+                                                </button>
                                             </td>
                                         </tr>
                                     ))}
-                                    {historyList.length === 0 && <tr><td colSpan="4" style={{ padding: '20px', textAlign: 'center' }}>No history found.</td></tr>}
+                                    {filteredHistoryList.length === 0 && <tr><td colSpan="4" style={{ padding: '20px', textAlign: 'center' }}>No history found.</td></tr>}
                                 </tbody>
                             </table>
                         </div>

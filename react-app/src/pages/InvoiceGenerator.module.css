@@ -50,7 +50,7 @@
 
 .previewArea {
     flex: 1;
-    padding: 40px;
+    padding: 20px;
     overflow-y: auto;
     display: flex;
     justify-content: center;
@@ -59,13 +59,14 @@
 
 .invoicePaper {
     width: 210mm;
-    min-height: 297mm;
+    min-height: 280mm;
     background: white;
-    padding: 15mm;
+    padding: 10mm;
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
     position: relative;
     box-sizing: border-box;
     color: #000;
+    margin: 0 auto;
 }
 
 .borderBox {
@@ -76,14 +77,14 @@
 .headerTitle {
     text-align: center;
     font-weight: bold;
-    padding: 5px;
-    font-size: 14pt;
+    padding: 4px;
+    font-size: 13pt;
     border-bottom: 1px solid #000;
 }
 
 .vendorDetails {
     text-align: center;
-    padding: 10px;
+    padding: 5px;
     border-bottom: 1px solid #000;
     margin-top: -1px;
 }
@@ -99,7 +100,8 @@
 .panNo {
     text-align: right;
     font-size: 10pt;
-    padding-bottom: 5px;
+    font-weight: bold;
+    margin-bottom: 2px;
 }
 
 .infoGrid {
@@ -126,10 +128,12 @@
 .projectName {
     text-align: center;
     font-weight: bold;
-    padding: 10px;
+    padding: 6px;
     border-top: 1px solid #000;
     border-bottom: 1px solid #000;
     margin-top: -1px;
+    font-size: 11pt;
+    text-transform: uppercase;
 }
 
 .previewTable {
@@ -141,8 +145,9 @@
 .previewTable th,
 .previewTable td {
     border: 1px solid #000;
-    padding: 10px;
+    padding: 6px 5px;
     text-align: center;
+    font-size: 10pt;
 }
 
 .previewTable th:first-child,
@@ -156,7 +161,7 @@
 }
 
 .descCol {
-    text-align: left;
+    text-align: left !important;
     width: 50%;
     white-space: pre-wrap;
     vertical-align: top;
@@ -168,24 +173,25 @@
 }
 
 .wordsSection {
-    padding: 10px;
+    padding: 6px;
     text-align: center;
     font-weight: bold;
     border-top: 1px solid #000;
     border-bottom: 1px solid #000;
     margin-top: -1px;
+    font-size: 10pt;
 }
 
 .bankDetails {
-    margin-top: 20px;
-    line-height: 1.6;
-    font-size: 11pt;
+    margin-top: 10px;
+    line-height: 1.4;
+    font-size: 10pt;
+    font-weight: bold;
 }
 
 .footerSig {
-    margin-top: 40px;
+    margin-top: 20px;
     text-align: right;
-    padding-right: 20px;
     font-weight: bold;
 }
 
@@ -297,34 +303,149 @@
 
 @media print {
     @page {
-        margin: 0;
-        size: a4;
+        size: portrait;
+        margin: 10mm 10mm 0 10mm;
+        /* Top, Right, Bottom, Left */
     }
 
-    .sidebar {
-        display: none;
-    }
 
+    html,
+    body,
+    #root,
+    .container,
     .previewArea {
-        padding: 0;
-        margin: 0;
-        display: block;
-        background: white;
-        overflow: visible;
-        height: auto;
+        margin: 0 !important;
+        padding: 0 !important;
+        height: auto !important;
+        min-height: 0 !important;
+        overflow: visible !important;
+        display: block !important;
+        width: 100% !important;
+        background: white !important;
+    }
+
+
+    .sidebar,
+    .homeBtn,
+    button,
+    [class*="sidebar"],
+    [class*="Modal"] {
+        display: none !important;
     }
 
     .invoicePaper {
-        box-shadow: none;
-        margin: 0;
-        border: none;
-        padding: 15mm;
-        width: 100%;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-sizing: border-box !important;
+        display: block !important;
+        page-break-inside: avoid !important;
+        position: static !important;
     }
 
-    .container {
-        display: block;
-        height: auto;
-        overflow: visible;
+
+    .borderBox {
+        border: 1pt solid #000 !important;
+        /* Unified single thickness */
+        width: 100% !important;
+        box-sizing: border-box !important;
+        display: block !important;
+        page-break-inside: avoid !important;
+    }
+
+
+
+    .previewTable {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        margin-bottom: 0 !important;
+    }
+
+    .previewTable th,
+    .previewTable td {
+        border: 1pt solid #000 !important;
+        border-right: none !important;
+        /* Remove sides to avoid bolding with borderBox */
+        border-left: none !important;
+        padding: 10px 10px !important;
+        font-size: 11pt !important;
+    }
+
+    /* Re-add internal column lines */
+    .previewTable th:not(:last-child),
+    .previewTable td:not(:last-child) {
+        border-right: 1pt solid #000 !important;
+    }
+
+
+    .previewTable tbody tr {
+        height: auto !important;
+        /* Remove fixed 100px height to prevent overflow */
+    }
+
+    .bankDetails {
+        margin-top: 10px !important;
+        /* Reduced */
+        padding: 0 !important;
+        font-size: 11pt !important;
+    }
+
+    .footerSig {
+        margin-top: 20px !important;
+        /* Reduced */
+        padding: 0 !important;
+        text-align: right !important;
+        font-size: 12pt !important;
+    }
+
+    /* Container for bank + sig */
+    .borderBox>div:last-child {
+        margin-top: 10px !important;
+        /* Reduced */
+        padding: 15px 20px !important;
+    }
+
+
+    .wordsSection {
+        padding: 10px !important;
+        font-size: 11pt !important;
+        border-bottom: 1pt solid #000 !important;
+        border-left: none !important;
+        border-right: none !important;
+    }
+
+
+    /* Target specific parts to match the 2nd image spacing */
+    .previewVendorName {
+        font-size: 24pt !important;
+        /* Slightly smaller for fit */
+        margin: 10px 0 5px 0 !important;
+    }
+
+    .headerTitle,
+    .vendorDetails,
+    .infoGrid,
+    .projectName {
+        border-right: none !important;
+        border-left: none !important;
+    }
+
+    .infoGrid {
+        border-bottom: 1pt solid #000 !important;
+    }
+
+    .projectName {
+        padding: 10px !important;
+        font-size: 12pt !important;
+        background: #f8fafc !important;
+        border-top: 1pt solid #000 !important;
+        border-bottom: 1pt solid #000 !important;
+    }
+
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        page-break-inside: avoid !important;
+        /* Force content to stay together */
     }
 }

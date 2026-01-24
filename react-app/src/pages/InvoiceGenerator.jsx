@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { Link } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui';
+import { Input, LoadingOverlay } from '../components/ui';
 import styles from './InvoiceGenerator.module.css';
 import { numberToWords } from '../utils';
 
@@ -11,7 +11,7 @@ const InvoiceGenerator = () => {
     const [vendors, setVendors] = useState([]);
     const [formData, setFormData] = useState({
         pan: '', vendorName: '', address: '', phone: '',
-        invoiceNo: '', date: '', project: '',
+        invoiceNo: '', date: new Date().toISOString().split('T')[0], woDate: '', project: '',
         accName: '', acc: '', ifsc: '', bank: ''
     });
 
@@ -19,11 +19,15 @@ const InvoiceGenerator = () => {
 
     // Modal
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [newVendor, setNewVendor] = useState({ name: '', pan: '', phone: '', address: '', acc_name: '', acc: '', bank: '', ifsc: '' });
+    const [newVendor, setNewVendor] = useState({ name: '', pan: '', phone: '', address: '', acc_name: '', acc: '', bank: '', ifsc: '', vendorType: 'both' });
 
     // History Modal
     const [historyModalOpen, setHistoryModalOpen] = useState(false);
     const [historyList, setHistoryList] = useState([]);
+    const [historyVendorSearch, setHistoryVendorSearch] = useState('');
+
+    const [loading, setLoading] = useState(false);
+    const [showWoDate, setShowWoDate] = useState(false);
 
     // DB Mapping
     const DB_COLUMNS = {
@@ -42,10 +46,12 @@ const InvoiceGenerator = () => {
     }, []);
 
     const fetchVendors = async () => {
+        setLoading(true);
         try {
             const { data, error } = await supabase
                 .from('vendors')
                 .select('*')
+                .in('vendor_type', ['invoice', 'both'])
                 .order(DB_COLUMNS.NAME, { ascending: true });
 
             if (error) throw error;
@@ -53,6 +59,8 @@ const InvoiceGenerator = () => {
         } catch (e) {
             console.error(e);
             alert("Could not load vendors from Supabase.");
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -91,6 +99,7 @@ const InvoiceGenerator = () => {
             ["Address", formData.address],
             ["Phone", formData.phone],
             ["Invoice No", formData.invoiceNo],
+            ["Work Order No", formData.woNumber],
             ["Date", formData.date],
             ["Project", formData.project],
             [],
@@ -117,15 +126,18 @@ const InvoiceGenerator = () => {
 
     // New Vendor Logic
     const saveNewVendor = async () => {
+        setLoading(true);
         try {
             const data = {
                 [DB_COLUMNS.NAME]: newVendor.name,
+                [DB_COLUMNS.HOLDER]: newVendor.acc_name,
                 [DB_COLUMNS.PAN]: newVendor.pan,
                 [DB_COLUMNS.PHONE]: newVendor.phone,
                 [DB_COLUMNS.ADDRESS]: newVendor.address,
                 [DB_COLUMNS.ACC]: newVendor.acc,
                 [DB_COLUMNS.BANK]: newVendor.bank,
                 [DB_COLUMNS.IFSC]: newVendor.ifsc.toUpperCase(),
+                vendor_type: newVendor.vendorType
             };
 
             const { error } = await supabase.from('vendors').insert([data]);
@@ -135,16 +147,51 @@ const InvoiceGenerator = () => {
             setIsModalOpen(false);
             fetchVendors();
         } catch (e) { alert(e.message); }
+        finally { setLoading(false); }
+    };
+
+
+
+    const validateForm = () => {
+        const required = [
+            { k: 'vendorName', l: 'Vendor Name' },
+            { k: 'address', l: 'Address' },
+            { k: 'invoiceNo', l: 'Invoice No' },
+            { k: 'date', l: 'Date' },
+            { k: 'project', l: 'Project Name' },
+            { k: 'woNumber', l: 'Work Order No' },
+            { k: 'accName', l: 'Account Holder Name' },
+            { k: 'acc', l: 'Account Number' },
+            { k: 'ifsc', l: 'IFSC Code' }
+        ];
+
+        for (let f of required) {
+            if (!formData[f.k]) {
+                alert(`${f.l} is required`);
+                return false;
+            }
+        }
+
+        if (items.length === 0) {
+            alert("Please add at least one item");
+            return false;
+        }
+
+        return true;
+    };
+
+    const handlePrint = () => {
+        if (validateForm()) {
+            window.print();
+        }
     };
 
     const saveToHistory = async () => {
-        if (!formData.vendorName || items.length === 0) {
-            alert('Please fill Vendor Name and add items');
-            return;
-        }
+        if (!validateForm()) return;
 
         const totalItems = items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
 
+        setLoading(true);
         try {
             const payload = {
                 type: 'invoice',
@@ -155,7 +202,12 @@ const InvoiceGenerator = () => {
                 bill_status: 'FINAL',
                 date: formData.date,
                 invoice_no: formData.invoiceNo,
+                // Add Work Order Number here. Note: User needs to add 'wo_no' column to DB if not exists.
+                wo_no: formData.woNumber,
                 status: 'Pending',
+                paid_amount: 0,
+                remaining_amount: totalItems,
+                items_data: items,
                 created_at: new Date().toISOString()
             };
 
@@ -166,10 +218,11 @@ const InvoiceGenerator = () => {
         } catch (e) {
             console.error(e);
             alert('Failed to save history: ' + e.message);
-        }
+        } finally { setLoading(false); }
     };
 
     const openHistoryModal = async () => {
+        setLoading(true);
         try {
             const { data, error } = await supabase
                 .from('payment_history')
@@ -183,7 +236,7 @@ const InvoiceGenerator = () => {
             setHistoryModalOpen(true);
         } catch (e) {
             alert(e.message);
-        }
+        } finally { setLoading(false); }
     };
 
     const loadHistoryItem = (item) => {
@@ -201,15 +254,35 @@ const InvoiceGenerator = () => {
             ifsc: vendor?.[DB_COLUMNS.IFSC] || '',
 
             invoiceNo: item.invoice_no || '',
+            woNumber: item.wo_no || '', // Load WO Number
             date: item.date || '',
+            woDate: item.wo_date || '',
             project: item.project || ''
         });
 
-        // Note: We cannot restore individual line items as they aren't stored in history heavily
-        // But we can set up the basic structure
-        setItems([{ desc: 'Imported from history - please verify details', unit: 'LS', amount: item.amount || '' }]);
+        if (item.items_data) {
+            setItems(item.items_data);
+        } else {
+            // Legacy fallback for old history items
+            setItems([{ desc: '', unit: 'LS', amount: item.amount || '' }]);
+        }
 
         setHistoryModalOpen(false);
+        setShowWoDate(!!item.wo_date);
+    };
+
+    const deleteHistoryItem = async (id, e) => {
+        e.stopPropagation();
+        if (window.confirm('Are you sure you want to delete this invoice record?')) {
+            setLoading(true);
+            try {
+                const { error } = await supabase.from('payment_history').delete().eq('id', id);
+                if (error) throw error;
+                setHistoryList(prev => prev.filter(item => item.id !== id));
+            } catch (err) {
+                alert('Error deleting: ' + err.message);
+            } finally { setLoading(false); }
+        }
     };
 
     const formatDate = (d) => {
@@ -224,8 +297,14 @@ const InvoiceGenerator = () => {
         return parts[0] + (parts[1] ? ' ' + parts[1] : '');
     };
 
+    // Filter history by vendor name
+    const filteredHistoryList = historyList.filter(item =>
+        !historyVendorSearch || item.vendor_name?.toLowerCase().includes(historyVendorSearch.toLowerCase())
+    );
+
     return (
         <div className={styles.container}>
+            {loading && <LoadingOverlay message="Please wait..." />}
             <div className={styles.sidebar}>
                 <div className={styles.header}>
                     <h2 className={styles.title}>Invoice Data Entry</h2>
@@ -248,15 +327,7 @@ const InvoiceGenerator = () => {
 
                 <Input label="PAN NO" value={formData.pan} onChange={e => setFormData({ ...formData, pan: e.target.value })} />
 
-                <div className={styles.inputGroup}>
-                    <label className={styles.label}>City / Address</label>
-                    <textarea
-                        className={styles.textarea}
-                        value={formData.address}
-                        onChange={e => setFormData({ ...formData, address: e.target.value })}
-                        placeholder="Enter City / Address"
-                    />
-                </div>
+                <Input label="City / Address" multiline={true} rows={3} value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} placeholder="Enter City / Address" />
 
                 <Input label="Phone Number" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} />
 
@@ -265,6 +336,41 @@ const InvoiceGenerator = () => {
                     <Input label="Invoice No" value={formData.invoiceNo} onChange={e => setFormData({ ...formData, invoiceNo: e.target.value })} />
                     <Input type="date" label="Date" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
                 </div>
+                <div style={{ marginTop: '12px' }}>
+                    <Input
+                        label="Work Order No"
+                        value={formData.woNumber || ''}
+                        onChange={e => {
+                            const val = e.target.value;
+                            setFormData(prev => ({ ...prev, woNumber: val }));
+
+                            // Auto-populate first item description
+                            if (items.length > 0) {
+                                const newItems = [...items];
+                                newItems[0].desc = val;
+                                setItems(newItems);
+                            }
+                        }}
+                    />
+                </div>
+                <div style={{ marginTop: '16px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <input
+                        type="checkbox"
+                        id="showWoDate"
+                        checked={showWoDate}
+                        onChange={(e) => setShowWoDate(e.target.checked)}
+                        style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                    />
+                    <label htmlFor="showWoDate" style={{ cursor: 'pointer', fontSize: '0.9rem', fontWeight: '500', color: 'var(--text-secondary)' }}>
+                        Include Work Order Date
+                    </label>
+                </div>
+
+                {showWoDate && (
+                    <div style={{ marginTop: '12px' }}>
+                        <Input type="date" label="Work Order Date" value={formData.woDate} onChange={e => setFormData({ ...formData, woDate: e.target.value })} />
+                    </div>
+                )}
                 <div style={{ marginTop: '12px' }}>
                     <Input label="Project Name" value={formData.project} onChange={e => setFormData({ ...formData, project: e.target.value })} />
                 </div>
@@ -300,7 +406,7 @@ const InvoiceGenerator = () => {
                 <Input label="Bank Name" value={formData.bank} onChange={e => setFormData({ ...formData, bank: e.target.value })} />
 
                 <div style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <Button onClick={() => window.print()}>Print Invoice</Button>
+                    <Button onClick={handlePrint}>Print Invoice</Button>
                     <div className={styles.row}>
                         <Button style={{ background: '#28a745', color: 'white', flex: 1 }} onClick={exportToExcel}>Save Excel</Button>
                         <Button style={{ background: '#0070c0', color: 'white', flex: 1 }} onClick={saveToHistory}>Save to History</Button>
@@ -310,21 +416,27 @@ const InvoiceGenerator = () => {
 
             <div className={styles.previewArea}>
                 <div className={styles.invoicePaper}>
-                    <div className={styles.panNo}>PAN NO: <span style={{ fontWeight: 'bold' }}>{formData.pan}</span></div>
+                    <div className={styles.panNo}>PAN NO: {formData.pan}</div>
 
-                    <div className={styles.borderBox} style={{ background: 'white', position: 'relative', zIndex: 1 }}>
+                    <div className={styles.borderBox} style={{ background: 'white' }}>
                         <div className={styles.headerTitle}>INVOICE</div>
                         <div className={styles.vendorDetails}>
                             <div className={styles.previewVendorName}>{formData.vendorName}</div>
-                            <div style={{ whiteSpace: 'pre-wrap' }}>{formData.address}</div>
-                            <div>{formData.phone}</div>
+                            <div style={{ whiteSpace: 'pre-wrap', fontWeight: 'bold' }}>{formData.address}</div>
+                            <div style={{ fontWeight: 'bold' }}>{formData.phone ? `Ph no: ${formData.phone}` : ''}</div>
                         </div>
 
                         <div className={styles.infoGrid}>
-                            <div className={styles.infoItem}>Invoice No: {formData.invoiceNo}</div>
-                            <div className={styles.infoItem} style={{ textAlign: 'right' }}>{formatDate(formData.date)}</div>
+                            <div className={styles.infoItem} style={{ fontWeight: 'bold' }}>Invoice No: {formData.invoiceNo}</div>
+                            <div className={styles.infoItem} style={{ textAlign: 'right', fontWeight: 'bold' }}>{formatDate(formData.date)}</div>
+                            {showWoDate && (
+                                <>
+                                    <div className={styles.infoItem} style={{ fontWeight: 'bold' }}>WO Date: {formatDate(formData.woDate)}</div>
+                                    <div className={styles.infoItem} style={{ textAlign: 'right' }}></div>
+                                </>
+                            )}
                             <div className={styles.toSection} style={{ gridColumn: 'span 2' }}>TO</div>
-                            <div className={styles.clientName} style={{ gridColumn: 'span 2' }}>
+                            <div className={styles.clientName} style={{ gridColumn: 'span 2', paddingBottom: '10px' }}>
                                 Innovative Interiors Pvt Ltd,<br />
                                 No 7, V V Kovil Street,<br />
                                 Chinmaya Nagar,<br />
@@ -337,10 +449,10 @@ const InvoiceGenerator = () => {
                         <table className={styles.previewTable}>
                             <thead>
                                 <tr>
-                                    <th style={{ width: '40px' }}>S.No</th>
+                                    <th style={{ width: '50px' }}>S.No</th>
                                     <th className={styles.descCol}>Description</th>
-                                    <th style={{ width: '60px' }}>Unit</th>
-                                    <th className={styles.amountCol}>Amount Rs.</th>
+                                    <th style={{ width: '80px' }}>Unit</th>
+                                    <th className={styles.amountCol} style={{ textAlign: 'center' }}>Amount Rs.</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -365,7 +477,7 @@ const InvoiceGenerator = () => {
                             (RUPEES {numberToWords(total).toUpperCase()} ONLY)
                         </div>
 
-                        <div style={{ padding: '10px' }}>
+                        <div style={{ padding: '15px' }}>
                             <div className={styles.bankDetails}>
                                 ACCOUNT HOLDER NAME - {formData.accName}<br />
                                 ACCOUNT NUMBER - {formData.acc}<br />
@@ -380,6 +492,7 @@ const InvoiceGenerator = () => {
                 </div>
             </div>
 
+
             {/* Modal */}
             {isModalOpen && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
@@ -387,17 +500,26 @@ const InvoiceGenerator = () => {
                         <h3 className={styles.title} style={{ marginBottom: 20 }}>Add Vendor</h3>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                             <Input placeholder="Name" value={newVendor.name} onChange={e => setNewVendor({ ...newVendor, name: e.target.value })} />
+                            <Input placeholder="Account Holder Name" value={newVendor.acc_name} onChange={e => setNewVendor({ ...newVendor, acc_name: e.target.value })} />
+                            <div style={{ marginBottom: '12px' }}>
+                                <label style={{ display: 'block', marginBottom: '6px', fontWeight: 500, fontSize: '0.9rem' }}>Vendor Type</label>
+                                <select
+                                    className={styles.select}
+                                    value={newVendor.vendorType}
+                                    onChange={e => setNewVendor({ ...newVendor, vendorType: e.target.value })}
+                                    style={{ width: '100%', padding: '10px', border: '1px solid var(--border-color)', borderRadius: '8px' }}
+                                >
+                                    <option value="both">Both (Payment Request & Invoice)</option>
+                                    <option value="payment_request">Payment Request Only</option>
+                                    <option value="invoice">Invoice Only</option>
+                                </select>
+                            </div>
                             <Input placeholder="PAN" value={newVendor.pan} onChange={e => setNewVendor({ ...newVendor, pan: e.target.value })} />
                             <div className={styles.grid2}>
                                 <Input placeholder="Phone" value={newVendor.phone} onChange={e => setNewVendor({ ...newVendor, phone: e.target.value })} />
                                 <Input placeholder="Acc No" value={newVendor.acc} onChange={e => setNewVendor({ ...newVendor, acc: e.target.value })} />
                             </div>
-                            <textarea
-                                className={styles.textarea}
-                                placeholder="Address"
-                                value={newVendor.address}
-                                onChange={e => setNewVendor({ ...newVendor, address: e.target.value })}
-                            />
+                            <Input placeholder="Address" multiline={true} rows={3} value={newVendor.address} onChange={e => setNewVendor({ ...newVendor, address: e.target.value })} />
                             <div className={styles.grid2}>
                                 <Input placeholder="Bank" value={newVendor.bank} onChange={e => setNewVendor({ ...newVendor, bank: e.target.value })} />
                                 <Input placeholder="IFSC" value={newVendor.ifsc} onChange={e => setNewVendor({ ...newVendor, ifsc: e.target.value })} />
@@ -419,6 +541,15 @@ const InvoiceGenerator = () => {
                             <h3 className={styles.title} style={{ margin: 0 }}>Previous Invoices</h3>
                             <button onClick={() => setHistoryModalOpen(false)} style={{ border: 'none', background: 'none', fontSize: '1.5rem', cursor: 'pointer', color: 'var(--text-muted)' }}>×</button>
                         </div>
+                        <div style={{ marginBottom: '15px' }}>
+                            <input
+                                type="text"
+                                placeholder="Search by vendor name..."
+                                value={historyVendorSearch}
+                                onChange={(e) => setHistoryVendorSearch(e.target.value)}
+                                style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border-color)', borderRadius: '8px', fontSize: '0.9rem' }}
+                            />
+                        </div>
                         <div style={{ overflowY: 'auto', flex: 1 }}>
                             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
                                 <thead style={{ background: '#f8fafc', position: 'sticky', top: 0 }}>
@@ -430,17 +561,24 @@ const InvoiceGenerator = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {historyList.map(item => (
+                                    {filteredHistoryList.map(item => (
                                         <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                                             <td style={{ padding: '10px' }}>{item.date}</td>
                                             <td style={{ padding: '10px' }}>{item.vendor_name}</td>
                                             <td style={{ padding: '10px', textAlign: 'right', fontWeight: 'bold' }}>₹{item.amount?.toLocaleString('en-IN')}</td>
-                                            <td style={{ padding: '10px', textAlign: 'center' }}>
+                                            <td style={{ padding: '10px', textAlign: 'center', display: 'flex', gap: '8px', justifyContent: 'center' }}>
                                                 <Button variant="secondary" style={{ padding: '4px 10px', fontSize: '0.85rem' }} onClick={() => loadHistoryItem(item)}>Load</Button>
+                                                <button
+                                                    onClick={(e) => deleteHistoryItem(item.id, e)}
+                                                    style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '1.1rem' }}
+                                                    title="Delete"
+                                                >
+                                                    🗑️
+                                                </button>
                                             </td>
                                         </tr>
                                     ))}
-                                    {historyList.length === 0 && <tr><td colSpan="4" style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>No history found.</td></tr>}
+                                    {filteredHistoryList.length === 0 && <tr><td colSpan="4" style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>No history found.</td></tr>}
                                 </tbody>
                             </table>
                         </div>

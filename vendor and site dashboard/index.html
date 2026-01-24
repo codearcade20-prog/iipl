@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vendor & Site Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand">
+                <i class="fa-solid fa-chart-pie"></i>
+                <span>DashBoard</span>
+            </div>
+            <nav class="nav-links">
+                <button class="nav-item active" onclick="switchView('overview')">
+                    <i class="fa-solid fa-home"></i> Overview
+                </button>
+                <button class="nav-item" onclick="switchView('sites')">
+                    <i class="fa-solid fa-building"></i> Sites
+                </button>
+                <button class="nav-item" onclick="switchView('vendors')">
+                    <i class="fa-solid fa-users"></i> Vendors
+                </button>
+                <button class="nav-item" onclick="switchView('add_entry')">
+                    <i class="fa-solid fa-plus-circle"></i> Add Entry
+                </button>
+                <button class="nav-item" onclick="switchView('admin_panel')">
+                    <i class="fa-solid fa-shield-halved"></i> Admin
+                </button>
+                <button class="nav-item" onclick="switchView('statements')">
+                    <i class="fa-solid fa-file-invoice"></i> Statements
+                </button>
+            </nav>
+            <div class="sidebar-footer">
+                Developed by <a href="https://www.youtube.com/channel/UC6McNBm7VIaLlwAjKOP5_VA"
+                    target="_blank">Codearcade</a>
+            </div>
+        </aside>
+        <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <header class="top-bar">
+                <button class="menu-toggle" onclick="toggleSidebar()">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+                <div class="page-title">
+                    <h1 id="page-title">Overview</h1>
+                    <p class="subtitle">Real-time project insights</p>
+                </div>
+                <div class="search-bar">
+                    <i class="fa-solid fa-search"></i>
+                    <input type="text" id="global-search" placeholder="Search..." onkeyup="handleSearch(this.value)">
+                </div>
+            </header>
+
+            <div id="content-area" class="content-area">
+                <!-- Content injected via JS -->
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

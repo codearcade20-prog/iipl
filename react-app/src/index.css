@@ -111,3 +111,44 @@ button {
 .fade-in {
   animation: fadeIn 0.4s ease-out forwards;
 }
+
+/* Global Print Styles to fix "Blank Page" issues */
+@media print {
+  @page {
+    size: portrait;
+    margin: 10mm 10mm 0 10mm;
+    /* Top, Right, Bottom, Left */
+  }
+
+  html,
+  body {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    /* Force single page */
+    background: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    display: block !important;
+  }
+
+  #root {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    /* Force single page */
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: block !important;
+    position: static !important;
+  }
+
+
+  /* Force background colors for some browsers if needed */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}

@@ -12,7 +12,6 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firestore with long polling to bypass network restrictions
 const db = initializeFirestore(app, {
   experimentalForceLongPolling: true,
 });
