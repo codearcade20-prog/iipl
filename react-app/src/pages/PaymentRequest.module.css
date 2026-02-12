@@ -112,7 +112,7 @@
 
 .printArea {
     width: 210mm;
-    min-height: 297mm;
+    min-height: auto;
     background: white;
     padding: 10mm;
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
@@ -267,96 +267,5 @@
     to {
         transform: translateY(0);
         opacity: 1;
-    }
-}
-
-@media print {
-    @page {
-        margin: 10mm 10mm 0 10mm;
-        /* Top, Right, Bottom, Left */
-        size: portrait;
-    }
-
-    html,
-    body,
-    #root,
-    .container,
-    .previewSection {
-        margin: 0 !important;
-        padding: 0 !important;
-        height: auto !important;
-        min-height: 0 !important;
-        overflow: hidden !important;
-        /* Force single page */
-        display: block !important;
-        width: 100% !important;
-        background: white !important;
-    }
-
-    .formSection,
-    .modalOverlay,
-    .homeBtn,
-    button,
-    [class*="sidebar"] {
-        display: none !important;
-    }
-
-    .printArea {
-        width: 100% !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        box-shadow: none !important;
-        display: block !important;
-        background: white !important;
-        box-sizing: border-box !important;
-        page-break-inside: avoid !important;
-    }
-
-    /* Professional spacing to match Invoice style */
-    .gridTable {
-        border: 1pt solid #000 !important;
-        border-collapse: collapse !important;
-    }
-
-
-    .gridTable th,
-    .gridTable td {
-        padding: 12px 10px !important;
-        font-size: 11pt !important;
-    }
-
-    .headerRow {
-        font-size: 16pt !important;
-        padding: 15px !important;
-    }
-
-    .rupeesValue {
-        padding: 25px !important;
-        font-size: 14pt !important;
-    }
-
-    .footerItem {
-        padding: 25px 10px !important;
-        font-size: 11pt !important;
-        border-right: 1pt solid #000 !important;
-    }
-
-    .rupeesSection,
-    .footerGrid {
-        border: 1pt solid #000 !important;
-        border-top: none !important;
-    }
-
-    .gridTable td,
-    .gridTable th {
-        border: 1pt solid #000 !important;
-    }
-
-
-    * {
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-        page-break-inside: avoid !important;
-        visibility: visible !important;
     }
 }

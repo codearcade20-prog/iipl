@@ -4,6 +4,9 @@ import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { LoadingOverlay } from '../components/ui';
 import styles from './HistoryPage.module.css';
+import TemplateModal from '../components/TemplateModal';
+import { useMessage } from '../context/MessageContext';
+import { formatDate } from '../utils';
 
 const HistoryPage = () => {
     const [history, setHistory] = useState([]);
@@ -13,6 +16,8 @@ const HistoryPage = () => {
     const [vendorSearch, setVendorSearch] = useState('');
     const [dateSearch, setDateSearch] = useState('');
     const [projectSearch, setProjectSearch] = useState('');
+    const [viewItem, setViewItem] = useState(null);
+    const { alert, confirm, prompt, toast } = useMessage();
 
     useEffect(() => {
         fetchHistory();
@@ -44,11 +49,11 @@ const HistoryPage = () => {
             const remaining = totalAmount - currentTotalPaid;
 
             if (remaining > 0) {
-                const choice = window.confirm(`Remaining balance: ₹${remaining.toLocaleString('en-IN')}.\n\nClick OK for FULL payment (Record remaining ₹${remaining.toLocaleString('en-IN')} and mark as Paid)\nClick CANCEL for PARTIAL payment (Record a custom amount and keep as Partial)`);
+                const choice = await confirm(`Remaining balance: ₹${remaining.toLocaleString('en-IN')}.\n\nClick OK for FULL payment (Record remaining ₹${remaining.toLocaleString('en-IN')} and mark as Paid)\nClick CANCEL for PARTIAL payment (Record a custom amount and keep as Partial)`);
 
                 if (choice) {
                     // Full payment
-                    const dateStr = prompt("Enter Final Payment Date (YYYY-MM-DD):", new Date().toISOString().split('T')[0]);
+                    const dateStr = await prompt("Enter Final Payment Date (YYYY-MM-DD):", new Date().toISOString().split('T')[0]);
                     if (!dateStr) return; // Cancelled
 
                     const finalSplit = { amount: remaining, date: dateStr };
@@ -59,16 +64,16 @@ const HistoryPage = () => {
                     payload.status = 'Paid';
                 } else {
                     // Another partial payment
-                    const amountInput = prompt(`Current Balance: ₹${remaining.toLocaleString('en-IN')}\nEnter additional amount paid now (must be LESS than ₹${remaining.toLocaleString('en-IN')}):`);
+                    const amountInput = await prompt(`Current Balance: ₹${remaining.toLocaleString('en-IN')}\nEnter additional amount paid now (must be LESS than ₹${remaining.toLocaleString('en-IN')}):`);
                     if (amountInput === null) return; // Cancelled
 
                     const additionalPaid = parseFloat(amountInput) || 0;
                     if (additionalPaid <= 0 || additionalPaid >= remaining) {
-                        alert(`Please enter a valid amount strictly less than ₹${remaining.toLocaleString('en-IN')}. For full settlement, use the Full payment option.`);
+                        await alert(`Please enter a valid amount strictly less than ₹${remaining.toLocaleString('en-IN')}. For full settlement, use the Full payment option.`);
                         return;
                     }
 
-                    const dateStr = prompt("Enter Payment Date (YYYY-MM-DD):", new Date().toISOString().split('T')[0]);
+                    const dateStr = await prompt("Enter Payment Date (YYYY-MM-DD):", new Date().toISOString().split('T')[0]);
                     if (!dateStr) return; // Cancelled
 
                     const newSplit = { amount: additionalPaid, date: dateStr };
@@ -92,20 +97,20 @@ const HistoryPage = () => {
             const remaining = totalAmount - currentTotalPaid;
 
             if (remaining <= 0) {
-                alert("This record is already fully paid. Please change status to 'Paid'.");
+                await alert("This record is already fully paid. Please change status to 'Paid'.");
                 return;
             }
 
-            const amountInput = prompt(`Total Amount: ₹${totalAmount.toLocaleString('en-IN')}\nRemaining: ₹${remaining.toLocaleString('en-IN')}\nEnter additional amount paid now (less than ₹${remaining.toLocaleString('en-IN')}):`);
+            const amountInput = await prompt(`Total Amount: ₹${totalAmount.toLocaleString('en-IN')}\nRemaining: ₹${remaining.toLocaleString('en-IN')}\nEnter additional amount paid now (less than ₹${remaining.toLocaleString('en-IN')}):`);
             if (amountInput === null) return; // Cancelled
 
             const additionalPaid = parseFloat(amountInput) || 0;
             if (additionalPaid <= 0 || additionalPaid >= remaining) {
-                alert(`Please enter a valid amount strictly less than the remaining ₹${remaining.toLocaleString('en-IN')}. For full settlement, set status to 'Paid'.`);
+                await alert(`Please enter a valid amount strictly less than the remaining ₹${remaining.toLocaleString('en-IN')}. For full settlement, set status to 'Paid'.`);
                 return;
             }
 
-            const dateStr = prompt("Enter Payment Date (YYYY-MM-DD):", new Date().toISOString().split('T')[0]);
+            const dateStr = await prompt("Enter Payment Date (YYYY-MM-DD):", new Date().toISOString().split('T')[0]);
             if (!dateStr) return; // Cancelled
 
             const newSplit = { amount: additionalPaid, date: dateStr };
@@ -127,7 +132,8 @@ const HistoryPage = () => {
             setHistory(history.map(h =>
                 h.id === id ? { ...h, ...payload } : h
             ));
-        } catch (e) { alert(e.message); }
+            toast('Status Updated Successfully!');
+        } catch (e) { await alert(e.message); }
         finally { setLoading(false); }
     };
 
@@ -221,14 +227,14 @@ const HistoryPage = () => {
                                 <th style={{ textAlign: 'right' }}>Total Amount</th>
                                 <th style={{ textAlign: 'right' }}>Paid</th>
                                 <th style={{ textAlign: 'right' }}>Remaining</th>
-                                <th>Bill Status</th>
                                 <th>Status</th>
+                                <th style={{ textAlign: 'center' }}>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {filteredHistory.map(item => (
                                 <tr key={item.id}>
-                                    <td>{item.date}</td>
+                                    <td>{formatDate(item.date)}</td>
                                     <td>
                                         <span className={`${styles.badge} ${item.type === 'invoice' ? styles.badgeInvoice : styles.badgePayment}`}>
                                             {item.type === 'invoice' ? 'INVOICE' : 'PAYMENT'}
@@ -244,7 +250,7 @@ const HistoryPage = () => {
                                     <td style={{ textAlign: 'right', color: (item.remaining_amount > 0 ? 'red' : 'inherit'), fontWeight: 600 }}>
                                         ₹{(item.remaining_amount ?? (item.status === 'Paid' ? 0 : item.amount))?.toLocaleString('en-IN')}
                                     </td>
-                                    <td>{item.bill_status || '-'}</td>
+
                                     <td>
                                         <div style={{ position: 'relative' }}>
                                             <button
@@ -320,17 +326,27 @@ const HistoryPage = () => {
                                                 </>
                                             )}
                                         </div>
-                                        {item.paid_date && <div style={{ fontSize: '0.7rem', color: 'green', marginTop: '2px' }}>Paid: {item.paid_date}</div>}
+                                        {item.paid_date && <div style={{ fontSize: '0.7rem', color: 'green', marginTop: '2px' }}>Paid: {formatDate(item.paid_date)}</div>}
+                                    </td>
+                                    <td style={{ textAlign: 'center' }}>
+                                        <Button
+                                            variant="secondary"
+                                            style={{ padding: '4px 10px', fontSize: '0.8rem' }}
+                                            onClick={() => setViewItem(item)}
+                                        >
+                                            View
+                                        </Button>
                                     </td>
                                 </tr>
                             ))}
                             {filteredHistory.length === 0 && (
-                                <tr><td colSpan="8" style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>No records found matching filter.</td></tr>
+                                <tr><td colSpan="10" style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>No records found matching filter.</td></tr>
                             )}
                         </tbody>
                     </table>
                 </div>
             </div>
+            {viewItem && <TemplateModal record={viewItem} onClose={() => setViewItem(null)} />}
         </div>
     );
 };

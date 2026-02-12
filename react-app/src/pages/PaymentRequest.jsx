@@ -3,12 +3,16 @@ import { supabase } from '../lib/supabase';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Input, LoadingOverlay } from '../components/ui';
+import PrintModal from '../components/PrintModal';
 import styles from './PaymentRequest.module.css';
-import { numberToWords } from '../utils';
+import { numberToWords, formatDate } from '../utils';
+import { useMessage } from '../context/MessageContext';
 
 const PaymentRequest = () => {
     // State
     const [vendors, setVendors] = useState([]);
+    const [sites, setSites] = useState([]);
+    const [filteredWOs, setFilteredWOs] = useState([]);
     const [formData, setFormData] = useState({
         vendorName: '', pan: '', address: '', phone: '',
         accName: '', acc: '', bank: '', ifsc: '',
@@ -17,6 +21,7 @@ const PaymentRequest = () => {
     });
 
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [printModalOpen, setPrintModalOpen] = useState(false);
     const [newVendor, setNewVendor] = useState({
         name: '', pan: '', phone: '', address: '', acc_name: '', acc: '', bank: '', ifsc: '', vendorType: 'both'
     });
@@ -27,6 +32,7 @@ const PaymentRequest = () => {
     const [historyVendorSearch, setHistoryVendorSearch] = useState('');
 
     const [loading, setLoading] = useState(false);
+    const { alert, confirm, toast } = useMessage();
 
     // PAN field visibility control
     const [showPan, setShowPan] = useState(true);
@@ -45,7 +51,21 @@ const PaymentRequest = () => {
 
     useEffect(() => {
         fetchVendors();
+        fetchSites();
     }, []);
+
+    const fetchSites = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('sites')
+                .select('name')
+                .order('name');
+            if (error) throw error;
+            setSites(data || []);
+        } catch (e) {
+            console.error('Error fetching sites:', e);
+        }
+    };
 
     const fetchVendors = async () => {
         setLoading(true);
@@ -60,7 +80,7 @@ const PaymentRequest = () => {
             setVendors(data || []);
         } catch (e) {
             console.error(e);
-            alert('Could not fetch vendors. Please check connection.');
+            await alert('Could not fetch vendors. Please check connection.');
         } finally { setLoading(false); }
     };
 
@@ -76,7 +96,96 @@ const PaymentRequest = () => {
             acc: vendor?.[DB_COLUMNS.ACC] || '',
             bank: vendor?.[DB_COLUMNS.BANK] || '',
             ifsc: vendor?.[DB_COLUMNS.IFSC] || '',
-            accName: vendor?.[DB_COLUMNS.HOLDER] || val
+            accName: vendor?.[DB_COLUMNS.HOLDER] || val,
+            invoiceNo: '', // Reset WO
+            woDate: '',
+            woValue: ''
+        }));
+        if (val) {
+            updateFilteredSites(val);
+        } else {
+            fetchSites();
+            setFilteredWOs([]);
+        }
+    };
+
+    const updateFilteredSites = async (vendorName) => {
+        setLoading(true);
+        try {
+            const { data: vData } = await supabase.from('vendors').select('id').eq('vendor_name', vendorName).single();
+            if (vData) {
+                const { data, error } = await supabase
+                    .from('work_orders')
+                    .select('sites!inner(name)')
+                    .eq('vendor_id', vData.id);
+
+                if (error) throw error;
+
+                // Get unique site names
+                const uniqueSites = Array.from(new Set(data.map(item => item.sites.name)))
+                    .map(name => ({ name }));
+
+                setSites(uniqueSites);
+                setFilteredWOs([]);
+            }
+        } catch (e) {
+            console.error('Error filtering sites:', e);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSiteChange = (e) => {
+        const val = e.target.value;
+        const newFormData = {
+            ...formData,
+            project: val,
+            invoiceNo: '', // Reset WO
+            woDate: '',
+            woValue: ''
+        };
+        setFormData(newFormData);
+        if (formData.vendorName && val) {
+            updateFilteredWOs(formData.vendorName, val);
+        } else {
+            setFilteredWOs([]);
+        }
+    };
+
+    const updateFilteredWOs = async (vendorName, siteName) => {
+        setLoading(true);
+        try {
+            const { data: vData } = await supabase.from('vendors').select('id').eq('vendor_name', vendorName).single();
+            const { data: sData } = await supabase.from('sites').select('id').eq('name', siteName).single();
+
+            if (vData && sData) {
+                const { data: woData, error } = await supabase
+                    .from('work_orders')
+                    .select('wo_no, wo_date, wo_value')
+                    .eq('vendor_id', vData.id)
+                    .eq('site_id', sData.id);
+
+                if (error) throw error;
+                setFilteredWOs(woData || []);
+            } else {
+                setFilteredWOs([]);
+            }
+        } catch (e) {
+            console.error('Error fetching WOs:', e);
+            setFilteredWOs([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleWOChange = (e) => {
+        const val = e.target.value;
+        const wo = filteredWOs.find(w => w.wo_no === val);
+        setFormData(prev => ({
+            ...prev,
+            invoiceNo: val,
+            woDate: wo?.wo_date || '',
+            woValue: wo?.wo_value || ''
         }));
     };
 
@@ -98,15 +207,15 @@ const PaymentRequest = () => {
             const { error } = await supabase.from('vendors').insert([data]);
             if (error) throw error;
 
-            alert('Vendor Saved to Supabase!');
+            toast('Vendor Saved to Supabase!');
             setIsModalOpen(false);
             fetchVendors();
         } catch (e) {
-            alert('Save Failed: ' + e.message);
+            await alert('Save Failed: ' + e.message);
         } finally { setLoading(false); }
     };
 
-    const validateForm = () => {
+    const validateForm = async () => {
         const required = [
             { k: 'vendorName', l: 'Vendor Name' },
             { k: 'address', l: 'Address' },
@@ -124,21 +233,26 @@ const PaymentRequest = () => {
 
         for (let f of required) {
             if (!formData[f.k]) {
-                alert(`${f.l} is required`);
+                await alert(`${f.l} is required`);
                 return false;
             }
         }
         return true;
     };
 
-    const handlePrint = () => {
-        if (validateForm()) {
-            window.print();
+    const handlePrint = async () => {
+        if (await validateForm()) {
+            setPrintModalOpen(true);
         }
     };
 
+    const confirmPrint = () => {
+        setPrintModalOpen(false);
+        setTimeout(() => window.print(), 100);
+    };
+
     const saveToHistory = async () => {
-        if (!validateForm()) return;
+        if (!await validateForm()) return;
 
         setLoading(true);
         try {
@@ -162,10 +276,10 @@ const PaymentRequest = () => {
             const { error } = await supabase.from('payment_history').insert([payload]);
             if (error) throw error;
 
-            alert('Payment Request Saved to History!');
+            toast('Payment Request Saved to History!');
         } catch (e) {
             console.error(e);
-            alert('Failed to save history: ' + e.message);
+            await alert('Failed to save history: ' + e.message);
         } finally { setLoading(false); }
     };
 
@@ -183,7 +297,7 @@ const PaymentRequest = () => {
             setHistoryList(data || []);
             setHistoryModalOpen(true);
         } catch (e) {
-            alert(e.message);
+            await alert(e.message);
         } finally { setLoading(false); }
     };
 
@@ -216,15 +330,16 @@ const PaymentRequest = () => {
 
     const deleteHistoryItem = async (id, e) => {
         e.stopPropagation();
-        if (window.confirm('Are you sure you want to delete this history record?')) {
+        if (await confirm('Are you sure you want to delete this history record?')) {
             setLoading(true);
             try {
                 const { error } = await supabase.from('payment_history').delete().eq('id', id);
                 if (error) throw error;
                 // Update local list
                 setHistoryList(prev => prev.filter(item => item.id !== id));
+                toast('Record deleted successfully');
             } catch (err) {
-                alert('Error deleting record: ' + err.message);
+                await alert('Error deleting record: ' + err.message);
             } finally { setLoading(false); }
         }
     };
@@ -286,11 +401,23 @@ const PaymentRequest = () => {
 
                 <hr className={styles.divider} />
                 <div className={styles.gridCols2}>
-                    <Input label="Work Order No / Invoice No" value={formData.invoiceNo} onChange={e => setFormData({ ...formData, invoiceNo: e.target.value })} />
+                    <div>
+                        <label className={styles.inputLabel}>Work Order No / Invoice No</label>
+                        <select className={styles.select} value={formData.invoiceNo} onChange={handleWOChange}>
+                            <option value="">Select Work Order</option>
+                            {filteredWOs.map((wo, i) => (
+                                <option key={i} value={wo.wo_no}>{wo.wo_no}</option>
+                            ))}
+                        </select>
+                    </div>
                     <Input type="date" label="Work Order Date" value={formData.woDate} onChange={e => setFormData({ ...formData, woDate: e.target.value })} />
                 </div>
                 <div style={{ marginTop: '12px' }}>
-                    <Input label="Project" value={formData.project} onChange={e => setFormData({ ...formData, project: e.target.value })} />
+                    <label className={styles.inputLabel}>Project</label>
+                    <select className={styles.select} value={formData.project} onChange={handleSiteChange}>
+                        <option value="">Select Project</option>
+                        {sites.map((s, i) => <option key={i} value={s.name}>{s.name}</option>)}
+                    </select>
                 </div>
                 <div style={{ marginTop: '12px' }}>
                     <Input label="Nature of Work" value={formData.nature} onChange={e => setFormData({ ...formData, nature: e.target.value })} />
@@ -320,7 +447,7 @@ const PaymentRequest = () => {
             </div>
 
             <div className={styles.previewSection}>
-                <div id="printArea" className={styles.printArea}>
+                <div id="printArea" className={`${styles.printArea} printable-content`}>
                     <table className={styles.gridTable}>
                         <tbody>
                             <tr>
@@ -506,6 +633,12 @@ const PaymentRequest = () => {
                     </div>
                 </div>
             )}
+
+            <PrintModal
+                isOpen={printModalOpen}
+                onClose={() => setPrintModalOpen(false)}
+                onConfirm={confirmPrint}
+            />
         </div>
     );
 };

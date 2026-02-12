@@ -27,6 +27,8 @@ const Home = () => {
                     </Link>
                 )}
 
+
+
                 {hasPermission('payment') && (
                     <Link to="/payment-request" className={styles.navCard}>
                         <div className={styles.icon}>💸</div>
@@ -72,6 +74,30 @@ const Home = () => {
                         <div className={styles.icon}>📊</div>
                         <h3 className={styles.cardTitle}>Vendor & Site Dashboard</h3>
                         <p className={styles.cardText}>Access the external vendor and site management dashboard.</p>
+                    </Link>
+                )}
+
+                {(hasPermission('invoice') || hasPermission('bill')) && (
+                    <Link to="/bill-generator" className={styles.navCard}>
+                        <div className={styles.icon}>📝</div>
+                        <h3 className={styles.cardTitle}>Bill Preparation</h3>
+                        <p className={styles.cardText}>Prepare Running Account Bills (RAB) and Final Bills with detailed tracking.</p>
+                    </Link>
+                )}
+
+                {(hasPermission('gm') || hasPermission('admin')) && (
+                    <Link to="/gm" className={styles.navCard}>
+                        <div className={styles.icon}>👔</div>
+                        <h3 className={styles.cardTitle}>General Manager</h3>
+                        <p className={styles.cardText}>Review payment and invoice history with approval workflows and digital signatures.</p>
+                    </Link>
+                )}
+
+                {(hasPermission('approved_payments') || hasPermission('admin')) && (
+                    <Link to="/approved-payments" className={styles.navCard}>
+                        <div className={styles.icon}>✅</div>
+                        <h3 className={styles.cardTitle}>Approved Payments</h3>
+                        <p className={styles.cardText}>View and print GM-approved payments and invoices with digital signatures.</p>
                     </Link>
                 )}
             </div>

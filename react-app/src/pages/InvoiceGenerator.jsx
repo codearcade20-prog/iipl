@@ -4,21 +4,26 @@ import { Link } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 import { Button } from '../components/ui/Button';
 import { Input, LoadingOverlay } from '../components/ui';
+import PrintModal from '../components/PrintModal';
 import styles from './InvoiceGenerator.module.css';
-import { numberToWords } from '../utils';
+import { numberToWords, formatDate } from '../utils';
+import { useMessage } from '../context/MessageContext';
 
 const InvoiceGenerator = () => {
     const [vendors, setVendors] = useState([]);
+    const [sites, setSites] = useState([]);
+    const [filteredWOs, setFilteredWOs] = useState([]);
     const [formData, setFormData] = useState({
         pan: '', vendorName: '', address: '', phone: '',
         invoiceNo: '', date: new Date().toISOString().split('T')[0], woDate: '', project: '',
-        accName: '', acc: '', ifsc: '', bank: ''
+        accName: '', acc: '', ifsc: '', bank: '', woNumber: ''
     });
 
     const [items, setItems] = useState([{ desc: '', unit: '', amount: '' }]);
 
     // Modal
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [printModalOpen, setPrintModalOpen] = useState(false);
     const [newVendor, setNewVendor] = useState({ name: '', pan: '', phone: '', address: '', acc_name: '', acc: '', bank: '', ifsc: '', vendorType: 'both' });
 
     // History Modal
@@ -28,6 +33,7 @@ const InvoiceGenerator = () => {
 
     const [loading, setLoading] = useState(false);
     const [showWoDate, setShowWoDate] = useState(false);
+    const { alert, confirm, toast } = useMessage();
 
     // DB Mapping
     const DB_COLUMNS = {
@@ -43,7 +49,21 @@ const InvoiceGenerator = () => {
 
     useEffect(() => {
         fetchVendors();
+        fetchSites();
     }, []);
+
+    const fetchSites = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('sites')
+                .select('name')
+                .order('name');
+            if (error) throw error;
+            setSites(data || []);
+        } catch (e) {
+            console.error('Error fetching sites:', e);
+        }
+    };
 
     const fetchVendors = async () => {
         setLoading(true);
@@ -58,7 +78,33 @@ const InvoiceGenerator = () => {
             setVendors(data || []);
         } catch (e) {
             console.error(e);
-            alert("Could not load vendors from Supabase.");
+            await alert("Could not load vendors from Supabase.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const updateFilteredSites = async (vendorName) => {
+        setLoading(true);
+        try {
+            const { data: vData } = await supabase.from('vendors').select('id').eq('vendor_name', vendorName).single();
+            if (vData) {
+                const { data, error } = await supabase
+                    .from('work_orders')
+                    .select('sites!inner(name)')
+                    .eq('vendor_id', vData.id);
+
+                if (error) throw error;
+
+                // Get unique site names
+                const uniqueSites = Array.from(new Set(data.map(item => item.sites.name)))
+                    .map(name => ({ name }));
+
+                setSites(uniqueSites);
+                setFilteredWOs([]); // Reset WOs when vendor changes
+            }
+        } catch (e) {
+            console.error('Error filtering sites:', e);
         } finally {
             setLoading(false);
         }
@@ -67,8 +113,8 @@ const InvoiceGenerator = () => {
     const handleVendorChange = (e) => {
         const val = e.target.value;
         const vendor = vendors.find(v => v[DB_COLUMNS.NAME] === val);
-        setFormData(prev => ({
-            ...prev,
+        const newFormData = {
+            ...formData,
             vendorName: val,
             pan: vendor?.[DB_COLUMNS.PAN] || '',
             address: vendor?.[DB_COLUMNS.ADDRESS] || '',
@@ -76,8 +122,67 @@ const InvoiceGenerator = () => {
             acc: vendor?.[DB_COLUMNS.ACC] || '',
             bank: vendor?.[DB_COLUMNS.BANK] || '',
             ifsc: vendor?.[DB_COLUMNS.IFSC] || '',
-            accName: vendor?.[DB_COLUMNS.HOLDER] || val
-        }));
+            accName: vendor?.[DB_COLUMNS.HOLDER] || val,
+            project: '', // Reset project
+            woNumber: '' // Reset WO
+        };
+        setFormData(newFormData);
+
+        if (val) {
+            updateFilteredSites(val);
+        } else {
+            fetchSites();
+            setFilteredWOs([]);
+        }
+    };
+
+    const handleSiteChange = (e) => {
+        const val = e.target.value;
+        const newFormData = { ...formData, project: val, woNumber: '' };
+        setFormData(newFormData);
+        if (formData.vendorName && val) {
+            updateFilteredWOs(formData.vendorName, val);
+        } else {
+            setFilteredWOs([]);
+        }
+    };
+
+    const updateFilteredWOs = async (vendorName, siteName) => {
+        setLoading(true);
+        try {
+            const { data: vData } = await supabase.from('vendors').select('id').eq('vendor_name', vendorName).single();
+            const { data: sData } = await supabase.from('sites').select('id').eq('name', siteName).single();
+
+            if (vData && sData) {
+                const { data: woData, error } = await supabase
+                    .from('work_orders')
+                    .select('wo_no, wo_date, wo_value')
+                    .eq('vendor_id', vData.id)
+                    .eq('site_id', sData.id);
+
+                if (error) throw error;
+                setFilteredWOs(woData || []);
+            } else {
+                setFilteredWOs([]);
+            }
+        } catch (e) {
+            console.error('Error fetching WOs:', e);
+            setFilteredWOs([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleWOChange = (e) => {
+        const val = e.target.value;
+        setFormData(prev => ({ ...prev, woNumber: val }));
+
+        // Auto-populate first item description
+        if (items.length > 0) {
+            const newItems = [...items];
+            newItems[0].desc = val;
+            setItems(newItems);
+        }
     };
 
     const handleItemChange = (index, field, value) => {
@@ -143,16 +248,16 @@ const InvoiceGenerator = () => {
             const { error } = await supabase.from('vendors').insert([data]);
             if (error) throw error;
 
-            alert("Vendor Saved");
+            toast("Vendor Saved");
             setIsModalOpen(false);
             fetchVendors();
-        } catch (e) { alert(e.message); }
+        } catch (e) { await alert(e.message); }
         finally { setLoading(false); }
     };
 
 
 
-    const validateForm = () => {
+    const validateForm = async () => {
         const required = [
             { k: 'vendorName', l: 'Vendor Name' },
             { k: 'address', l: 'Address' },
@@ -167,27 +272,32 @@ const InvoiceGenerator = () => {
 
         for (let f of required) {
             if (!formData[f.k]) {
-                alert(`${f.l} is required`);
+                await alert(`${f.l} is required`);
                 return false;
             }
         }
 
         if (items.length === 0) {
-            alert("Please add at least one item");
+            await alert("Please add at least one item");
             return false;
         }
 
         return true;
     };
 
-    const handlePrint = () => {
-        if (validateForm()) {
-            window.print();
+    const handlePrint = async () => {
+        if (await validateForm()) {
+            setPrintModalOpen(true);
         }
     };
 
+    const confirmPrint = () => {
+        setPrintModalOpen(false);
+        setTimeout(() => window.print(), 100);
+    };
+
     const saveToHistory = async () => {
-        if (!validateForm()) return;
+        if (!await validateForm()) return;
 
         const totalItems = items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
 
@@ -214,10 +324,10 @@ const InvoiceGenerator = () => {
             const { error } = await supabase.from('payment_history').insert([payload]);
             if (error) throw error;
 
-            alert('Invoice Saved to History!');
+            toast('Invoice Saved to History!');
         } catch (e) {
             console.error(e);
-            alert('Failed to save history: ' + e.message);
+            await alert('Failed to save history: ' + e.message);
         } finally { setLoading(false); }
     };
 
@@ -235,7 +345,7 @@ const InvoiceGenerator = () => {
             setHistoryList(data || []);
             setHistoryModalOpen(true);
         } catch (e) {
-            alert(e.message);
+            await alert(e.message);
         } finally { setLoading(false); }
     };
 
@@ -273,14 +383,15 @@ const InvoiceGenerator = () => {
 
     const deleteHistoryItem = async (id, e) => {
         e.stopPropagation();
-        if (window.confirm('Are you sure you want to delete this invoice record?')) {
+        if (await confirm('Are you sure you want to delete this invoice record?')) {
             setLoading(true);
             try {
                 const { error } = await supabase.from('payment_history').delete().eq('id', id);
                 if (error) throw error;
                 setHistoryList(prev => prev.filter(item => item.id !== id));
+                toast('Invoice deleted successfully');
             } catch (err) {
-                alert('Error deleting: ' + err.message);
+                await alert('Error deleting: ' + err.message);
             } finally { setLoading(false); }
         }
     };
@@ -415,7 +526,7 @@ const InvoiceGenerator = () => {
             </div>
 
             <div className={styles.previewArea}>
-                <div className={styles.invoicePaper}>
+                <div className={`${styles.invoicePaper} printable-content`}>
                     <div className={styles.panNo}>PAN NO: {formData.pan}</div>
 
                     <div className={styles.borderBox} style={{ background: 'white' }}>
@@ -585,6 +696,12 @@ const InvoiceGenerator = () => {
                     </div>
                 </div>
             )}
+
+            <PrintModal
+                isOpen={printModalOpen}
+                onClose={() => setPrintModalOpen(false)}
+                onConfirm={confirmPrint}
+            />
         </div>
     );
 };

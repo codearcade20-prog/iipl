@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import styles from './VendorSiteDashboard.module.css';
-import { vendorSupabase } from '../../lib/vendorSupabase';
+import { supabase as vendorSupabase } from '../../lib/supabase';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '../ui/Button';
@@ -27,11 +27,14 @@ import {
     Settings,
     Home
 } from 'lucide-react';
+import { useMessage } from '../../context/MessageContext';
+import { formatDate } from '../../utils';
 
 const VendorSiteDashboard = ({ readOnly = false }) => {
     const location = useLocation();
     const navigate = useNavigate();
     const { logout } = useAuth();
+    const { alert, confirm, prompt, toast } = useMessage();
     const [currentView, setCurrentView] = useState('overview');
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [rawData, setRawData] = useState([]);
@@ -196,20 +199,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
         }).format(amount);
     };
 
-    const formatDate = (dateStr) => {
-        if (!dateStr) return 'N/A';
-        try {
-            const date = new Date(dateStr);
-            if (isNaN(date.getTime())) return dateStr;
-            return date.toLocaleDateString('en-IN', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric'
-            }).replace(/\//g, '-');
-        } catch (e) {
-            return dateStr;
-        }
-    };
+    // formatDate is now imported from utils
 
     // Parse Advances safely
     const parseAdvances = (jsonOrArray) => {
@@ -245,25 +235,25 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
 
     // 1. Delete
     const handleDelete = async (id) => {
-        if (!confirm('Are you sure you want to PERMANENTLY delete this entry?')) return;
+        if (!await confirm('Are you sure you want to PERMANENTLY delete this entry?')) return;
         setLoading(true);
         try {
             const { error } = await vendorSupabase.from('work_orders').delete().eq('id', id);
 
             if (error) throw error;
             await fetchData();
-            alert('Entry deleted.');
+            toast('Entry deleted.');
         } catch (err) {
             console.error(err);
-            alert('Error deleting entry.');
+            await alert('Error deleting entry.');
         } finally {
             setLoading(false);
         }
     };
 
     // 2. Edit Setup
-    const handleEditSetup = (siteName, vendorName) => {
-        const entry = rawData.find(d => d.site_name === siteName && d.vendor_name === vendorName);
+    const handleEditSetup = (id) => {
+        const entry = rawData.find(d => d.id === id);
         if (!entry) return;
 
         setFormData({
@@ -290,25 +280,30 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Unique Work Order Check (Only for new entries)
-        if (!editingState && formData.woNo) {
+        // Unique Work Order Check
+        if (formData.woNo) {
             setLoading(true);
             try {
-                const { data: existingWO, error: checkError } = await vendorSupabase
+                let query = vendorSupabase
                     .from('work_orders')
                     .select('id')
-                    .eq('wo_no', formData.woNo)
-                    .maybeSingle();
+                    .eq('wo_no', formData.woNo);
+
+                if (editingState) {
+                    query = query.neq('id', editingState.id);
+                }
+
+                const { data: existingWO, error: checkError } = await query.maybeSingle();
 
                 if (checkError) throw checkError;
                 if (existingWO) {
-                    alert('the work order is already exist');
+                    await alert('The work order number already exists');
                     setLoading(false);
                     return;
                 }
             } catch (err) {
                 console.error('Check error:', err);
-                alert('Error checking work order: ' + err.message);
+                await alert('Error checking work order: ' + err.message);
                 setLoading(false);
                 return;
             }
@@ -316,7 +311,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
 
         // Work Order Date Validation
         if (!formData.woDate) {
-            alert('Please Fill the Work Order Date Field');
+            await alert('Please Fill the Work Order Date Field');
             return;
         }
 
@@ -349,7 +344,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                 await createEntry(formData, finalPdfUrl, cleanAdvances);
             }
 
-            alert('Saved successfully!');
+            toast('Saved successfully!');
             await fetchData();
             handleSwitchView('admin_panel');
 
@@ -358,7 +353,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
             const msg = err.message === 'Bucket not found'
                 ? 'Storage bucket "work_orders" not found. Please create it in your Supabase Dashboard -> Storage.'
                 : err.message;
-            alert('Error saving: ' + msg);
+            await alert('Error saving: ' + msg);
         } finally {
             setLoading(false);
         }
@@ -911,13 +906,15 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                         <td>{formatCurrency(totalAdv)}</td>
                                         <td style={{ color: '#b91c1c', fontWeight: 600 }}>{formatCurrency(balance)}</td>
                                         {!readOnly && (
-                                            <td style={{ display: 'flex', gap: '0.5rem' }}>
-                                                <button className={`${styles.actionBtn} ${styles.editBtn}`} onClick={() => handleEditSetup(item.site_name, item.vendor_name)}>
-                                                    <Pencil size={18} />
-                                                </button>
-                                                <button className={`${styles.actionBtn} ${styles.deleteBtn}`} onClick={() => handleDelete(item.id)}>
-                                                    <Trash2 size={18} />
-                                                </button>
+                                            <td style={{ verticalAlign: 'middle' }}>
+                                                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                                    <button className={`${styles.actionBtn} ${styles.editBtn}`} onClick={() => handleEditSetup(item.id)}>
+                                                        <Pencil size={18} />
+                                                    </button>
+                                                    <button className={`${styles.actionBtn} ${styles.deleteBtn}`} onClick={() => handleDelete(item.id)}>
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                </div>
                                             </td>
                                         )}
                                     </tr>
@@ -1441,6 +1438,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                             <tr>
                                 {summaryColumns.index && <th>#</th>}
                                 {summaryColumns.site && <th style={{ textAlign: 'left' }}>Site / Project</th>}
+                                {(!summaryColumns.site && summaryColumns.wo_no) && <th style={{ textAlign: 'left' }}>WO No</th>}
                                 {summaryColumns.wo_date && <th style={{ textAlign: 'left' }}>WO Date</th>}
                                 {summaryColumns.wo_value && <th style={{ textAlign: 'right' }}>WO Value</th>}
                                 {summaryColumns.bill_certified && <th style={{ textAlign: 'right' }}>Bill Certified</th>}
@@ -1478,6 +1476,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                                 {summaryColumns.wo_no && <div style={{ fontSize: '0.8em', color: '#64748b' }}>WO: {entry.wo_no || 'N/A'}</div>}
                                             </td>
                                         )}
+                                        {!summaryColumns.site && summaryColumns.wo_no && <td>{entry.wo_no || 'N/A'}</td>}
                                         {summaryColumns.wo_date && <td>{formatDate(entry.wo_date)}</td>}
                                         {summaryColumns.wo_value && <td style={{ textAlign: 'right' }}>{formatCurrency(woValue)}</td>}
                                         {summaryColumns.bill_certified && <td style={{ textAlign: 'right' }}>{formatCurrency(finalBillValue)}</td>}
@@ -1494,7 +1493,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                         </tbody>
                         <tfoot>
                             <tr style={{ background: '#f8fafc', fontWeight: 'bold', fontSize: '1.1rem' }}>
-                                <td colSpan={[summaryColumns.index, summaryColumns.site, summaryColumns.wo_date].filter(Boolean).length} style={{ textAlign: 'right' }}>Grand Total</td>
+                                <td colSpan={[summaryColumns.index, summaryColumns.site || summaryColumns.wo_no, summaryColumns.wo_date].filter(Boolean).length} style={{ textAlign: 'right' }}>Grand Total</td>
                                 {summaryColumns.wo_value && <td style={{ textAlign: 'right' }}>{formatCurrency(totalWoValue)}</td>}
                                 {summaryColumns.bill_certified && <td style={{ textAlign: 'right' }}>{formatCurrency(totalCertified)}</td>}
                                 {summaryColumns.deductions && <td style={{ textAlign: 'right' }}>{formatCurrency(totalDeductions)}</td>}
@@ -1508,119 +1507,201 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
 
             return (
                 <div className={styles.statementContainer}>
-                    <div className={styles.printHide} style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div className={styles.printHide} style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', padding: '1rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                            <Button variant="secondary" onClick={() => { setSelectedStatementVendor(null); setSearchQuery(''); }}>
-                                <ArrowLeft size={16} /> Select Vendor
+                            <Button variant="secondary" onClick={() => { setSelectedStatementVendor(null); setVendorStatementView('detailed'); }}>
+                                <ArrowLeft size={16} /> Back to Selection
                             </Button>
                         </div>
-                        <div className={styles.viewToggle}>
-                            <button
-                                className={`${styles.toggleBtn} ${vendorStatementView === 'detailed' ? styles.active : ''}`}
-                                onClick={() => setVendorStatementView('detailed')}
-                            >
-                                Detailed Ledger
-                            </button>
-                            <button
-                                className={`${styles.toggleBtn} ${vendorStatementView === 'simple' ? styles.active : ''}`}
-                                onClick={() => setVendorStatementView('simple')}
-                            >
-                                Simple Summary
-                            </button>
-                        </div>
-                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', gap: '0.75rem', position: 'relative' }}>
                             {vendorStatementView === 'simple' && (
-                                <div style={{ position: 'relative' }}>
-                                    <button
-                                        className={styles.btnSecondary}
-                                        style={{ width: 'auto', padding: '10px' }}
+                                <>
+                                    <Button
+                                        variant="secondary"
                                         onClick={() => setShowColumnSettings(!showColumnSettings)}
-                                        title="Customize Columns"
+                                        style={{ display: 'flex', gap: '8px' }}
                                     >
-                                        <Settings size={18} />
-                                    </button>
+                                        <Settings size={16} /> Settings
+                                    </Button>
+
                                     {showColumnSettings && (
                                         <div style={{
                                             position: 'absolute',
-                                            right: 0,
                                             top: '100%',
-                                            zIndex: 100,
-                                            background: 'white',
+                                            right: 0,
+                                            marginTop: '0.5rem',
                                             padding: '1rem',
-                                            borderRadius: '12px',
+                                            background: 'white',
                                             border: '1px solid #e2e8f0',
+                                            borderRadius: '12px',
                                             boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                                            minWidth: '220px',
-                                            marginTop: '8px'
+                                            zIndex: 100,
+                                            width: '250px'
                                         }}>
-                                            <div style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '1rem', color: '#1e293b', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.5rem' }}>Visible Columns</div>
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                                {[
-                                                    { key: 'index', label: 'Index (#)' },
-                                                    { key: 'site', label: 'Site Name' },
-                                                    { key: 'wo_no', label: 'Work Order No' },
-                                                    { key: 'wo_date', label: 'Work Order Date' },
-                                                    { key: 'wo_value', label: 'Work Order Value' },
-                                                    { key: 'bill_certified', label: 'Bill Certified Value' },
-                                                    { key: 'deductions', label: 'Deductions' },
-                                                    { key: 'paid', label: 'Total Paid' },
-                                                    { key: 'balance', label: 'Balance' }
-                                                ].map(col => (
-                                                    <label key={col.key} style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '0.9rem', color: '#475569' }}>
+                                            <div style={{ fontWeight: 600, marginBottom: '0.75rem', borderBottom: '1px solid #f1f5f9', pb: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                                                Select Columns
+                                                <button onClick={() => setShowColumnSettings(false)} style={{ border: 'none', background: 'none', cursor: 'pointer' }}><X size={14} /></button>
+                                            </div>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                                {Object.keys(summaryColumns).map(col => (
+                                                    <label key={col} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', cursor: 'pointer' }}>
                                                         <input
                                                             type="checkbox"
-                                                            checked={summaryColumns[col.key]}
-                                                            onChange={() => setSummaryColumns(prev => ({ ...prev, [col.key]: !prev[col.key] }))}
-                                                            style={{ width: '16px', height: '16px', accentColor: '#4f46e5' }}
+                                                            checked={summaryColumns[col]}
+                                                            onChange={() => setSummaryColumns(prev => ({ ...prev, [col]: !prev[col] }))}
                                                         />
-                                                        {col.label}
+                                                        {col.replace('_', ' ').toUpperCase()}
                                                     </label>
                                                 ))}
                                             </div>
                                         </div>
                                     )}
-                                </div>
+                                </>
                             )}
-                            <Button onClick={() => setShowPrintModal(true)}>
-                                <Printer size={18} style={{ marginRight: '0.5rem' }} /> Print PDF
+                            <Button
+                                variant="secondary"
+                                onClick={() => setVendorStatementView(vendorStatementView === 'detailed' ? 'simple' : 'detailed')}
+                                style={{ display: 'flex', gap: '8px' }}
+                            >
+                                {vendorStatementView === 'detailed' ? <TableIcon size={16} /> : <FileText size={16} />}
+                                Switch to {vendorStatementView === 'detailed' ? 'Summary' : 'Detailed'} View
+                            </Button>
+                            <Button onClick={() => { setPrintOrientation('portrait'); setShowPrintModal(true); }}>
+                                <Printer size={18} style={{ marginRight: '0.5rem' }} /> Print Statement
                             </Button>
                         </div>
                     </div>
 
-                    {/* Printable Area */}
-                    <div style={{ background: 'white', padding: '2rem', borderRadius: '1rem' }}>
-                        <div style={{ textAlign: 'center', marginBottom: '3rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '1.5rem' }}>
-                            <h1 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Vendor Statement</h1>
-                            <p style={{ color: '#64748b' }}>{vendorStatementView === 'detailed' ? 'Detailed Transaction Log' : 'Project-wise Summary'}</p>
-                        </div>
-
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2rem' }}>
-                            <div>
-                                <h3 style={{ fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase' }}>Vendor Name</h3>
-                                <p style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{vendor.name}</p>
-                            </div>
-                            <div style={{ textAlign: 'right' }}>
-                                <h3 style={{ fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase' }}>Date</h3>
-                                <p style={{ fontSize: '1.2rem' }}>{dateStr}</p>
-                            </div>
+                    <div id="print-area">
+                        {/* Header for Printing */}
+                        <div className={styles.printOnly} style={{ textAlign: 'center', marginBottom: '2rem', borderBottom: '2px solid #000', paddingBottom: '1rem' }}>
+                            <h1 style={{ fontSize: '2rem', fontWeight: 800, margin: 0 }}>{vendor.name.toUpperCase()}</h1>
+                            <p style={{ fontSize: '1.1rem', margin: '0.5rem 0' }}>VENDOR STATEMENT REPORT</p>
+                            <p style={{ fontSize: '0.9rem', color: '#444' }}>Generated on: {dateStr}</p>
                         </div>
 
                         {content}
-
-                        <div style={{ marginTop: '4rem', display: 'flex', justifyContent: 'space-between', paddingTop: '2rem' }}>
-                            <div style={{ textAlign: 'center' }}>
-                                <div style={{ borderTop: '1px solid #cbd5e1', width: '200px', marginBottom: '0.5rem' }}></div>
-                                <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', color: '#64748b', letterSpacing: '1px' }}>Authorized Signatory</span>
-                            </div>
-                            <div style={{ textAlign: 'center' }}>
-                                <div style={{ borderTop: '1px solid #cbd5e1', width: '200px', marginBottom: '0.5rem' }}></div>
-                                <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', color: '#64748b', letterSpacing: '1px' }}>Vendor Signature</span>
-                            </div>
-                        </div>
                     </div>
                 </div>
             );
         }
+    };
+
+    const renderWOSearch = () => {
+        const filtered = searchQuery.trim() === '' ? [] : rawData.filter(item =>
+            (item.wo_no || '').toLowerCase().includes(searchQuery.toLowerCase())
+        );
+
+        return (
+            <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+                <h2 style={{ marginBottom: '1.5rem', fontWeight: 600, fontSize: '1.5rem' }}>Search Work Order</h2>
+                <div className={styles.searchBar} style={{ width: '100%', maxWidth: '100%', marginBottom: '2rem' }}>
+                    <Search size={18} />
+                    <input
+                        type="text"
+                        placeholder="Enter Work Order Number (e.g. IIPL/WO/...)"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        autoFocus
+                    />
+                </div>
+
+                {searchQuery.trim() !== '' && (
+                    <div className={styles.gridContainer}>
+                        {filtered.length > 0 ? filtered.map(entry => {
+                            const allAdvs = parseAdvances(entry.advance_details);
+                            const totalAdv = allAdvs.reduce((a, b) => a + (parseFloat(b.amount) || 0), 0);
+                            const billCertified = parseFloat(entry.bill_certified_value) || 0;
+                            const housekeeping = parseFloat(entry.housekeeping) || 0;
+                            const retention = parseFloat(entry.retention) || 0;
+                            const woValue = parseFloat(entry.wo_value) || 0;
+                            const balance = (billCertified > 0 ? billCertified : woValue) - housekeeping - retention - totalAdv;
+
+                            return (
+                                <div key={entry.id} className={styles.infoCard} style={{ cursor: 'default' }}>
+                                    <div className={styles.cardHeader}>
+                                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                            <span style={{ fontSize: '1rem', fontWeight: 700 }}>{entry.wo_no || 'N/A'}</span>
+                                            <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 500 }}>{entry.site_name}</span>
+                                        </div>
+                                        {entry.wo_pdf_url && (
+                                            <a href={entry.wo_pdf_url} target="_blank" rel="noopener noreferrer" className={styles.pdfBtn}>
+                                                <FileText size={14} /> PDF
+                                            </a>
+                                        )}
+                                    </div>
+                                    <div className={styles.cardBody}>
+                                        <div className={styles.listItem}>
+                                            <span className={styles.listItemSub}>Vendor</span>
+                                            <span className={styles.listItemTitle}>{entry.vendor_name}</span>
+                                        </div>
+                                        <div className={styles.listItem}>
+                                            <span className={styles.listItemSub}>Work Order Date</span>
+                                            <span style={{ fontWeight: 600, color: '#475569' }}>{formatDate(entry.wo_date)}</span>
+                                        </div>
+                                        <div className={styles.listItem}>
+                                            <span className={styles.listItemSub}>WO Value</span>
+                                            <span className={styles.currency}>{formatCurrency(entry.wo_value)}</span>
+                                        </div>
+                                        <div className={styles.listItem}>
+                                            <span className={styles.listItemSub}>Total Paid</span>
+                                            <span className={styles.currency} style={{ color: '#4f46e5' }}>{formatCurrency(totalAdv)}</span>
+                                        </div>
+                                        <div className={styles.listItem}
+                                            style={{ background: '#fef2f2', padding: '12px', borderRadius: '8px', marginTop: '1rem' }}
+                                        >
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span style={{ fontWeight: 600, color: '#b91c1c' }}>Balance to Pay</span>
+                                                <span className={styles.currency} style={{ fontWeight: 800, color: '#b91c1c', fontSize: '1.2rem' }}>
+                                                    {formatCurrency(balance)}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div style={{ marginTop: '1.5rem' }}>
+                                            <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#64748b', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Payment History</div>
+                                            {allAdvs.length > 0 ? (
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                    {allAdvs.map((a, i) => (
+                                                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                                            <div>
+                                                                <span style={{ display: 'block', fontWeight: 600, fontSize: '0.9rem' }}>{a.date || 'N/A'}</span>
+                                                                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>{a.payment_mode || 'M1'}</span>
+                                                            </div>
+                                                            <span style={{ fontWeight: 700, color: '#0f172a' }}>{formatCurrency(a.amount)}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div style={{ textAlign: 'center', padding: '1rem', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1', color: '#94a3b8', fontSize: '0.9rem' }}>No payment records found</div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        }) : (
+                            <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '4rem 2rem', background: 'white', borderRadius: '1rem', border: '1px dashed #e2e8f0' }}>
+                                <div style={{ background: '#f1f5f9', width: '64px', height: '64px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto', color: '#94a3b8' }}>
+                                    <Search size={32} />
+                                </div>
+                                <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#1e293b', marginBottom: '0.5rem' }}>No Work Order Found</h3>
+                                <p style={{ color: '#64748b' }}>We couldn't find any work order matching "{searchQuery}". Please check the number and try again.</p>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {searchQuery.trim() === '' && (
+                    <div style={{ textAlign: 'center', padding: '6rem 2rem', color: '#94a3b8' }}>
+                        <div style={{ background: '#f1f5f9', width: '80px', height: '80px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto' }}>
+                            <FileText size={40} />
+                        </div>
+                        <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#64748b', marginBottom: '0.5rem' }}>Ready to Search</h3>
+                        <p>Enter a Work Order number in the search bar above to view its details.</p>
+                    </div>
+                )}
+            </div>
+        );
     };
 
     const renderContent = () => {
@@ -1634,6 +1715,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
             case 'add_entry': return renderAddEntry();
             case 'admin_panel': return renderAdminPanel();
             case 'statements': return renderStatements();
+            case 'wo_search': return renderWOSearch();
             default: return renderOverview();
         }
     };
@@ -1773,6 +1855,12 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                     >
                         <Users size={18} /> Vendors List
                     </button>
+                    <button
+                        className={`${styles.navItem} ${currentView === 'wo_search' ? styles.navItemActive : ''}`}
+                        onClick={() => handleSwitchView('wo_search')}
+                    >
+                        <Search size={18} /> WO Search
+                    </button>
                     {!readOnly && (
                         <>
                             <button
@@ -1818,7 +1906,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                         <Search size={16} />
                         <input
                             type="text"
-                            placeholder="Search site, vendor or WO..."
+                            placeholder="Search site or vendor name"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />

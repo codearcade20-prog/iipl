@@ -97,7 +97,6 @@
     border-radius: 16px;
     box-shadow: var(--shadow-md);
     border: 1px solid var(--border-color);
-    overflow: hidden;
     margin-bottom: 30px;
 }
 
@@ -131,6 +130,8 @@
 
 .tableWrapper {
     overflow-x: auto;
+    min-height: 300px;
+    /* Ensure space for status dropdown even with few rows */
 }
 
 .table {

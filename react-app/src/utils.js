@@ -40,3 +40,19 @@ export const evaluateFormula = (input) => {
     }
     return parseFloat(str) || 0;
 };
+
+export const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    const [y, m, d] = parts;
+    return `${d}-${m}-${y}`;
+};
+
+export const formatDateShort = (dateStr) => {
+    if (!dateStr) return '';
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    const [y, m, d] = parts;
+    return `${d}-${m}-${y.substring(2)}`;
+};

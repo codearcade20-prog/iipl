@@ -1,0 +1,380 @@
+.inlineInput {
+    border: 1px solid transparent;
+    background: transparent;
+    width: 100%;
+    font-family: inherit;
+    font-size: inherit;
+    color: inherit;
+    padding: 2px;
+    border-radius: 2px;
+    text-align: inherit;
+    transition: all 0.2s;
+}
+
+.inlineInput:hover {
+    border-color: #ddd;
+    background: rgba(0, 0, 0, 0.02);
+}
+
+.inlineInput:focus {
+    outline: none;
+    border-color: #2563eb;
+    background: #fff;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
+
+/* Specific styles for bill paper context */
+.billTable td input.inlineInput {
+    padding: 0 4px;
+    height: 100%;
+}
+
+.metaCol input.inlineInput {
+    font-weight: normal;
+    display: inline-block;
+    width: auto;
+    min-width: 100px;
+}
+
+.rowActionBtn {
+    opacity: 0;
+    background: #ff4d4f;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    position: absolute;
+    left: -20px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+tr:hover .rowActionBtn {
+    opacity: 1;
+}
+
+.previewAddActions {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.previewAddBtn {
+    background: #f8fafc;
+    border: 1px dashed #cbd5e1;
+    color: #64748b;
+    padding: 4px 12px;
+    font-size: 9pt;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.previewAddBtn:hover {
+    background: #f1f5f9;
+    border-color: #94a3b8;
+    color: #475569;
+}
+
+
+.container {
+    display: flex;
+    height: 100vh;
+    font-family: 'Outfit', sans-serif;
+    overflow: hidden;
+}
+
+
+.sidebar {
+    width: 450px;
+    background: rgba(255, 255, 255, 0.9);
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    padding: 30px;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+    z-index: 10;
+    backdrop-filter: blur(10px);
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.homeBtn {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+
+.homeBtn:hover {
+    background: #f1f5f9;
+}
+
+.previewArea {
+    flex: 1;
+    padding: 10px;
+    overflow-y: auto;
+    display: flex;
+    justify-content: center;
+    background: #525659;
+}
+
+.billPaper {
+    width: 297mm;
+    /* Landscape */
+    min-height: auto;
+    background: white;
+    padding: 15mm;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+    position: relative;
+    box-sizing: border-box;
+    color: #000;
+    margin: 0 auto;
+    font-family: 'Arial', sans-serif;
+    display: flex;
+    flex-direction: column;
+}
+
+.billTable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 8pt;
+    margin-top: -1px;
+    table-layout: fixed;
+}
+
+
+.billTable th,
+.billTable td {
+    border: 1px solid #000;
+    padding: 4px 5px;
+    text-align: center;
+    line-height: 1.2;
+    white-space: normal;
+    word-break: break-all;
+}
+
+
+.billTable th {
+    background-color: #5b9bd5;
+    color: white;
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 8pt;
+    position: relative;
+    overflow: hidden;
+}
+
+.resizer {
+    position: absolute;
+    right: 0;
+    top: 0;
+    height: 100%;
+    width: 6px;
+    background: rgba(0, 0, 0, 0.05);
+    cursor: col-resize;
+    user-select: none;
+    z-index: 10;
+}
+
+.resizer:hover {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+
+.totalRow td {
+    background-color: #f2f2f2 !important;
+    font-weight: bold;
+}
+
+
+.headerRow td {
+    background-color: #d9e1f2 !important;
+    font-weight: bold;
+    text-align: left;
+    padding-left: 10px;
+}
+
+.textLeft {
+    text-align: left !important;
+}
+
+.textRight {
+    text-align: right !important;
+}
+
+.headerSection {
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.headerMain {
+    font-weight: bold;
+    font-size: 16pt;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+}
+
+.headerSub {
+    font-weight: bold;
+    font-size: 12pt;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+}
+
+.metadataGrid {
+    display: grid;
+    grid-template-columns: 1fr 250px 1fr;
+    border: 1px solid #000;
+    margin-bottom: 10px;
+}
+
+.metaCol {
+    padding: 5px 8px;
+    border-right: 1px solid #000;
+    font-size: 8.5pt;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    resize: horizontal;
+    overflow: auto;
+    min-width: 150px;
+}
+
+.metaItem {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    width: 100%;
+}
+
+.metaItem input.inlineInput {
+    flex: 1;
+    min-width: 0;
+}
+
+
+
+.metaCol:last-child {
+    border-right: none;
+}
+
+.logoBox {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    background: #fff;
+    border-right: 1px solid #000;
+}
+
+.logoImg {
+    max-height: 90px;
+    width: auto;
+    object-fit: contain;
+}
+
+
+.metaLabel {
+    font-weight: bold;
+    margin-right: 5px;
+    white-space: nowrap;
+}
+
+.summarySection {
+    margin-top: 20px;
+}
+
+.paymentLeft {
+    width: 60%;
+    font-size: 8.5pt;
+}
+
+.summaryTable {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.summaryTable td {
+    border: 1px solid #000;
+    padding: 3px 6px;
+}
+
+
+.footerSigSection {
+    margin-top: auto;
+    padding-top: 60px;
+    padding-bottom: 20px;
+    display: flex;
+    justify-content: space-around;
+    font-weight: bold;
+    font-size: 10pt;
+    border-top: 1px dashed #eee;
+}
+
+.sigBox {
+    text-align: center;
+    min-width: 100px;
+}
+
+
+
+/* Sidebar Styles */
+.inputGroup {
+    margin-bottom: 15px;
+}
+
+.label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.divider {
+    margin: 20px 0;
+    border: none;
+    border-top: 1px solid #eee;
+}
+
+.itemInput {
+    width: 100%;
+    padding: 6px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.85rem;
+}
+
+.removeBtn {
+    background: none;
+    border: none;
+    color: #ff4d4f;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 1.2rem;
+}

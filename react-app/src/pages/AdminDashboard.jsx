@@ -6,9 +6,13 @@ import { Button } from '../components/ui/Button';
 import { Input, LoadingOverlay } from '../components/ui';
 import { Shield } from 'lucide-react';
 import styles from './AdminDashboard.module.css';
+import TemplateModal from '../components/TemplateModal';
+import { useMessage } from '../context/MessageContext';
+import { formatDate } from '../utils';
 
 const AdminDashboard = () => {
     const { logout } = useAuth();
+    const { alert, confirm, prompt, toast } = useMessage();
     // Auth State
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [password, setPassword] = useState('');
@@ -64,6 +68,10 @@ const AdminDashboard = () => {
     const [editingSiteId, setEditingSiteId] = useState(null);
     const [siteForm, setSiteForm] = useState({ name: '', location: '', client: '' });
     const [siteSearch, setSiteSearch] = useState('');
+    const [viewItem, setViewItem] = useState(null);
+    // --- SETTINGS STATE ---
+    const [gmSignature, setGmSignature] = useState('');
+    const [uploading, setUploading] = useState(false);
 
     // --- GLOBAL LOADING STATE ---
     const [saving, setSaving] = useState(false);
@@ -85,6 +93,7 @@ const AdminDashboard = () => {
             else if (currentView === 'sites') fetchSites();
             else if (currentView === 'bin') fetchBin();
             else if (currentView === 'users') fetchUsers();
+            else if (currentView === 'settings') fetchSettings();
             else fetchHistory();
         }
     }, [isAuthenticated, currentView]);
@@ -96,7 +105,7 @@ const AdminDashboard = () => {
             const { data, error } = await supabase.from('vendors').select('*').order('vendor_name', { ascending: true });
             if (error) throw error;
             setVendors(data || []);
-        } catch (e) { alert(e.message); }
+        } catch (e) { await alert(e.message); }
         finally { setLoadingVendors(false); }
     };
 
@@ -128,19 +137,19 @@ const AdminDashboard = () => {
             else await supabase.from('vendors').insert([payload]);
             setVendorModalOpen(false);
             fetchVendors();
-            alert(`Vendor ${editingVendorId ? 'updated' : 'added'} successfully!`);
-        } catch (e) { alert(e.message); }
+            toast(`Vendor ${editingVendorId ? 'updated' : 'added'} successfully!`);
+        } catch (e) { await alert(e.message); }
         finally { setSaving(false); }
     };
 
     const deleteVendor = async (id) => {
-        if (window.confirm('Delete this vendor?')) {
+        if (await confirm('Delete this vendor?')) {
             setSaving(true);
             try {
                 await supabase.from('vendors').delete().eq('id', id);
                 fetchVendors();
-                alert('Vendor deleted successfully!');
-            } catch (e) { alert(e.message); }
+                toast('Vendor deleted successfully!');
+            } catch (e) { await alert(e.message); }
             finally { setSaving(false); }
         }
     };
@@ -156,7 +165,7 @@ const AdminDashboard = () => {
             }
             setSites(data || []);
         } catch (e) {
-            alert('Error fetching sites: ' + (e.message || 'Unknown error'));
+            await alert('Error fetching sites: ' + (e.message || 'Unknown error'));
         } finally { setLoadingSites(false); }
     };
 
@@ -173,7 +182,7 @@ const AdminDashboard = () => {
 
     const saveSite = async () => {
         if (!siteForm.name.trim()) {
-            alert('Site Name is required');
+            await alert('Site Name is required');
             return;
         }
 
@@ -194,23 +203,23 @@ const AdminDashboard = () => {
             }
             setSiteModalOpen(false);
             fetchSites();
-            alert('Site saved successfully');
+            toast('Site saved successfully');
         } catch (e) {
             console.error('Save site error:', e);
-            alert('Error saving site: ' + (e.message || 'Make sure the "sites" table has "location" and "client" columns.'));
+            await alert('Error saving site: ' + (e.message || 'Make sure the "sites" table has "location" and "client" columns.'));
         } finally { setSaving(false); }
     };
 
     const deleteSite = async (id) => {
-        if (window.confirm('Are you sure you want to delete this site?')) {
+        if (await confirm('Are you sure you want to delete this site?')) {
             setSaving(true);
             try {
                 const { error } = await supabase.from('sites').delete().eq('id', id);
                 if (error) throw error;
                 fetchSites();
-                alert('Site deleted successfully!');
+                toast('Site deleted successfully!');
             } catch (e) {
-                alert('Error deleting site: ' + e.message);
+                await alert('Error deleting site: ' + e.message);
             } finally { setSaving(false); }
         }
     };
@@ -240,11 +249,11 @@ const AdminDashboard = () => {
             const remaining = totalAmount - currentTotalPaid;
 
             if (remaining > 0) {
-                const choice = window.confirm(`Remaining balance: ₹${remaining.toLocaleString('en-IN')}.\n\nClick OK for FULL payment (Record remaining ₹${remaining.toLocaleString('en-IN')} and mark as Paid)\nClick CANCEL for PARTIAL payment (Record a custom amount and keep as Partial)`);
+                const choice = await confirm(`Remaining balance: ₹${remaining.toLocaleString('en-IN')}.\n\nClick OK for FULL payment (Record remaining ₹${remaining.toLocaleString('en-IN')} and mark as Paid)\nClick CANCEL for PARTIAL payment (Record a custom amount and keep as Partial)`);
 
                 if (choice) {
                     // Full payment
-                    const dateStr = prompt("Enter Final Payment Date (YYYY-MM-DD):", new Date().toISOString().split('T')[0]);
+                    const dateStr = await prompt("Enter Final Payment Date (YYYY-MM-DD):", new Date().toISOString().split('T')[0]);
                     if (!dateStr) return; // Cancelled
 
                     const finalSplit = { amount: remaining, date: dateStr };
@@ -255,16 +264,16 @@ const AdminDashboard = () => {
                     payload.status = 'Paid';
                 } else {
                     // Another partial payment
-                    const amountInput = prompt(`Current Balance: ₹${remaining.toLocaleString('en-IN')}\nEnter additional amount paid now (must be LESS than ₹${remaining.toLocaleString('en-IN')}):`);
+                    const amountInput = await prompt(`Current Balance: ₹${remaining.toLocaleString('en-IN')}\nEnter additional amount paid now (must be LESS than ₹${remaining.toLocaleString('en-IN')}):`);
                     if (amountInput === null) return; // Cancelled
 
                     const additionalPaid = parseFloat(amountInput) || 0;
                     if (additionalPaid <= 0 || additionalPaid >= remaining) {
-                        alert(`Please enter a valid amount strictly less than ₹${remaining.toLocaleString('en-IN')}. For full settlement, use the Full payment option.`);
+                        await alert(`Please enter a valid amount strictly less than ₹${remaining.toLocaleString('en-IN')}. For full settlement, use the Full payment option.`);
                         return;
                     }
 
-                    const dateStr = prompt("Enter Payment Date (YYYY-MM-DD):", new Date().toISOString().split('T')[0]);
+                    const dateStr = await prompt("Enter Payment Date (YYYY-MM-DD):", new Date().toISOString().split('T')[0]);
                     if (!dateStr) return; // Cancelled
 
                     const newSplit = { amount: additionalPaid, date: dateStr };
@@ -288,20 +297,20 @@ const AdminDashboard = () => {
             const remaining = totalAmount - currentTotalPaid;
 
             if (remaining <= 0) {
-                alert("This record is already fully paid. Please change status to 'Paid'.");
+                await alert("This record is already fully paid. Please change status to 'Paid'.");
                 return;
             }
 
-            const amountInput = prompt(`Total Amount: ₹${totalAmount.toLocaleString('en-IN')}\nRemaining: ₹${remaining.toLocaleString('en-IN')}\nEnter additional amount paid now (less than ₹${remaining.toLocaleString('en-IN')}):`);
+            const amountInput = await prompt(`Total Amount: ₹${totalAmount.toLocaleString('en-IN')}\nRemaining: ₹${remaining.toLocaleString('en-IN')}\nEnter additional amount paid now (less than ₹${remaining.toLocaleString('en-IN')}):`);
             if (amountInput === null) return; // Cancelled
 
             const additionalPaid = parseFloat(amountInput) || 0;
             if (additionalPaid <= 0 || additionalPaid >= remaining) {
-                alert(`Please enter a valid amount strictly less than the remaining ₹${remaining.toLocaleString('en-IN')}. For full settlement, set status to 'Paid'.`);
+                await alert(`Please enter a valid amount strictly less than the remaining ₹${remaining.toLocaleString('en-IN')}. For full settlement, set status to 'Paid'.`);
                 return;
             }
 
-            const dateStr = prompt("Enter Payment Date (YYYY-MM-DD):", new Date().toISOString().split('T')[0]);
+            const dateStr = await prompt("Enter Payment Date (YYYY-MM-DD):", new Date().toISOString().split('T')[0]);
             if (!dateStr) return; // Cancelled
 
             const newSplit = { amount: additionalPaid, date: dateStr };
@@ -322,13 +331,13 @@ const AdminDashboard = () => {
             setHistory(history.map(h =>
                 h.id === id ? { ...h, ...payload } : h
             ));
-            alert('Status updated successfully!');
-        } catch (e) { alert(e.message); }
+            toast('Status updated successfully!');
+        } catch (e) { await alert(e.message); }
         finally { setSaving(false); }
     };
 
     const deleteHistory = async (id) => {
-        if (window.confirm('Delete this record? It will be moved to the Bin.')) {
+        if (await confirm('Delete this record? It will be moved to the Bin.')) {
             try {
                 // 1. Fetch item to backup
                 const item = history.find(h => h.id === id);
@@ -342,7 +351,7 @@ const AdminDashboard = () => {
                 if (binError) {
                     // Start: If table doesn't exist, alerts user
                     console.error("Recycle Bin Error:", binError);
-                    alert("Error saving to Bin. Is the 'recycle_bin' table created? Deletion aborted.");
+                    await alert("Error saving to Bin. Is the 'recycle_bin' table created? Deletion aborted.");
                     return;
                 }
 
@@ -350,8 +359,8 @@ const AdminDashboard = () => {
                 setSaving(true);
                 await supabase.from('payment_history').delete().eq('id', id);
                 setHistory(history.filter(h => h.id !== id));
-                alert('Record moved to Recycle Bin.');
-            } catch (e) { alert(e.message); }
+                toast('Record moved to Recycle Bin.');
+            } catch (e) { await alert(e.message); }
             finally { setSaving(false); }
         }
     };
@@ -360,13 +369,14 @@ const AdminDashboard = () => {
         if (!history.length) return;
 
         // Password Check
-        const pwd = prompt("Enter Admin Password to Clear All History:");
+        const pwd = await prompt("Enter Admin Password to Clear All History:");
+        if (pwd === null) return;
         if (pwd !== 'sakthi207') {
-            alert("Incorrect Password!");
+            await alert("Incorrect Password!");
             return;
         }
 
-        if (window.confirm('⚠ WARNING: You are about to clear ALL history records.\nThey will be moved to the Bin.\n\nProceed?')) {
+        if (await confirm('⚠ WARNING: You are about to clear ALL history records.\nThey will be moved to the Bin.\n\nProceed?')) {
             try {
                 // 1. Backup all to Bin
                 const backupData = history.map(h => ({
@@ -377,7 +387,7 @@ const AdminDashboard = () => {
                 const { error: binError } = await supabase.from('recycle_bin').insert(backupData);
                 if (binError) {
                     console.error("Recycle Bin Error:", binError);
-                    alert("Error saving to Bin. Operations aborted. Please check DB schema.");
+                    await alert("Error saving to Bin. Operations aborted. Please check DB schema.");
                     return;
                 }
 
@@ -390,10 +400,10 @@ const AdminDashboard = () => {
 
                 if (error) throw error;
                 setHistory([]);
-                alert('All history records moved to Bin.');
+                toast('All history records moved to Bin.');
             } catch (e) {
                 console.error(e);
-                alert('Error clearing history: ' + e.message);
+                await alert('Error clearing history: ' + e.message);
             } finally { setSaving(false); }
         }
     };
@@ -431,9 +441,9 @@ const AdminDashboard = () => {
             ));
 
             setEditHistoryModalOpen(false);
-            alert("Record updated successfully!");
+            toast("Record updated successfully!");
         } catch (e) {
-            alert("Error updating record: " + e.message);
+            await alert("Error updating record: " + e.message);
         } finally { setSaving(false); }
     };
 
@@ -464,22 +474,23 @@ const AdminDashboard = () => {
 
             // 3. Update State
             setBinItems(binItems.filter(b => b.id !== binId));
-            alert('Record restored successfully!');
+            toast('Record restored successfully!');
         } catch (e) {
-            alert("Error restoring: " + e.message);
+            await alert("Error restoring: " + e.message);
         } finally { setSaving(false); }
     };
 
     const permanentDelete = async (binId) => {
-        if (!confirm("Permanently delete this record? This cannot be undone.")) return;
-        setSaving(true);
-        try {
-            await supabase.from('recycle_bin').delete().eq('id', binId);
-            setBinItems(binItems.filter(b => b.id !== binId));
-            alert('Record deleted permanently.');
-        } catch (e) {
-            alert("Error deleting: " + e.message);
-        } finally { setSaving(false); }
+        if (await confirm("Permanently delete this record? This cannot be undone.")) {
+            setSaving(true);
+            try {
+                await supabase.from('recycle_bin').delete().eq('id', binId);
+                setBinItems(binItems.filter(b => b.id !== binId));
+                toast('Record deleted permanently.');
+            } catch (e) {
+                await alert("Error deleting: " + e.message);
+            } finally { setSaving(false); }
+        }
     };
 
     // --- USER MANAGEMENT ACTIONS ---
@@ -526,20 +537,73 @@ const AdminDashboard = () => {
             }
             setUserModalOpen(false);
             fetchUsers();
-            alert(`User account ${editingUserId ? 'updated' : 'created'} successfully!`);
-        } catch (e) { alert(e.message); }
+            toast(`User account ${editingUserId ? 'updated' : 'created'} successfully!`);
+        } catch (e) { await alert(e.message); }
         finally { setSaving(false); }
     };
 
     const deleteAppUser = async (id) => {
-        if (window.confirm('Delete this user?')) {
+        if (await confirm('Delete this user?')) {
             setSaving(true);
             try {
                 await supabase.from('app_users').delete().eq('id', id);
                 fetchUsers();
-                alert('User deleted successfully!');
-            } catch (e) { alert(e.message); }
+                toast('User deleted successfully!');
+            } catch (e) { await alert(e.message); }
             finally { setSaving(false); }
+        }
+    };
+
+    // --- SETTINGS ACTIONS ---
+    const fetchSettings = async () => {
+        setSaving(true);
+        try {
+            const { data, error } = await supabase
+                .from('app_settings')
+                .select('*')
+                .eq('setting_key', 'gm_signature_url')
+                .single();
+            if (error && error.code !== 'PGRST116') throw error;
+            if (data) setGmSignature(data.setting_value);
+        } catch (e) { console.error(e); }
+        finally { setSaving(false); }
+    };
+
+    const handleSignatureUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setUploading(true);
+        try {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `gm_signature_${Date.now()}.${fileExt}`;
+            const filePath = `${fileName}`;
+
+            // 1. Upload to Supabase Storage
+            const { error: uploadError } = await supabase.storage
+                .from('signatures')
+                .upload(filePath, file);
+
+            if (uploadError) throw uploadError;
+
+            // 2. Get Public URL
+            const { data: { publicUrl } } = supabase.storage
+                .from('signatures')
+                .getPublicUrl(filePath);
+
+            // 3. Update app_settings table
+            const { error: dbError } = await supabase
+                .from('app_settings')
+                .upsert({ setting_key: 'gm_signature_url', setting_value: publicUrl }, { onConflict: 'setting_key' });
+
+            if (dbError) throw dbError;
+
+            setGmSignature(publicUrl);
+            toast('Signature uploaded successfully!');
+        } catch (e) {
+            await alert('Upload failed: ' + e.message);
+        } finally {
+            setUploading(false);
         }
     };
 
@@ -597,10 +661,10 @@ const AdminDashboard = () => {
         splits: []
     });
 
-    const openMoveModal = (item) => {
+    const openMoveModal = async (item) => {
         const workOrderNo = item.wo_no || item.invoice_no;
         if (!workOrderNo) {
-            alert("No Work Order Number associated with this record.");
+            await alert("No Work Order Number associated with this record.");
             return;
         }
 
@@ -624,7 +688,7 @@ const AdminDashboard = () => {
 
         const totalToMove = splits.reduce((sum, s) => sum + (parseFloat(s.amount) || 0), 0);
         if (totalToMove > (parseFloat(item.amount) + 0.01)) { // Allow minor floating point diff
-            if (!window.confirm(`Total split amount (₹${totalToMove.toLocaleString('en-IN')}) exceeds record amount (₹${parseFloat(item.amount).toLocaleString('en-IN')}). Proceed?`)) return;
+            if (!await confirm(`Total split amount (₹${totalToMove.toLocaleString('en-IN')}) exceeds record amount (₹${parseFloat(item.amount).toLocaleString('en-IN')}). Proceed?`)) return;
         }
 
         setSaving(true);
@@ -637,7 +701,7 @@ const AdminDashboard = () => {
                 .single();
 
             if (woError || !woData) {
-                alert(`Work Order Number "${workOrderNo}" not registered!`);
+                await alert(`Work Order Number "${workOrderNo}" not registered!`);
                 return;
             }
 
@@ -660,12 +724,11 @@ const AdminDashboard = () => {
             if (!histUpdateErr) {
                 setHistory(prev => prev.filter(h => h.id !== item.id));
             }
-
-            alert(`Successfully moved ${splits.length} split(s) directly to Advances!`);
+            toast(`Successfully moved ${splits.length} split(s) directly to Advances!`);
             setShowMoveModal(false);
         } catch (e) {
             console.error(e);
-            alert('Error moving to advances: ' + e.message);
+            toast('Error moving to advances: ' + e.message);
         } finally { setSaving(false); }
     };
 
@@ -735,6 +798,10 @@ const AdminDashboard = () => {
                             className={`${styles.navButton} ${currentView === 'users' ? styles.navButtonActive : ''}`}
                             onClick={() => setCurrentView('users')}
                         >Users</button>
+                        <button
+                            className={`${styles.navButton} ${currentView === 'settings' ? styles.navButtonActive : ''}`}
+                            onClick={() => setCurrentView('settings')}
+                        >Settings</button>
                     </div>
                 </div>
                 <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
@@ -853,7 +920,6 @@ const AdminDashboard = () => {
                                         <th style={{ textAlign: 'right' }}>Total Amount</th>
                                         <th style={{ textAlign: 'right' }}>Paid</th>
                                         <th style={{ textAlign: 'right' }}>Remaining</th>
-                                        <th>Bill Status</th>
                                         <th>Status</th>
                                         <th style={{ textAlign: 'center' }}>Actions</th>
                                     </tr>
@@ -878,7 +944,7 @@ const AdminDashboard = () => {
                                             <td style={{ textAlign: 'right', color: (item.remaining_amount > 0 ? 'red' : 'inherit'), fontWeight: 600 }}>
                                                 ₹{(item.remaining_amount ?? (item.status === 'Paid' ? 0 : item.amount))?.toLocaleString('en-IN')}
                                             </td>
-                                            <td>{item.bill_status || '-'}</td>
+
                                             <td>
                                                 <div style={{ position: 'relative' }}>
                                                     <button
@@ -958,6 +1024,14 @@ const AdminDashboard = () => {
                                             </td>
                                             <td style={{ textAlign: 'center', display: 'flex', gap: '8px', justifyContent: 'center' }}>
                                                 <button
+                                                    onClick={() => setViewItem(item)}
+                                                    className={styles.actionBtn}
+                                                    title="View Template"
+                                                    style={{ fontSize: '1.2rem' }}
+                                                >
+                                                    👁️
+                                                </button>
+                                                <button
                                                     onClick={() => openEditHistoryModal(item)}
                                                     className={styles.actionBtn}
                                                     title="Edit Record"
@@ -970,7 +1044,7 @@ const AdminDashboard = () => {
                                         </tr>
                                     ))}
                                     {filteredHistory.length === 0 && (
-                                        <tr><td colSpan="9" style={{ padding: '30px', textAlign: 'center', color: 'var(--text-muted)' }}>No records found matching filter.</td></tr>
+                                        <tr><td colSpan="11" style={{ padding: '30px', textAlign: 'center', color: 'var(--text-muted)' }}>No records found matching filter.</td></tr>
                                     )}
                                 </tbody>
                                 {filteredHistory.length > 0 && (
@@ -1066,6 +1140,14 @@ const AdminDashboard = () => {
                                                 {item.is_moved && (
                                                     <span style={{ fontSize: '0.8rem', color: '#059669', fontWeight: 600 }}>Moved ✅</span>
                                                 )}
+                                                <button
+                                                    onClick={() => setViewItem(item)}
+                                                    className={styles.actionBtn}
+                                                    title="View Template"
+                                                    style={{ marginLeft: '8px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }}
+                                                >
+                                                    👁️
+                                                </button>
                                                 <button
                                                     onClick={() => deleteHistory(item.id)}
                                                     className={styles.actionBtn}
@@ -1311,6 +1393,57 @@ const AdminDashboard = () => {
                         </div>
                     </div>
                 )}
+
+                {/* --- SETTINGS VIEW --- */}
+                {currentView === 'settings' && (
+                    <div className={styles.card}>
+                        <div className={styles.cardHeader}>
+                            <h3 className={styles.cardTitle}>System Settings</h3>
+                        </div>
+                        <div style={{ padding: '30px' }}>
+                            <div style={{ maxWidth: '500px' }}>
+                                <h4 style={{ marginBottom: '15px' }}>General Manager Digital Signature</h4>
+                                <div style={{
+                                    border: '2px dashed #e2e8f0',
+                                    borderRadius: '12px',
+                                    padding: '30px',
+                                    textAlign: 'center',
+                                    background: '#f8fafc'
+                                }}>
+                                    {gmSignature ? (
+                                        <div style={{ marginBottom: '20px' }}>
+                                            <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '10px' }}>Current Signature:</p>
+                                            <img
+                                                src={gmSignature}
+                                                alt="GM Signature"
+                                                style={{ maxHeight: '100px', maxWidth: '100%', border: '1px solid #e2e8f0', borderRadius: '8px', background: 'white' }}
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div style={{ marginBottom: '20px', color: '#94a3b8' }}>
+                                            <div style={{ fontSize: '3rem', marginBottom: '10px' }}>🖋️</div>
+                                            <p>No signature uploaded yet</p>
+                                        </div>
+                                    )}
+
+                                    <label className={styles.refreshBtn} style={{ cursor: 'pointer', display: 'inline-flex', justifyContent: 'center', width: 'auto' }}>
+                                        {uploading ? '⌛ Uploading...' : '📁 Choose Signature Image'}
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handleSignatureUpload}
+                                            disabled={uploading}
+                                            style={{ display: 'none' }}
+                                        />
+                                    </label>
+                                    <p style={{ marginTop: '10px', fontSize: '0.75rem', color: '#64748b' }}>
+                                        Recommended format: PNG with transparent background.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Vendor Modal */}
@@ -1514,11 +1647,7 @@ const AdminDashboard = () => {
                                     value={editingHistoryItem.wo_date || ''}
                                     onChange={e => setEditingHistoryItem({ ...editingHistoryItem, wo_date: e.target.value })}
                                 />
-                                <Input
-                                    label="Bill Status"
-                                    value={editingHistoryItem.bill_status || ''}
-                                    onChange={e => setEditingHistoryItem({ ...editingHistoryItem, bill_status: e.target.value })}
-                                />
+                                <div />
                             </div>
                         </div>
                         <div className={styles.modalFooter}>
@@ -1580,9 +1709,12 @@ const AdminDashboard = () => {
                                             { id: 'payment', label: 'Payment Request' },
                                             { id: 'history', label: 'Payment History' },
                                             { id: 'workorders', label: 'Work Orders' },
-                                            { id: 'admin', label: 'Admin Dashboard' },
+                                            { id: 'admin', label: 'Admin Control' },
                                             { id: 'vendor', label: 'Vendor Dashboard' },
-                                            { id: 'overview', label: 'Project Overview' }
+                                            { id: 'overview', label: 'Project Overview' },
+                                            { id: 'bill', label: 'Bill Preparation' },
+                                            { id: 'gm', label: 'General Manager' },
+                                            { id: 'approved_payments', label: 'Approved Payments' }
                                         ].map(mod => (
                                             <div
                                                 key={mod.id}
@@ -1626,6 +1758,7 @@ const AdminDashboard = () => {
                     </div>
                 </div>
             )}
+            {viewItem && <TemplateModal record={viewItem} onClose={() => setViewItem(null)} />}
         </div>
     );
 };
