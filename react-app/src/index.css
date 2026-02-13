@@ -67,6 +67,18 @@ button {
   font-family: inherit;
 }
 
+/* Hide number input arrows */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type=number] {
+  -moz-appearance: textfield;
+  appearance: none;
+}
+
 /* Scrollbar styling - Updated for better visibility and ease of use */
 ::-webkit-scrollbar {
   width: 14px;
