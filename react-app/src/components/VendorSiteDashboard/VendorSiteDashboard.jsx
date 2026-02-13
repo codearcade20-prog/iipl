@@ -30,6 +30,45 @@ import {
 import { useMessage } from '../../context/MessageContext';
 import { formatDate } from '../../utils';
 
+// Safe PDF Button Component to hide broken links
+const SafePdfBtn = ({ url }) => {
+    const [isValid, setIsValid] = React.useState(null);
+
+    React.useEffect(() => {
+        if (!url || url.length < 10 || url.includes('null') || url.includes('undefined')) {
+            setIsValid(false);
+            return;
+        }
+
+        // Basic check to see if the URL is reachable
+        const checkUrl = async () => {
+            try {
+                const response = await fetch(url, { method: 'HEAD' });
+                if (response.ok) {
+                    setIsValid(true);
+                } else {
+                    setIsValid(false);
+                }
+            } catch (err) {
+                // If CORS blocks HEAD, we'll try a small GET or just assume it's okay if not a 404
+                // But for Supabase public buckets, HEAD usually works.
+                setIsValid(true);
+            }
+        };
+
+        checkUrl();
+    }, [url]);
+
+    if (isValid === false) return null;
+    if (isValid === null) return null; // Or a loading state if preferred
+
+    return (
+        <a href={url} target="_blank" rel="noopener noreferrer" className={styles.pdfBtn}>
+            <FileText size={14} /> PDF
+        </a>
+    );
+};
+
 const VendorSiteDashboard = ({ readOnly = false }) => {
     const location = useLocation();
     const navigate = useNavigate();
@@ -559,11 +598,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                             <div key={entry.id || Math.random()} className={styles.infoCard} style={{ cursor: 'default' }}>
                                 <div className={styles.cardHeader}>
                                     <span>{entry.vendor_name}</span>
-                                    {entry.wo_pdf_url && entry.wo_pdf_url.length > 10 && !entry.wo_pdf_url.includes('null') && !entry.wo_pdf_url.includes('undefined') && (
-                                        <a href={entry.wo_pdf_url} target="_blank" rel="noopener noreferrer" className={styles.pdfBtn}>
-                                            <FileText size={14} /> PDF
-                                        </a>
-                                    )}
+                                    <SafePdfBtn url={entry.wo_pdf_url} />
                                 </div>
                                 <div className={styles.cardBody}>
                                     <div className={styles.listItem}>
@@ -635,11 +670,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                             <div key={entry.id || Math.random()} className={styles.infoCard} style={{ cursor: 'default' }}>
                                 <div className={styles.cardHeader}>
                                     <span>{entry.site_name}</span>
-                                    {entry.wo_pdf_url && entry.wo_pdf_url.length > 10 && !entry.wo_pdf_url.includes('null') && !entry.wo_pdf_url.includes('undefined') && (
-                                        <a href={entry.wo_pdf_url} target="_blank" rel="noopener noreferrer" className={styles.pdfBtn}>
-                                            <FileText size={14} /> PDF
-                                        </a>
-                                    )}
+                                    <SafePdfBtn url={entry.wo_pdf_url} />
                                 </div>
                                 <div className={styles.cardBody}>
                                     <div className={styles.listItem}>
@@ -1629,11 +1660,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                             <span style={{ fontSize: '1rem', fontWeight: 700 }}>{entry.wo_no || 'N/A'}</span>
                                             <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 500 }}>{entry.site_name}</span>
                                         </div>
-                                        {entry.wo_pdf_url && entry.wo_pdf_url.length > 10 && !entry.wo_pdf_url.includes('null') && !entry.wo_pdf_url.includes('undefined') && (
-                                            <a href={entry.wo_pdf_url} target="_blank" rel="noopener noreferrer" className={styles.pdfBtn}>
-                                                <FileText size={14} /> PDF
-                                            </a>
-                                        )}
+                                        <SafePdfBtn url={entry.wo_pdf_url} />
                                     </div>
                                     <div className={styles.cardBody}>
                                         <div className={styles.listItem}>
