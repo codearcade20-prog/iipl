@@ -35,23 +35,22 @@ const SafePdfBtn = ({ url }) => {
     const [isValid, setIsValid] = React.useState(null);
 
     React.useEffect(() => {
+        setIsValid(null); // Reset to check again when URL changes
+
         if (!url || url.length < 10 || url.includes('null') || url.includes('undefined')) {
             setIsValid(false);
             return;
         }
 
-        // Basic check to see if the URL is reachable
         const checkUrl = async () => {
             try {
-                const response = await fetch(url, { method: 'HEAD' });
-                if (response.ok) {
-                    setIsValid(true);
-                } else {
-                    setIsValid(false);
-                }
+                // Add a small timestamp to avoid browser caching of the 404 response
+                const cacheBuster = `?v=${Date.now()}`;
+                const response = await fetch(url + cacheBuster, { method: 'HEAD' });
+                setIsValid(response.ok);
             } catch (err) {
-                // If CORS blocks HEAD, we'll try a small GET or just assume it's okay if not a 404
-                // But for Supabase public buckets, HEAD usually works.
+                // Supabase public links generally allow HEAD, but if it fails purely due to CORS/Network
+                // but the URL looks "real", we can fall back to true to avoid hiding valid files.
                 setIsValid(true);
             }
         };
@@ -60,7 +59,15 @@ const SafePdfBtn = ({ url }) => {
     }, [url]);
 
     if (isValid === false) return null;
-    if (isValid === null) return null; // Or a loading state if preferred
+
+    // While checking, we show a dimmed icon to indicate something is happening
+    if (isValid === null) {
+        return (
+            <div className={styles.pdfBtn} style={{ opacity: 0.5, cursor: 'wait' }}>
+                <FileText size={14} /> Checking...
+            </div>
+        );
+    }
 
     return (
         <a href={url} target="_blank" rel="noopener noreferrer" className={styles.pdfBtn}>
@@ -305,7 +312,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
             housekeeping: entry.housekeeping,
             retention: entry.retention,
             remarks: entry.remarks,
-            wo_pdf_url: entry.wo_pdf_url
+            pdfUrl: entry.wo_pdf_url
         });
 
         const existingAdvances = parseAdvances(entry.advance_details);
@@ -336,9 +343,14 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
 
                 if (checkError) throw checkError;
                 if (existingWO) {
-                    await alert('The work order number already exists');
-                    setLoading(false);
-                    return;
+                    if (await confirm('This Work Order number already exists. Would you like to update the existing record (including its PDF) instead?')) {
+                        handleEditSetup(existingWO.id);
+                        setLoading(false);
+                        return;
+                    } else {
+                        setLoading(false);
+                        return;
+                    }
                 }
             } catch (err) {
                 console.error('Check error:', err);
