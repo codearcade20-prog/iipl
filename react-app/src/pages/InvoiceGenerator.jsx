@@ -502,7 +502,7 @@ const InvoiceGenerator = () => {
                             <tr key={index}>
                                 <td><textarea className={styles.itemInput} rows="1" value={item.desc} onChange={e => handleItemChange(index, 'desc', e.target.value)} /></td>
                                 <td><input className={styles.itemInput} value={item.unit} onChange={e => handleItemChange(index, 'unit', e.target.value)} /></td>
-                                <td><input type="number" className={styles.itemInput} value={item.amount} onChange={e => handleItemChange(index, 'amount', e.target.value)} /></td>
+                                <td><input type="text" inputMode="decimal" className={styles.itemInput} value={item.amount} onChange={e => handleItemChange(index, 'amount', e.target.value)} /></td>
                                 <td><button className={styles.removeBtn} onClick={() => removeItem(index)}>×</button></td>
                             </tr>
                         ))}

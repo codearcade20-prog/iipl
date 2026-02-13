@@ -423,8 +423,8 @@ const PaymentRequest = () => {
                     <Input label="Nature of Work" value={formData.nature} onChange={e => setFormData({ ...formData, nature: e.target.value })} />
                 </div>
                 <div className={styles.gridCols2} style={{ marginTop: '12px' }}>
-                    <Input label="Invoice Amount" type="number" value={formData.amount} onChange={e => setFormData({ ...formData, amount: e.target.value })} />
-                    <Input label="WO Value" type="number" value={formData.woValue} onChange={e => setFormData({ ...formData, woValue: e.target.value })} />
+                    <Input label="Invoice Amount" type="text" inputMode="decimal" value={formData.amount} onChange={e => setFormData({ ...formData, amount: e.target.value })} />
+                    <Input label="WO Value" type="text" inputMode="decimal" value={formData.woValue} onChange={e => setFormData({ ...formData, woValue: e.target.value })} />
                 </div>
                 <div style={{ marginTop: '12px' }}>
                     <Input label="Bill Status" value={formData.billStatus} placeholder="ADVANCE / PARTIAL / FINAL" onChange={e => setFormData({ ...formData, billStatus: e.target.value })} />

@@ -1526,7 +1526,8 @@ const AdminDashboard = () => {
                                             <div style={{ flex: 1 }}>
                                                 <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block', marginBottom: '2px' }}>Amount</span>
                                                 <input
-                                                    type="number"
+                                                    type="text"
+                                                    inputMode="decimal"
                                                     value={split.amount}
                                                     onChange={e => {
                                                         const newSplits = [...moveData.splits];
@@ -1616,7 +1617,8 @@ const AdminDashboard = () => {
                                 />
                                 <Input
                                     label="Total Amount"
-                                    type="number"
+                                    type="text"
+                                    inputMode="decimal"
                                     value={editingHistoryItem.amount}
                                     onChange={e => setEditingHistoryItem({ ...editingHistoryItem, amount: e.target.value })}
                                 />
@@ -1624,13 +1626,15 @@ const AdminDashboard = () => {
                             <div className="grid grid-cols-2 gap-4 mt-2">
                                 <Input
                                     label="Paid Amount"
-                                    type="number"
+                                    type="text"
+                                    inputMode="decimal"
                                     value={editingHistoryItem.paid_amount || 0}
                                     onChange={e => setEditingHistoryItem({ ...editingHistoryItem, paid_amount: e.target.value })}
                                 />
                                 <Input
                                     label="Remaining Amount"
-                                    type="number"
+                                    type="text"
+                                    inputMode="decimal"
                                     value={editingHistoryItem.remaining_amount ?? (editingHistoryItem.amount - (editingHistoryItem.paid_amount || 0))}
                                     onChange={e => setEditingHistoryItem({ ...editingHistoryItem, remaining_amount: e.target.value })}
                                 />

@@ -325,7 +325,7 @@ const BillGenerator = () => {
                     <Input label="RAB No" value={formData.rabNo} onChange={e => setFormData({ ...formData, rabNo: e.target.value })} />
                 )}
                 {billType === 'FINAL' && (
-                    <Input type="number" label="Housekeeping %" value={formData.housekeepingPercent} onChange={e => setFormData({ ...formData, housekeepingPercent: e.target.value })} />
+                    <Input type="text" inputMode="decimal" label="Housekeeping %" value={formData.housekeepingPercent} onChange={e => setFormData({ ...formData, housekeepingPercent: e.target.value })} />
                 )}
 
                 <hr className={styles.divider} />
@@ -347,9 +347,9 @@ const BillGenerator = () => {
                             <input placeholder="Description" className={styles.itemInput} value={item.desc} onChange={e => handleItemChange(index, 'desc', e.target.value)} />
                             {!item.isHeader && (
                                 <div className={styles.grid2} style={{ marginTop: '5px' }}>
-                                    <input type="number" placeholder="Rate" className={styles.itemInput} value={item.rate} onChange={e => handleItemChange(index, 'rate', e.target.value)} />
-                                    <input type="number" placeholder="Order Qty" className={styles.itemInput} value={item.orderQty} onChange={e => handleItemChange(index, 'orderQty', e.target.value)} />
-                                    <input type="number" placeholder="Cum. Qty" className={styles.itemInput} value={item.cumulativeQty} onChange={e => handleItemChange(index, 'cumulativeQty', e.target.value)} />
+                                    <input type="text" inputMode="decimal" placeholder="Rate" className={styles.itemInput} value={item.rate} onChange={e => handleItemChange(index, 'rate', e.target.value)} />
+                                    <input type="text" inputMode="decimal" placeholder="Order Qty" className={styles.itemInput} value={item.orderQty} onChange={e => handleItemChange(index, 'orderQty', e.target.value)} />
+                                    <input type="text" inputMode="decimal" placeholder="Cum. Qty" className={styles.itemInput} value={item.cumulativeQty} onChange={e => handleItemChange(index, 'cumulativeQty', e.target.value)} />
                                     <input placeholder="M+L" className={styles.itemInput} value={item.ml} onChange={e => handleItemChange(index, 'ml', e.target.value)} />
                                 </div>
                             )}
@@ -363,7 +363,7 @@ const BillGenerator = () => {
                         <div key={index} style={{ marginBottom: '8px', padding: '8px', border: `1px solid ${adv.type === 'ADDITION' ? '#d1fae5' : '#fee2e2'}`, background: adv.type === 'ADDITION' ? '#f0fdf4' : '#fef2f2' }}>
                             <div className={styles.grid2}>
                                 <input className={styles.itemInput} value={adv.label} onChange={e => handleAdvanceChange(index, 'label', e.target.value)} placeholder="Label" />
-                                <Input type="number" placeholder="Amount" value={adv.amount} onChange={e => handleAdvanceChange(index, 'amount', e.target.value)} />
+                                <Input type="text" inputMode="decimal" placeholder="Amount" value={adv.amount} onChange={e => handleAdvanceChange(index, 'amount', e.target.value)} />
                             </div>
                             <div className={styles.grid2} style={{ marginTop: '5px' }}>
                                 <Input type="date" value={adv.date} onChange={e => handleAdvanceChange(index, 'date', e.target.value)} />
@@ -531,14 +531,14 @@ const BillGenerator = () => {
                                                     <input className={styles.inlineInput} value={item.unit} onChange={e => handleItemChange(i, 'unit', e.target.value)} />
                                                 </td>
                                                 <td className={styles.textRight}>
-                                                    <input type="number" className={styles.inlineInput} value={item.rate} onChange={e => handleItemChange(i, 'rate', e.target.value)} />
+                                                    <input type="text" inputMode="decimal" className={styles.inlineInput} value={item.rate} onChange={e => handleItemChange(i, 'rate', e.target.value)} />
                                                 </td>
                                                 <td>
-                                                    <input type="number" className={styles.inlineInput} value={item.orderQty} onChange={e => handleItemChange(i, 'orderQty', e.target.value)} />
+                                                    <input type="text" inputMode="decimal" className={styles.inlineInput} value={item.orderQty} onChange={e => handleItemChange(i, 'orderQty', e.target.value)} />
                                                 </td>
                                                 <td className={styles.textRight}>{item.orderAmt > 0 ? item.orderAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : ''}</td>
                                                 <td>
-                                                    <input type="number" className={styles.inlineInput} value={item.cumulativeQty} onChange={e => handleItemChange(i, 'cumulativeQty', e.target.value)} />
+                                                    <input type="text" inputMode="decimal" className={styles.inlineInput} value={item.cumulativeQty} onChange={e => handleItemChange(i, 'cumulativeQty', e.target.value)} />
                                                 </td>
                                                 <td className={styles.textRight}>{item.cumAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                                                 <td style={{ color: item.varQty < 0 ? 'red' : 'inherit' }}>{item.varQty === 0 ? '-' : item.varQty.toFixed(2)}</td>
@@ -547,7 +547,7 @@ const BillGenerator = () => {
                                                 </td>
                                                 <td>{item.cumulativeQty}</td>
                                                 <td style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-                                                    <input type="number" className={styles.inlineInput} style={{ width: '35px' }} value={item.rabPercent} onChange={e => handleItemChange(i, 'rabPercent', e.target.value)} />
+                                                    <input type="text" inputMode="decimal" className={styles.inlineInput} style={{ width: '35px' }} value={item.rabPercent} onChange={e => handleItemChange(i, 'rabPercent', e.target.value)} />
                                                     <span>%</span>
                                                 </td>
 
@@ -555,10 +555,10 @@ const BillGenerator = () => {
                                                 {showIIPL && (
                                                     <>
                                                         <td>
-                                                            <input type="number" className={styles.inlineInput} value={item.cumulativeQty} onChange={e => handleItemChange(i, 'cumulativeQty', e.target.value)} />
+                                                            <input type="text" inputMode="decimal" className={styles.inlineInput} value={item.cumulativeQty} onChange={e => handleItemChange(i, 'cumulativeQty', e.target.value)} />
                                                         </td>
                                                         <td>
-                                                            <input type="number" className={styles.inlineInput} value={item.iiplRate} onChange={e => handleItemChange(i, 'iiplRate', e.target.value)} />
+                                                            <input type="text" inputMode="decimal" className={styles.inlineInput} value={item.iiplRate} onChange={e => handleItemChange(i, 'iiplRate', e.target.value)} />
                                                         </td>
                                                         <td className={styles.textRight}>{item.iiplAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                                                     </>
@@ -610,7 +610,7 @@ const BillGenerator = () => {
                                                 <input className={styles.inlineInput} value={adv.label} onChange={e => handleAdvanceChange(i, 'label', e.target.value)} />
                                             </td>
                                             <td style={{ textAlign: 'right', fontWeight: 'bold', width: '120px' }}>
-                                                <input type="number" className={styles.inlineInput} value={adv.amount} onChange={e => handleAdvanceChange(i, 'amount', e.target.value)} />
+                                                <input type="text" inputMode="decimal" className={styles.inlineInput} value={adv.amount} onChange={e => handleAdvanceChange(i, 'amount', e.target.value)} />
                                             </td>
                                             <td style={{ paddingLeft: '20px' }}>
                                                 <input className={styles.inlineInput} value={adv.remark} onChange={e => handleAdvanceChange(i, 'remark', e.target.value)} />

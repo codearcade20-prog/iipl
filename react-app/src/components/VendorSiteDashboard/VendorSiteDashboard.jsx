@@ -743,7 +743,8 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                 <div className={styles.formGroup}>
                     <label className={styles.formLabel}>Work Order Value</label>
                     <input
-                        type="number"
+                        type="text"
+                        inputMode="decimal"
                         className={styles.formInput}
                         value={formData.woValue}
                         onChange={e => setFormData({ ...formData, woValue: e.target.value, billCertifiedValue: e.target.value })}
@@ -756,7 +757,8 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                     <div className={styles.formGroup}>
                         <label className={styles.formLabel}>Bill Certified Value</label>
                         <input
-                            type="number"
+                            type="text"
+                            inputMode="decimal"
                             className={styles.formInput}
                             value={formData.billCertifiedValue}
                             onChange={e => setFormData({ ...formData, billCertifiedValue: e.target.value })}
@@ -766,7 +768,8 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                     <div className={styles.formGroup}>
                         <label className={styles.formLabel}>Housekeeping Deductions</label>
                         <input
-                            type="number"
+                            type="text"
+                            inputMode="decimal"
                             className={styles.formInput}
                             value={formData.housekeeping}
                             onChange={e => setFormData({ ...formData, housekeeping: e.target.value })}
@@ -776,7 +779,8 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                     <div className={styles.formGroup}>
                         <label className={styles.formLabel}>Retention</label>
                         <input
-                            type="number"
+                            type="text"
+                            inputMode="decimal"
                             className={styles.formInput}
                             value={formData.retention}
                             onChange={e => setFormData({ ...formData, retention: e.target.value })}
@@ -808,7 +812,8 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                         {advances.map((adv, idx) => (
                             <div key={idx} className={styles.advanceItem} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
                                 <input
-                                    type="number"
+                                    type="text"
+                                    inputMode="decimal"
                                     placeholder="Amount"
                                     className={styles.formInput}
                                     value={adv.amount}
