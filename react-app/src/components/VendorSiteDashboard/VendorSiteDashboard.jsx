@@ -559,7 +559,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                             <div key={entry.id || Math.random()} className={styles.infoCard} style={{ cursor: 'default' }}>
                                 <div className={styles.cardHeader}>
                                     <span>{entry.vendor_name}</span>
-                                    {entry.wo_pdf_url && (
+                                    {entry.wo_pdf_url && entry.wo_pdf_url.length > 10 && !entry.wo_pdf_url.includes('null') && !entry.wo_pdf_url.includes('undefined') && (
                                         <a href={entry.wo_pdf_url} target="_blank" rel="noopener noreferrer" className={styles.pdfBtn}>
                                             <FileText size={14} /> PDF
                                         </a>
@@ -635,7 +635,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                             <div key={entry.id || Math.random()} className={styles.infoCard} style={{ cursor: 'default' }}>
                                 <div className={styles.cardHeader}>
                                     <span>{entry.site_name}</span>
-                                    {entry.wo_pdf_url && (
+                                    {entry.wo_pdf_url && entry.wo_pdf_url.length > 10 && !entry.wo_pdf_url.includes('null') && !entry.wo_pdf_url.includes('undefined') && (
                                         <a href={entry.wo_pdf_url} target="_blank" rel="noopener noreferrer" className={styles.pdfBtn}>
                                             <FileText size={14} /> PDF
                                         </a>
@@ -1629,7 +1629,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                             <span style={{ fontSize: '1rem', fontWeight: 700 }}>{entry.wo_no || 'N/A'}</span>
                                             <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 500 }}>{entry.site_name}</span>
                                         </div>
-                                        {entry.wo_pdf_url && (
+                                        {entry.wo_pdf_url && entry.wo_pdf_url.length > 10 && !entry.wo_pdf_url.includes('null') && !entry.wo_pdf_url.includes('undefined') && (
                                             <a href={entry.wo_pdf_url} target="_blank" rel="noopener noreferrer" className={styles.pdfBtn}>
                                                 <FileText size={14} /> PDF
                                             </a>
