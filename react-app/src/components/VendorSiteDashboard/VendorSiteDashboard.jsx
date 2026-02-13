@@ -35,8 +35,6 @@ const SafePdfBtn = ({ url }) => {
     const [isValid, setIsValid] = React.useState(null);
 
     React.useEffect(() => {
-        setIsValid(null); // Reset to check again when URL changes
-
         if (!url || url.length < 10 || url.includes('null') || url.includes('undefined')) {
             setIsValid(false);
             return;
@@ -44,14 +42,22 @@ const SafePdfBtn = ({ url }) => {
 
         const checkUrl = async () => {
             try {
-                // Add a small timestamp to avoid browser caching of the 404 response
-                const cacheBuster = `?v=${Date.now()}`;
-                const response = await fetch(url + cacheBuster, { method: 'HEAD' });
-                setIsValid(response.ok);
+                // Use GET with Range header (more CORS-friendly than HEAD in some cases)
+                const cacheBuster = url.includes('?') ? `&v=${Date.now()}` : `?v=${Date.now()}`;
+                const response = await fetch(url + cacheBuster, {
+                    method: 'GET',
+                    headers: { 'Range': 'bytes=0-0' }
+                });
+
+                if (response.status === 200 || response.status === 206 || response.ok) {
+                    setIsValid(true);
+                } else if (response.status === 404) {
+                    setIsValid(false);
+                } else {
+                    setIsValid(true); // Fallback for other status codes
+                }
             } catch (err) {
-                // Supabase public links generally allow HEAD, but if it fails purely due to CORS/Network
-                // but the URL looks "real", we can fall back to true to avoid hiding valid files.
-                setIsValid(true);
+                setIsValid(true); // Fallback for network/CORS errors
             }
         };
 
@@ -60,18 +66,20 @@ const SafePdfBtn = ({ url }) => {
 
     if (isValid === false) return null;
 
-    // While checking, we show a dimmed icon to indicate something is happening
-    if (isValid === null) {
-        return (
-            <div className={styles.pdfBtn} style={{ opacity: 0.5, cursor: 'wait' }}>
-                <FileText size={14} /> Checking...
-            </div>
-        );
-    }
+    // Instead of hiding the button while checking, we show it dimmed
+    // This prevents the button from "flickering" or disappearing while the request is in flight.
+    const isChecking = isValid === null;
 
     return (
-        <a href={url} target="_blank" rel="noopener noreferrer" className={styles.pdfBtn}>
-            <FileText size={14} /> PDF
+        <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.pdfBtn}
+            style={isChecking ? { opacity: 0.6, cursor: 'wait' } : {}}
+            title={isChecking ? "Checking file status..." : "View PDF"}
+        >
+            <FileText size={14} style={isChecking ? { opacity: 0.5 } : {}} /> {isChecking ? " PDF.." : " PDF"}
         </a>
     );
 };
