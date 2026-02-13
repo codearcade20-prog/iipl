@@ -368,6 +368,18 @@
     box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
 }
 
+/* Hide number input arrows specifically for this component */
+.formInput[type='number']::-webkit-outer-spin-button,
+.formInput[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none !important;
+    margin: 0 !important;
+}
+
+.formInput[type='number'] {
+    -moz-appearance: textfield !important;
+    appearance: none !important;
+}
+
 .advanceList {
     display: flex;
     flex-direction: column;

@@ -35,3 +35,15 @@
     border-color: var(--primary);
     box-shadow: 0 0 0 3px rgba(0, 112, 192, 0.1);
 }
+
+/* Hide number input arrows */
+.input[type='number']::-webkit-outer-spin-button,
+.input[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none !important;
+    margin: 0 !important;
+}
+
+.input[type='number'] {
+    -moz-appearance: textfield !important;
+    appearance: none !important;
+}
