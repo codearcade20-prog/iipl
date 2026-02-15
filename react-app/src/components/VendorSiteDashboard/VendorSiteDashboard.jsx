@@ -23,6 +23,7 @@ import {
     X,
     Printer,
     ChevronRight,
+    ChevronDown,
     Table as TableIcon,
     Settings,
     Home
@@ -47,6 +48,88 @@ const SafePdfBtn = ({ url }) => {
         >
             <FileText size={14} /> PDF
         </a>
+    );
+};
+
+// Reusable Searchable Dropdown Component
+const SearchableSelect = ({ options, value, onChange, placeholder }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const wrapperRef = useRef(null);
+
+    // Auto-scroll the dropdown to the active element
+    useEffect(() => {
+        if (isOpen) setSearchTerm('');
+    }, [isOpen]);
+
+    // Close on click outside
+    useEffect(() => {
+        function handleClickOutside(event) {
+            if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
+                setIsOpen(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [wrapperRef]);
+
+    const filteredOptions = useMemo(() => {
+        return options.filter(opt =>
+            opt.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+    }, [options, searchTerm]);
+
+    return (
+        <div className={styles.searchableSelectWrapper} ref={wrapperRef}>
+            <div
+                className={styles.searchableSelectHeader}
+                onClick={() => setIsOpen(!isOpen)}
+                style={{ borderColor: isOpen ? '#4f46e5' : '#e2e8f0' }}
+            >
+                <div className={value ? styles.selectedValue : styles.placeholder}>
+                    {value || placeholder}
+                </div>
+                <ChevronDown size={18} style={{
+                    transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                    transition: 'transform 0.3s ease',
+                    color: isOpen ? '#4f46e5' : '#94a3b8'
+                }} />
+            </div>
+
+            {isOpen && (
+                <div className={styles.searchableMenu}>
+                    <div className={styles.searchFieldWrapper}>
+                        <Search size={14} className={styles.searchIconInside} />
+                        <input
+                            autoFocus
+                            className={styles.searchMenuInput}
+                            placeholder="Type to search..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                        />
+                    </div>
+                    <div className={styles.optionsList}>
+                        {filteredOptions.length > 0 ? (
+                            filteredOptions.map((opt, i) => (
+                                <div
+                                    key={i}
+                                    className={`${styles.optionItem} ${value === opt ? styles.optionActive : ''}`}
+                                    onClick={() => {
+                                        onChange(opt);
+                                        setIsOpen(false);
+                                    }}
+                                >
+                                    {opt}
+                                </div>
+                            ))
+                        ) : (
+                            <div className={styles.noOptions}>No results found</div>
+                        )}
+                    </div>
+                </div>
+            )}
+        </div>
     );
 };
 
@@ -327,6 +410,16 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                 setLoading(false);
                 return;
             }
+        }
+
+        // Site and Vendor Validation
+        if (!formData.siteName) {
+            await alert('Please Select a Site Name');
+            return;
+        }
+        if (!formData.vendorName) {
+            await alert('Please Select a Vendor Name');
+            return;
         }
 
         // Work Order Date Validation
@@ -718,27 +811,21 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
             <form onSubmit={handleSubmit}>
                 <div className={styles.formGroup}>
                     <label className={styles.formLabel}>Site Name</label>
-                    <select
-                        className={styles.formInput}
+                    <SearchableSelect
+                        options={masterSites.map(s => s.name)}
                         value={formData.siteName}
-                        onChange={e => setFormData({ ...formData, siteName: e.target.value })}
-                        required
-                    >
-                        <option value="">-- Select Site --</option>
-                        {masterSites.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
-                    </select>
+                        onChange={val => setFormData({ ...formData, siteName: val })}
+                        placeholder="-- Select Site --"
+                    />
                 </div>
                 <div className={styles.formGroup}>
                     <label className={styles.formLabel}>Vendor Name</label>
-                    <select
-                        className={styles.formInput}
+                    <SearchableSelect
+                        options={masterVendors.map(v => v.vendor_name)}
                         value={formData.vendorName}
-                        onChange={e => setFormData({ ...formData, vendorName: e.target.value })}
-                        required
-                    >
-                        <option value="">-- Select Vendor --</option>
-                        {masterVendors.map(v => <option key={v.vendor_name} value={v.vendor_name}>{v.vendor_name}</option>)}
-                    </select>
+                        onChange={val => setFormData({ ...formData, vendorName: val })}
+                        placeholder="-- Select Vendor --"
+                    />
                 </div>
                 <div className={styles.formGroup}>
                     <label className={styles.formLabel}>Work Order No</label>
