@@ -32,43 +32,10 @@ import { formatDate } from '../../utils';
 
 // Safe PDF Button Component to hide broken links
 const SafePdfBtn = ({ url }) => {
-    const [isValid, setIsValid] = React.useState(null);
-
-    React.useEffect(() => {
-        if (!url || url.length < 10 || url.includes('null') || url.includes('undefined')) {
-            setIsValid(false);
-            return;
-        }
-
-        const checkUrl = async () => {
-            try {
-                // Use GET with Range header (more CORS-friendly than HEAD in some cases)
-                const cacheBuster = url.includes('?') ? `&v=${Date.now()}` : `?v=${Date.now()}`;
-                const response = await fetch(url + cacheBuster, {
-                    method: 'GET',
-                    headers: { 'Range': 'bytes=0-0' }
-                });
-
-                if (response.status === 200 || response.status === 206 || response.ok) {
-                    setIsValid(true);
-                } else if (response.status === 404) {
-                    setIsValid(false);
-                } else {
-                    setIsValid(true); // Fallback for other status codes
-                }
-            } catch (err) {
-                setIsValid(true); // Fallback for network/CORS errors
-            }
-        };
-
-        checkUrl();
-    }, [url]);
-
-    if (isValid === false) return null;
-
-    // Instead of hiding the button while checking, we show it dimmed
-    // This prevents the button from "flickering" or disappearing while the request is in flight.
-    const isChecking = isValid === null;
+    // Basic validation to hide empty or corrupted URL strings
+    if (!url || url.length < 10 || url.includes('null') || url.includes('undefined')) {
+        return null;
+    }
 
     return (
         <a
@@ -76,10 +43,9 @@ const SafePdfBtn = ({ url }) => {
             target="_blank"
             rel="noopener noreferrer"
             className={styles.pdfBtn}
-            style={isChecking ? { opacity: 0.6, cursor: 'wait' } : {}}
-            title={isChecking ? "Checking file status..." : "View PDF"}
+            title="View PDF"
         >
-            <FileText size={14} style={isChecking ? { opacity: 0.5 } : {}} /> {isChecking ? " PDF.." : " PDF"}
+            <FileText size={14} /> PDF
         </a>
     );
 };
@@ -963,7 +929,8 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                         <td style={{ color: '#b91c1c', fontWeight: 600 }}>{formatCurrency(balance)}</td>
                                         {!readOnly && (
                                             <td style={{ verticalAlign: 'middle' }}>
-                                                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                                <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                                                    <SafePdfBtn url={item.wo_pdf_url} />
                                                     <button className={`${styles.actionBtn} ${styles.editBtn}`} onClick={() => handleEditSetup(item.id)}>
                                                         <Pencil size={18} />
                                                     </button>
