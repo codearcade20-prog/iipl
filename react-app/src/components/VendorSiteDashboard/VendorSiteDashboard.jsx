@@ -299,7 +299,8 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
     // 3. Submit (Create/Update)
     const handleSubmit = async (e) => {
         e.preventDefault();
-        let editingStateForThisSubmit = editingState;
+
+        // Unique Work Order Check
         if (formData.woNo) {
             setLoading(true);
             try {
@@ -316,14 +317,9 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
 
                 if (checkError) throw checkError;
                 if (existingWO) {
-                    if (await confirm('This Work Order number already exists. Would you like to OVERWRITE/UPDATE the existing record with this new data and PDF?')) {
-                        // We continue with the current handleSubmit flow, but we'll target the existing ID
-                        // This preserves the newly uploaded file in fileInputRef.
-                        editingStateForThisSubmit = { id: existingWO.id };
-                    } else {
-                        setLoading(false);
-                        return;
-                    }
+                    await alert('The work order number already exists');
+                    setLoading(false);
+                    return;
                 }
             } catch (err) {
                 console.error('Check error:', err);
@@ -368,8 +364,8 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
 
             const cleanAdvances = advances.filter(a => a.amount > 0);
 
-            if (editingStateForThisSubmit) {
-                await updateEntry(editingStateForThisSubmit.id, formData, finalPdfUrl, cleanAdvances);
+            if (editingState) {
+                await updateEntry(editingState.id, formData, finalPdfUrl, cleanAdvances);
             } else {
                 await createEntry(formData, finalPdfUrl, cleanAdvances);
             }
