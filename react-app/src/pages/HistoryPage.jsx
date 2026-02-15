@@ -222,7 +222,6 @@ const HistoryPage = () => {
                                 <th>Date</th>
                                 <th>Type</th>
                                 <th>Vendor</th>
-                                <th>WO / Invoice No</th>
                                 <th>Project</th>
                                 <th style={{ textAlign: 'right' }}>Total Amount</th>
                                 <th style={{ textAlign: 'right' }}>Paid</th>
@@ -241,7 +240,6 @@ const HistoryPage = () => {
                                         </span>
                                     </td>
                                     <td style={{ fontWeight: 500 }}>{item.vendor_name}</td>
-                                    <td style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>{item.invoice_no || '-'}</td>
                                     <td>{item.project}</td>
                                     <td style={{ textAlign: 'right', fontWeight: 700 }}>₹{item.amount?.toLocaleString('en-IN')}</td>
                                     <td style={{ textAlign: 'right', color: 'green', fontWeight: 600 }}>
@@ -340,7 +338,7 @@ const HistoryPage = () => {
                                 </tr>
                             ))}
                             {filteredHistory.length === 0 && (
-                                <tr><td colSpan="10" style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>No records found matching filter.</td></tr>
+                                <tr><td colSpan="9" style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>No records found matching filter.</td></tr>
                             )}
                         </tbody>
                     </table>

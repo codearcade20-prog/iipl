@@ -912,10 +912,8 @@ const AdminDashboard = () => {
                                 <thead>
                                     <tr>
                                         <th>Date</th>
-                                        <th>WO Date</th>
                                         <th>Type</th>
                                         <th>Vendor</th>
-                                        <th>WO / Invoice No</th>
                                         <th>Project</th>
                                         <th style={{ textAlign: 'right' }}>Total Amount</th>
                                         <th style={{ textAlign: 'right' }}>Paid</th>
@@ -928,14 +926,12 @@ const AdminDashboard = () => {
                                     {filteredHistory.map(item => (
                                         <tr key={item.id}>
                                             <td>{item.date}</td>
-                                            <td style={{ fontSize: '0.85rem' }}>{item.wo_date || '-'}</td>
                                             <td>
                                                 <span className={`${styles.badge} ${item.type === 'invoice' ? styles.badgeInvoice : styles.badgePayment}`}>
                                                     {item.type === 'invoice' ? 'INVOICE' : 'PAYMENT'}
                                                 </span>
                                             </td>
                                             <td style={{ fontWeight: 500 }}>{item.vendor_name}</td>
-                                            <td style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>{item.invoice_no || '-'}</td>
                                             <td>{item.project}</td>
                                             <td style={{ textAlign: 'right', fontWeight: 700 }}>₹{item.amount?.toLocaleString('en-IN')}</td>
                                             <td style={{ textAlign: 'right', color: 'green', fontWeight: 600 }}>
@@ -1044,17 +1040,17 @@ const AdminDashboard = () => {
                                         </tr>
                                     ))}
                                     {filteredHistory.length === 0 && (
-                                        <tr><td colSpan="11" style={{ padding: '30px', textAlign: 'center', color: 'var(--text-muted)' }}>No records found matching filter.</td></tr>
+                                        <tr><td colSpan="9" style={{ padding: '30px', textAlign: 'center', color: 'var(--text-muted)' }}>No records found matching filter.</td></tr>
                                     )}
                                 </tbody>
                                 {filteredHistory.length > 0 && (
                                     <tfoot style={{ background: '#f8fafc', borderTop: '2px solid #e2e8f0' }}>
                                         <tr>
-                                            <td colSpan="5" style={{ textAlign: 'right', fontWeight: 'bold', padding: '15px' }}>Total Amount:</td>
+                                            <td colSpan="4" style={{ textAlign: 'right', fontWeight: 'bold', padding: '15px' }}>Total Amount:</td>
                                             <td style={{ textAlign: 'right', fontWeight: 'bold', fontSize: '1.1rem', color: 'var(--primary-dark)', padding: '15px' }}>
                                                 ₹{totalAmount.toLocaleString('en-IN')}
                                             </td>
-                                            <td colSpan="3"></td>
+                                            <td colSpan="4"></td>
                                         </tr>
                                     </tfoot>
                                 )}
