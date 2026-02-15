@@ -33,3 +33,4 @@ export function Select({ label, id, children, className = "", ...props }) {
     );
 }
 export { LoadingOverlay, LoadingSpinner } from './Loading';
+export { default as SearchableSelect } from './SearchableSelect';

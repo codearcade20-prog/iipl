@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
-import { Input, LoadingOverlay } from '../components/ui';
+import { Input, LoadingOverlay, SearchableSelect } from '../components/ui';
 import PrintModal from '../components/PrintModal';
 import styles from './PaymentRequest.module.css';
 import { numberToWords, formatDate } from '../utils';
@@ -84,8 +84,7 @@ const PaymentRequest = () => {
         } finally { setLoading(false); }
     };
 
-    const handleVendorChange = (e) => {
-        const val = e.target.value;
+    const handleVendorChange = (val) => {
         const vendor = vendors.find(v => v[DB_COLUMNS.NAME] === val);
         setFormData(prev => ({
             ...prev,
@@ -135,8 +134,7 @@ const PaymentRequest = () => {
         }
     };
 
-    const handleSiteChange = (e) => {
-        const val = e.target.value;
+    const handleSiteChange = (val) => {
         const newFormData = {
             ...formData,
             project: val,
@@ -372,10 +370,12 @@ const PaymentRequest = () => {
                 <div className={styles.flexRow} style={{ marginBottom: '16px' }}>
                     <div style={{ flex: 1 }}>
                         <label className={styles.inputLabel}>Vendor Name</label>
-                        <select className={styles.select} value={formData.vendorName} onChange={handleVendorChange}>
-                            <option value="">Select Vendor</option>
-                            {vendors.map((v, i) => <option key={i} value={v[DB_COLUMNS.NAME]}>{v[DB_COLUMNS.NAME]}</option>)}
-                        </select>
+                        <SearchableSelect
+                            options={vendors.map(v => v[DB_COLUMNS.NAME])}
+                            value={formData.vendorName}
+                            onChange={handleVendorChange}
+                            placeholder="Select Vendor"
+                        />
                     </div>
                     <Button onClick={() => setIsModalOpen(true)} style={{ padding: '8px 12px' }}>+</Button>
                 </div>
@@ -414,10 +414,12 @@ const PaymentRequest = () => {
                 </div>
                 <div style={{ marginTop: '12px' }}>
                     <label className={styles.inputLabel}>Project</label>
-                    <select className={styles.select} value={formData.project} onChange={handleSiteChange}>
-                        <option value="">Select Project</option>
-                        {sites.map((s, i) => <option key={i} value={s.name}>{s.name}</option>)}
-                    </select>
+                    <SearchableSelect
+                        options={sites.map(s => s.name)}
+                        value={formData.project}
+                        onChange={handleSiteChange}
+                        placeholder="Select Project"
+                    />
                 </div>
                 <div style={{ marginTop: '12px' }}>
                     <Input label="Nature of Work" value={formData.nature} onChange={e => setFormData({ ...formData, nature: e.target.value })} />

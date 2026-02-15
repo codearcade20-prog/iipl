@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { Link } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 import { Button } from '../components/ui/Button';
-import { Input, LoadingOverlay } from '../components/ui';
+import { Input, LoadingOverlay, SearchableSelect } from '../components/ui';
 import PrintModal from '../components/PrintModal';
 import styles from './InvoiceGenerator.module.css';
 import { numberToWords, formatDate } from '../utils';
@@ -110,8 +110,7 @@ const InvoiceGenerator = () => {
         }
     };
 
-    const handleVendorChange = (e) => {
-        const val = e.target.value;
+    const handleVendorChange = (val) => {
         const vendor = vendors.find(v => v[DB_COLUMNS.NAME] === val);
         const newFormData = {
             ...formData,
@@ -136,8 +135,7 @@ const InvoiceGenerator = () => {
         }
     };
 
-    const handleSiteChange = (e) => {
-        const val = e.target.value;
+    const handleSiteChange = (val) => {
         const newFormData = { ...formData, project: val, woNumber: '' };
         setFormData(newFormData);
         if (formData.vendorName && val) {
@@ -428,10 +426,13 @@ const InvoiceGenerator = () => {
                 <div className={styles.inputGroup}>
                     <label className={styles.label}>Vendor Name</label>
                     <div className={styles.row}>
-                        <select className={styles.select} value={formData.vendorName} onChange={handleVendorChange}>
-                            <option value="">Select Vendor</option>
-                            {vendors.map((v, i) => <option key={i} value={v[DB_COLUMNS.NAME]}>{v[DB_COLUMNS.NAME]}</option>)}
-                        </select>
+                        <SearchableSelect
+                            options={vendors.map(v => v[DB_COLUMNS.NAME])}
+                            value={formData.vendorName}
+                            onChange={handleVendorChange}
+                            placeholder="Select Vendor"
+                            className={styles.select}
+                        />
                         <Button onClick={() => setIsModalOpen(true)} style={{ padding: '8px 14px' }}>+</Button>
                     </div>
                 </div>
