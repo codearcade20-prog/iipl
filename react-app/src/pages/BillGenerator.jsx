@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { Link } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 import { Button } from '../components/ui/Button';
-import { Input, LoadingOverlay } from '../components/ui';
+import { Input, LoadingOverlay, SearchableSelect } from '../components/ui';
 import PrintModal from '../components/PrintModal';
 import styles from './BillGenerator.module.css';
 import { numberToWords, formatDateShort } from '../utils';
@@ -126,8 +126,7 @@ const BillGenerator = () => {
         }
     };
 
-    const handleVendorChange = (e) => {
-        const val = e.target.value;
+    const handleVendorChange = (val) => {
         const vendor = vendors.find(v => v[DB_COLUMNS.NAME] === val);
         setFormData(prev => ({
             ...prev,
@@ -304,10 +303,13 @@ const BillGenerator = () => {
 
                 <div className={styles.inputGroup}>
                     <label className={styles.label}>Sub Contractor</label>
-                    <select className={styles.select} value={formData.subConName} onChange={handleVendorChange}>
-                        <option value="">Select Vendor</option>
-                        {vendors.map((v, i) => <option key={i} value={v[DB_COLUMNS.NAME]}>{v[DB_COLUMNS.NAME]}</option>)}
-                    </select>
+                    <SearchableSelect
+                        options={vendors.map(v => v[DB_COLUMNS.NAME])}
+                        value={formData.subConName}
+                        onChange={handleVendorChange}
+                        placeholder="Select Vendor"
+                        className={styles.select}
+                    />
                 </div>
 
                 <Input label="Project Name" value={formData.projectName} onChange={e => setFormData({ ...formData, projectName: e.target.value })} />
