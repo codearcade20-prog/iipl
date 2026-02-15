@@ -299,8 +299,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
     // 3. Submit (Create/Update)
     const handleSubmit = async (e) => {
         e.preventDefault();
-
-        // Unique Work Order Check
+        let editingStateForThisSubmit = editingState;
         if (formData.woNo) {
             setLoading(true);
             try {
@@ -317,10 +316,10 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
 
                 if (checkError) throw checkError;
                 if (existingWO) {
-                    if (await confirm('This Work Order number already exists. Would you like to update the existing record (including its PDF) instead?')) {
-                        handleEditSetup(existingWO.id);
-                        setLoading(false);
-                        return;
+                    if (await confirm('This Work Order number already exists. Would you like to OVERWRITE/UPDATE the existing record with this new data and PDF?')) {
+                        // We continue with the current handleSubmit flow, but we'll target the existing ID
+                        // This preserves the newly uploaded file in fileInputRef.
+                        editingStateForThisSubmit = { id: existingWO.id };
                     } else {
                         setLoading(false);
                         return;
@@ -347,7 +346,11 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
             let finalPdfUrl = formData.pdfUrl;
             if (fileInputRef.current && fileInputRef.current.files[0]) {
                 const file = fileInputRef.current.files[0];
-                const fileName = `wo_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`;
+                // Improved filename sanitization (keep the extension properly)
+                const extension = file.name.split('.').pop();
+                const cleanBaseName = file.name.split('.').slice(0, -1).join('.').replace(/[^a-zA-Z0-9]/g, '');
+                const fileName = `wo_${Date.now()}_${cleanBaseName}.${extension}`;
+
                 const { error: uploadError } = await vendorSupabase.storage
                     .from('work_orders')
                     .upload(fileName, file);
@@ -358,13 +361,15 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                     .from('work_orders')
                     .getPublicUrl(fileName);
 
-                finalPdfUrl = publicUrlData.publicUrl;
+                if (publicUrlData?.publicUrl) {
+                    finalPdfUrl = publicUrlData.publicUrl;
+                }
             }
 
             const cleanAdvances = advances.filter(a => a.amount > 0);
 
-            if (editingState) {
-                await updateEntry(editingState.id, formData, finalPdfUrl, cleanAdvances);
+            if (editingStateForThisSubmit) {
+                await updateEntry(editingStateForThisSubmit.id, formData, finalPdfUrl, cleanAdvances);
             } else {
                 await createEntry(formData, finalPdfUrl, cleanAdvances);
             }
