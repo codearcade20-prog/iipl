@@ -60,8 +60,7 @@ const SalarySlip = () => {
                     </div>
                     <div className={styles.headerRight}>
                         <h1 className={styles.companyName}>INNOVATIVE INTERIORS PVT LTD</h1>
-                        <p className={styles.headerInfo}>123 Corporate Park, Tech District, Innovation City - 560100</p>
-                        <p className={styles.headerInfo}>Email: hr@innovativeinteriors.com | Phone: +91 98765 43210</p>
+                        <p className={styles.headerInfo}>No 7, V V Kovil Street, Chinmaya Nagar, Koyembedu, Chennai-92</p>
                     </div>
                 </div>
 
