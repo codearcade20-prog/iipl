@@ -14,6 +14,12 @@ import LoginPage from './pages/LoginPage';
 import ProjectOverview from './pages/ProjectOverview';
 import GeneralManager from './pages/GeneralManager';
 import ApprovedPayments from './pages/ApprovedPayments';
+import EmployeeRegistration from './pages/EmployeeRegistration';
+import PayrollPage from './pages/PayrollPage';
+import SalarySlip from './pages/SalarySlip';
+import HRDashboard from './pages/HRDashboard';
+import EmployeeList from './pages/EmployeeList';
+import PayrollHistory from './pages/PayrollHistory';
 import { MessageProvider } from './context/MessageContext';
 
 function App() {
@@ -34,6 +40,12 @@ function App() {
             <Route path="/history" element={<ProtectedRoute module="history"><HistoryPage /></ProtectedRoute>} />
             <Route path="/gm" element={<ProtectedRoute module="gm"><GeneralManager /></ProtectedRoute>} />
             <Route path="/approved-payments" element={<ProtectedRoute module="approved_payments"><ApprovedPayments /></ProtectedRoute>} />
+            <Route path="/hr-dashboard" element={<ProtectedRoute module="hr"><HRDashboard /></ProtectedRoute>} />
+            <Route path="/employee-registration" element={<ProtectedRoute module="hr"><EmployeeRegistration /></ProtectedRoute>} />
+            <Route path="/employee-list" element={<ProtectedRoute module="hr"><EmployeeList /></ProtectedRoute>} />
+            <Route path="/payroll" element={<ProtectedRoute module="hr"><PayrollPage /></ProtectedRoute>} />
+            <Route path="/payroll-history" element={<ProtectedRoute module="hr"><PayrollHistory /></ProtectedRoute>} />
+            <Route path="/salary-slip/:id" element={<ProtectedRoute module="hr"><SalarySlip /></ProtectedRoute>} />
           </Routes>
         </Router>
       </MessageProvider>

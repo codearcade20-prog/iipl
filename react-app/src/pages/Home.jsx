@@ -100,6 +100,14 @@ const Home = () => {
                         <p className={styles.cardText}>View and print GM-approved payments and invoices with digital signatures.</p>
                     </Link>
                 )}
+
+                {(hasPermission('hr') || hasPermission('admin')) && (
+                    <Link to="/hr-dashboard" className={styles.navCard}>
+                        <div className={styles.icon}>👥</div>
+                        <h3 className={styles.cardTitle}>HR Module</h3>
+                        <p className={styles.cardText}>Manage employee registrations, details, and payroll information.</p>
+                    </Link>
+                )}
             </div>
 
             <footer className={styles.footer}>

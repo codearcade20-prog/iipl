@@ -1,0 +1,262 @@
+.pageContainer {
+    min-height: 100vh;
+    background: #f1f5f9;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.controls {
+    margin-bottom: 20px;
+    display: flex;
+    gap: 15px;
+    background: white;
+    padding: 10px 20px;
+    border-radius: 99px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.backBtn,
+.printBtn {
+    padding: 8px 20px;
+    border-radius: 99px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: 0.2s;
+}
+
+.backBtn {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.printBtn {
+    background: #3b82f6;
+    color: white;
+}
+
+.slip {
+    width: 210mm;
+    background: white;
+    padding: 20mm;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+    box-sizing: border-box;
+    color: #1e293b;
+    font-family: 'Inter', sans-serif;
+    position: relative;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+}
+
+.headerLeft {
+    width: 120px;
+    display: flex;
+    justify-content: flex-start;
+}
+
+.companyLogo {
+    max-width: 200px;
+    max-height: 100px;
+}
+
+.headerRight {
+    flex: 1;
+    text-align: right;
+}
+
+.logoFallback {
+    width: 60px;
+    height: 60px;
+    background: #1e293b;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 1.5rem;
+    border-radius: 12px;
+}
+
+.companyName {
+    font-size: 18pt;
+    font-weight: 900;
+    color: #000;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+}
+
+.headerInfo {
+    font-size: 8.5pt;
+    color: #475569;
+    margin-bottom: 0px;
+}
+
+.payslipTitleSection {
+    text-align: center;
+    border-top: 1px solid #000;
+    border-bottom: 1px solid #000;
+    padding: 10px 0;
+    margin-bottom: 25px;
+}
+
+.payslipTitle {
+    font-size: 13pt;
+    font-weight: 700;
+    text-decoration: underline;
+    letter-spacing: 1px;
+}
+
+.infoSection {
+    margin-bottom: 25px;
+}
+
+.infoGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 50px;
+}
+
+.infoItem {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    margin-bottom: 8px;
+    align-items: baseline;
+}
+
+.infoLabel {
+    font-size: 10pt;
+    color: #475569;
+    font-weight: 500;
+}
+
+.infoValue {
+    font-size: 10pt;
+    font-weight: 700;
+    color: #000;
+}
+
+.tablesSection {
+    margin-bottom: 30px;
+}
+
+.tableWrapper {
+    border: 1px solid #94a3b8;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th,
+.table td {
+    border: 1px solid #94a3b8;
+    padding: 8px 12px;
+    font-size: 10pt;
+}
+
+.headerCell {
+    background: #f8fafc;
+    font-weight: 700;
+    text-align: left;
+}
+
+.amountCol {
+    text-align: right;
+    width: 110px;
+}
+
+.totalRow {
+    background: #f8fafc;
+}
+
+.totalLabel {
+    font-weight: 700;
+}
+
+.netPayContainer {
+    display: grid;
+    grid-template-columns: 1fr 200px;
+    border: 1.5px solid #000;
+    margin-bottom: 40px;
+}
+
+.netPayLabelBox {
+    padding: 15px 20px;
+    border-right: 1.5px solid #000;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.netPayMainLabel {
+    font-size: 12pt;
+    font-weight: 800;
+    margin-bottom: 2px;
+}
+
+.netPayInWords {
+    font-size: 10pt;
+    font-style: italic;
+    color: #64748b;
+}
+
+.netPayValueBox {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0 20px;
+    font-size: 20pt;
+    font-weight: 900;
+    color: #000;
+}
+
+.footerNote {
+    text-align: center;
+    font-size: 8pt;
+    color: #94a3b8;
+    margin-top: 50px;
+}
+
+@media print {
+    body * {
+        visibility: hidden;
+    }
+
+    .slip,
+    .slip * {
+        visibility: visible;
+    }
+
+    .slip {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0;
+        padding: 10mm;
+        box-shadow: none;
+    }
+
+    .pageContainer {
+        padding: 0;
+        background: white;
+    }
+
+    .controls {
+        display: none;
+    }
+}

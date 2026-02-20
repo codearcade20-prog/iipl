@@ -15,7 +15,9 @@ const AdminDashboard = () => {
     const { alert, confirm, prompt, toast } = useMessage();
     // Auth State
     const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
+    const [isSuperAdmin, setIsSuperAdmin] = useState(false);
     const [authError, setAuthError] = useState(false);
 
     // Navigation State
@@ -80,6 +82,7 @@ const AdminDashboard = () => {
     const handleLogin = () => {
         if (password === 'boss207') {
             setIsAuthenticated(true);
+            setIsSuperAdmin(username === 'admin');
             setAuthError(false);
         } else {
             setAuthError(true);
@@ -754,13 +757,25 @@ const AdminDashboard = () => {
         return (
             <div className={styles.authOverlay}>
                 <div className={styles.loginCard}>
-                    <h2 className={styles.loginTitle}>Admin Login</h2>
-                    <Input type="password" placeholder="Enter Password" value={password}
-                        onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleLogin()} />
+                    <h2 className={styles.loginTitle}>Admin Dashboard Login</h2>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                        <Input
+                            placeholder="Username"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                        />
+                        <Input
+                            type="password"
+                            placeholder="Password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+                        />
+                    </div>
                     <div style={{ marginTop: '20px' }}>
                         <Button onClick={handleLogin} style={{ width: '100%' }}>Login</Button>
                     </div>
-                    {authError && <p style={{ color: 'var(--danger)', marginTop: '10px' }}>Wrong Password!</p>}
+                    {authError && <p style={{ color: 'var(--danger)', marginTop: '10px', textAlign: 'center' }}>Invalid Credentials!</p>}
                 </div>
             </div>
         );
@@ -794,14 +809,18 @@ const AdminDashboard = () => {
                             className={`${styles.navButton} ${currentView === 'bin' ? styles.navButtonActive : ''}`}
                             onClick={() => setCurrentView('bin')}
                         >Recycle Bin</button>
-                        <button
-                            className={`${styles.navButton} ${currentView === 'users' ? styles.navButtonActive : ''}`}
-                            onClick={() => setCurrentView('users')}
-                        >Users</button>
-                        <button
-                            className={`${styles.navButton} ${currentView === 'settings' ? styles.navButtonActive : ''}`}
-                            onClick={() => setCurrentView('settings')}
-                        >Settings</button>
+                        {isSuperAdmin && (
+                            <>
+                                <button
+                                    className={`${styles.navButton} ${currentView === 'users' ? styles.navButtonActive : ''}`}
+                                    onClick={() => setCurrentView('users')}
+                                >Users</button>
+                                <button
+                                    className={`${styles.navButton} ${currentView === 'settings' ? styles.navButtonActive : ''}`}
+                                    onClick={() => setCurrentView('settings')}
+                                >Settings</button>
+                            </>
+                        )}
                     </div>
                 </div>
                 <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
@@ -1289,7 +1308,7 @@ const AdminDashboard = () => {
                 )}
 
                 {/* --- USERS VIEW --- */}
-                {currentView === 'users' && (
+                {currentView === 'users' && isSuperAdmin && (
                     <div className={styles.card}>
                         <div className={styles.cardHeader}>
                             <h3 className={styles.cardTitle}>App User Management</h3>
@@ -1391,7 +1410,7 @@ const AdminDashboard = () => {
                 )}
 
                 {/* --- SETTINGS VIEW --- */}
-                {currentView === 'settings' && (
+                {currentView === 'settings' && isSuperAdmin && (
                     <div className={styles.card}>
                         <div className={styles.cardHeader}>
                             <h3 className={styles.cardTitle}>System Settings</h3>
@@ -1714,7 +1733,8 @@ const AdminDashboard = () => {
                                             { id: 'overview', label: 'Project Overview' },
                                             { id: 'bill', label: 'Bill Preparation' },
                                             { id: 'gm', label: 'General Manager' },
-                                            { id: 'approved_payments', label: 'Approved Payments' }
+                                            { id: 'approved_payments', label: 'Approved Payments' },
+                                            { id: 'hr', label: 'HR Module' }
                                         ].map(mod => (
                                             <div
                                                 key={mod.id}
