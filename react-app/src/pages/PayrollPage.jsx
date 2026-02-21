@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useMessage } from '../context/MessageContext';
 import { LoadingOverlay } from '../components/ui';
 import styles from './PayrollPage.module.css';
@@ -14,16 +14,18 @@ const PayrollPage = () => {
     const [selectedEmployee, setSelectedEmployee] = useState(null);
     const [editingId, setEditingId] = useState(null);
 
+    const [searchParams] = useSearchParams();
+    const editId = searchParams.get('edit');
+
     // Check for edit mode from URL
     useEffect(() => {
-        const params = new URLSearchParams(window.location.hash.split('?')[1]);
-        const editId = params.get('edit');
-        if (editId) {
+        if (editId && employees.length > 0) {
             loadPayrollForEdit(editId);
         }
-    }, [employees]); // Run once employees are loaded
+    }, [editId, employees]); // Run once both employees are loaded and editId is present
 
     const loadPayrollForEdit = async (id) => {
+        if (!employees || employees.length === 0) return;
         setLoading(true);
         try {
             const { data, error } = await supabase
@@ -33,6 +35,7 @@ const PayrollPage = () => {
                 .single();
 
             if (data && !error) {
+                const emp = employees.find(e => e.id === data.employee_id);
                 setEditingId(data.id);
                 setFormData({
                     employee_id: data.employee_id,
@@ -56,13 +59,14 @@ const PayrollPage = () => {
                     lwf: data.lwf,
                     lop_amount: data.lop_amount,
                     payment_method: data.payment_method,
-                    remarks: data.remarks || ''
+                    remarks: data.remarks || '',
+                    department: emp?.department || '',
+                    designation: emp?.designation || '',
+                    pan_no: emp?.pan_no || '',
+                    bank_name: emp?.bank_name || '',
+                    account_no: emp?.account_no || ''
                 });
-                // Find and set selected employee for details display
-                if (employees.length > 0) {
-                    const emp = employees.find(e => e.id === data.employee_id);
-                    setSelectedEmployee(emp);
-                }
+                setSelectedEmployee(emp || null);
             }
         } catch (e) {
             console.error("Error loading for edit:", e);
@@ -96,7 +100,12 @@ const PayrollPage = () => {
         lwf: 0,
         lop_amount: 0,
         payment_method: 'Bank Transfer',
-        remarks: ''
+        remarks: '',
+        department: '',
+        designation: '',
+        pan_no: '',
+        bank_name: '',
+        account_no: ''
     };
 
     const [formData, setFormData] = useState(initialFormData);
@@ -144,6 +153,11 @@ const PayrollPage = () => {
                 esi: emp.esi || 0,
                 lwf: emp.lwf || 0,
                 payment_method: emp.payment_method || 'Bank Transfer',
+                department: emp.department || '',
+                designation: emp.designation || '',
+                pan_no: emp.pan_no || '',
+                bank_name: emp.bank_name || '',
+                account_no: emp.account_no || '',
                 // Reset transients
                 increment: 0, arrears: 0, other_earnings: 0, allowance_increase: 0,
                 lop_amount: 0, advance: 0, remarks: ''
@@ -193,8 +207,34 @@ const PayrollPage = () => {
         if (!formData.employee_id) return alert("Please select an employee");
 
         setLoading(true);
+
+        // 0. Update Master Record in 'employees' table first (SIMILAR TO EmployeeList logic)
+        try {
+            await supabase.from('employees').update({
+                department: formData.department,
+                designation: formData.designation,
+                pan_no: formData.pan_no,
+                bank_name: formData.bank_name,
+                account_no: formData.account_no,
+                basic_salary: formData.basic_da,
+                hra: formData.hra,
+                conveyance: formData.conveyance,
+                child_edu: formData.child_edu,
+                child_hostel: formData.child_hostel,
+                med_reimb: formData.med_reimb,
+                special_allowance: formData.special_allowance,
+                pf: formData.pf,
+                esi: formData.esi,
+                lwf: formData.lwf
+            }).eq('id', formData.employee_id);
+        } catch (e) {
+            console.error("Master update failed:", e);
+        }
+
+        // 1. Prepare Payroll Payload (Remove non-payroll fields before saving to 'payrolls' table)
+        const { department, designation, pan_no, bank_name, account_no, ...payrollData } = formData;
         const payload = {
-            ...formData,
+            ...payrollData,
             gross_salary: totals.gross,
             total_deductions: totals.deductions,
             net_pay: totals.net
@@ -226,15 +266,12 @@ const PayrollPage = () => {
                 if (result.error) throw result.error;
                 toast(existing ? "Existing payroll updated!" : "Payroll saved successfully!");
 
-                // For NEW generations (even if overwriting), still show the slip as requested before
-                if (result.data && result.data[0]) {
-                    navigate(`/salary-slip/${result.data[0].id}`);
-                }
             }
             setFormData(initialFormData);
             setSelectedEmployee(null);
             setEditingId(null);
             fetchPayrolls();
+            fetchEmployees();
         } catch (error) {
             alert(error.message);
         } finally {
@@ -268,7 +305,12 @@ const PayrollPage = () => {
             lwf: payroll.lwf,
             lop_amount: payroll.lop_amount,
             payment_method: payroll.payment_method,
-            remarks: payroll.remarks || ''
+            remarks: payroll.remarks || '',
+            department: emp?.department || '',
+            designation: emp?.designation || '',
+            pan_no: emp?.pan_no || '',
+            bank_name: emp?.bank_name || '',
+            account_no: emp?.account_no || ''
         });
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
@@ -314,7 +356,7 @@ const PayrollPage = () => {
 
                     <div className={styles.formBody}>
                         {/* Employee & Bank Section */}
-                        <div className={styles.section}>
+                        <div className={`${styles.section} ${styles.fullWidth}`}>
                             <h3 className={styles.sectionHeading}>👤 Employee & Bank Details</h3>
                             <div className={styles.grid}>
                                 <div className={styles.inputGroup}>
@@ -325,8 +367,12 @@ const PayrollPage = () => {
                                             .filter(emp => {
                                                 // In Edit mode, show only the employee being edited
                                                 if (editingId) return emp.id === formData.employee_id;
-                                                // In New mode, show all employees (Restriction removed by USER)
-                                                return true;
+
+                                                // In New mode, hide employees who have already been processed for this specific month
+                                                const alreadyProcessed = payrolls.some(p =>
+                                                    p.employee_id === emp.id && p.pay_period === formData.pay_period
+                                                );
+                                                return !alreadyProcessed;
                                             })
                                             .map(emp => (
                                                 <option key={emp.id} value={emp.id}>{emp.full_name} ({emp.employee_id})</option>
@@ -336,23 +382,23 @@ const PayrollPage = () => {
                                 </div>
                                 <div className={styles.inputGroup}>
                                     <label className={styles.label}>Department</label>
-                                    <input className={`${styles.input} ${styles.readOnly}`} readOnly value={selectedEmployee?.department || '-'} />
+                                    <input id="department" className={styles.input} value={formData.department} onChange={handleInputChange} />
                                 </div>
                                 <div className={styles.inputGroup}>
                                     <label className={styles.label}>Designation</label>
-                                    <input className={`${styles.input} ${styles.readOnly}`} readOnly value={selectedEmployee?.designation || '-'} />
+                                    <input id="designation" className={styles.input} value={formData.designation} onChange={handleInputChange} />
                                 </div>
                                 <div className={styles.inputGroup}>
                                     <label className={styles.label}>PAN Number</label>
-                                    <input className={`${styles.input} ${styles.readOnly}`} readOnly value={selectedEmployee?.pan_no || '-'} />
+                                    <input id="pan_no" className={styles.input} value={formData.pan_no} onChange={handleInputChange} />
                                 </div>
                                 <div className={styles.inputGroup}>
                                     <label className={styles.label}>Bank Name</label>
-                                    <input className={`${styles.input} ${styles.readOnly}`} readOnly value={selectedEmployee?.bank_name || '-'} />
+                                    <input id="bank_name" className={styles.input} value={formData.bank_name} onChange={handleInputChange} />
                                 </div>
                                 <div className={styles.inputGroup}>
                                     <label className={styles.label}>Account No.</label>
-                                    <input className={`${styles.input} ${styles.readOnly}`} readOnly value={selectedEmployee?.account_no || '-'} />
+                                    <input id="account_no" className={styles.input} value={formData.account_no} onChange={handleInputChange} />
                                 </div>
                             </div>
                         </div>
@@ -458,7 +504,7 @@ const PayrollPage = () => {
                         </div>
 
                         {/* Payment & Remarks */}
-                        <div className={styles.section}>
+                        <div className={`${styles.section} ${styles.fullWidth}`}>
                             <div className={styles.grid}>
                                 <div className={styles.inputGroup}>
                                     <label className={styles.label}>Payment Method</label>

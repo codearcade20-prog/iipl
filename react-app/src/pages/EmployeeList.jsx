@@ -43,7 +43,12 @@ const EmployeeList = () => {
         child_hostel: 0,
         pf: 0,
         esi: 0,
-        lwf: 0
+        lwf: 0,
+        department: '',
+        designation: '',
+        pan_no: '',
+        bank_name: '',
+        account_no: ''
     });
     const [editMode, setEditMode] = useState(false); // Master vs Attendance toggle
     const [showMore, setShowMore] = useState(false); // More button toggle
@@ -115,7 +120,12 @@ const EmployeeList = () => {
             child_hostel: emp.child_hostel || 0,
             pf: emp.pf || 0,
             esi: emp.esi || 0,
-            lwf: emp.lwf || 0
+            lwf: emp.lwf || 0,
+            department: emp.department || '',
+            designation: emp.designation || '',
+            pan_no: emp.pan_no || '',
+            bank_name: emp.bank_name || '',
+            account_no: emp.account_no || ''
         });
         setShowPayrollModal(true);
         setEditMode(false);
@@ -160,7 +170,12 @@ const EmployeeList = () => {
                     child_hostel: attendance.child_hostel,
                     pf: attendance.pf,
                     esi: attendance.esi,
-                    lwf: attendance.lwf
+                    lwf: attendance.lwf,
+                    department: attendance.department,
+                    designation: attendance.designation,
+                    pan_no: attendance.pan_no,
+                    bank_name: attendance.bank_name,
+                    account_no: attendance.account_no
                 })
                 .eq('id', activeEmployee.id);
 
@@ -242,6 +257,7 @@ const EmployeeList = () => {
             if (data && data[0]) {
                 toast("Master updated & Payslip generated successfully!");
                 setShowPayrollModal(false);
+                fetchEmployees(); // Refresh the list to show new master values
                 navigate(`/salary-slip/${data[0].id}`);
             }
         } catch (e) {
@@ -370,140 +386,122 @@ const EmployeeList = () => {
 
             {showPayrollModal && (
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-                    <div style={{ background: 'white', padding: '30px', borderRadius: '12px', width: '400px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
-                        <h2 style={{ margin: '0 0 20px 0', fontSize: '1.25rem' }}>Process Pay for {activeEmployee?.full_name}</h2>
-                        <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <span style={{ fontSize: '0.9rem', color: '#64748b', fontWeight: '500' }}>Month:</span>
-                            <input
-                                type="month"
-                                style={{ border: '1px solid #e2e8f0', borderRadius: '4px', padding: '2px 8px', fontSize: '0.9rem', fontWeight: '700', color: '#1e293b' }}
-                                value={selectedMonth}
-                                onChange={(e) => setSelectedMonth(e.target.value)}
-                            />
-                        </div>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '5px' }}>Company Working Days</label>
+                    <div style={{ background: 'white', padding: '30px', borderRadius: '12px', width: '850px', maxWidth: '95vw', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #f1f5f9', paddingBottom: '15px' }}>
+                            <h2 style={{ margin: 0, fontSize: '1.4rem', color: '#1e293b' }}>Process Pay: <span style={{ color: '#3b82f6' }}>{activeEmployee?.full_name}</span></h2>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <span style={{ fontSize: '0.9rem', color: '#64748b', fontWeight: '500' }}>Pay Month:</span>
                                 <input
-                                    type="number"
-                                    style={{ width: '100%', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '6px' }}
-                                    value={attendance.workingDays}
-                                    onChange={(e) => setAttendance({ ...attendance, workingDays: e.target.value })}
-                                />
-                            </div>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '5px' }}>LOP Days</label>
-                                <input
-                                    type="number"
-                                    style={{ width: '100%', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '6px' }}
-                                    value={attendance.lopDays}
-                                    onChange={(e) => setAttendance({ ...attendance, lopDays: e.target.value })}
-                                />
-                            </div>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '5px' }}>Paid Days (Calculated)</label>
-                                <input
-                                    readOnly
-                                    style={{ width: '100%', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '6px', background: '#f8fafc', fontWeight: 'bold' }}
-                                    value={(parseFloat(attendance.workingDays) || 0) - (parseFloat(attendance.lopDays) || 0)}
-                                />
-                            </div>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '5px' }}>Increment (Monthly)</label>
-                                <input
-                                    type="number"
-                                    style={{ width: '100%', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '6px' }}
-                                    value={attendance.increment}
-                                    onChange={(e) => setAttendance({ ...attendance, increment: e.target.value })}
-                                />
-                            </div>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '5px' }}>Arrears</label>
-                                <input
-                                    type="number"
-                                    style={{ width: '100%', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '6px' }}
-                                    value={attendance.arrears}
-                                    onChange={(e) => setAttendance({ ...attendance, arrears: e.target.value })}
-                                />
-                            </div>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '5px' }}>Salary Advance Ded.</label>
-                                <input
-                                    type="number"
-                                    style={{ width: '100%', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '6px' }}
-                                    value={attendance.tempAdvance}
-                                    onChange={(e) => setAttendance({ ...attendance, tempAdvance: e.target.value })}
-                                />
-                            </div>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '5px' }}>Remarks</label>
-                                <input
-                                    type="text"
-                                    style={{ width: '100%', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '6px' }}
-                                    value={attendance.remarks}
-                                    onChange={(e) => setAttendance({ ...attendance, remarks: e.target.value })}
+                                    type="month"
+                                    style={{ border: '1px solid #3b82f6', borderRadius: '6px', padding: '6px 12px', fontSize: '1rem', fontWeight: '700', color: '#1e293b', background: '#eff6ff' }}
+                                    value={selectedMonth}
+                                    onChange={(e) => setSelectedMonth(e.target.value)}
                                 />
                             </div>
                         </div>
 
-                        {/* More Section (Master Table Update) */}
-                        <div style={{ marginTop: '20px' }}>
-                            <button
-                                onClick={() => setShowMore(!showMore)}
-                                style={{ width: '100%', padding: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', cursor: 'pointer', textAlign: 'center', fontSize: '0.9rem', fontWeight: 600, color: '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                            >
-                                {showMore ? '🔼 Show Less' : '🔽 More (Edit Master Record)'}
-                            </button>
-
-                            {showMore && (
-                                <div style={{ marginTop: '20px', padding: '15px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                                        <h3 style={{ margin: 0, fontSize: '0.85rem', color: '#1e293b' }}>🛡️ Fixed Salary Structure</h3>
-                                        <span style={{ fontSize: '0.7rem', color: '#ef4444', fontWeight: 700 }}>AFFECTS MASTER TABLE</span>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '30px' }}>
+                            {/* Column 1: Current Month Adjustments */}
+                            <div>
+                                <h3 style={{ fontSize: '1rem', color: '#475569', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>📝 Attendance & Adjustments</h3>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#64748b', marginBottom: '5px' }}>Working Days</label>
+                                        <input type="number" style={{ width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '8px' }} value={attendance.workingDays} onChange={(e) => setAttendance({ ...attendance, workingDays: e.target.value })} />
                                     </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#64748b', marginBottom: '5px' }}>LOP Days</label>
+                                        <input type="number" style={{ width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '8px' }} value={attendance.lopDays} onChange={(e) => setAttendance({ ...attendance, lopDays: e.target.value })} />
+                                    </div>
+                                    <div style={{ gridColumn: 'span 2' }}>
+                                        <div style={{ background: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#475569' }}>Net Paid Days:</span>
+                                            <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#3b82f6' }}>{(parseFloat(attendance.workingDays) || 0) - (parseFloat(attendance.lopDays) || 0)}</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#64748b', marginBottom: '5px' }}>Increment (Month)</label>
+                                        <input type="number" style={{ width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '8px' }} value={attendance.increment} onChange={(e) => setAttendance({ ...attendance, increment: e.target.value })} />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#64748b', marginBottom: '5px' }}>Arrears</label>
+                                        <input type="number" style={{ width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '8px' }} value={attendance.arrears} onChange={(e) => setAttendance({ ...attendance, arrears: e.target.value })} />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#64748b', marginBottom: '5px' }}>Advance Ded.</label>
+                                        <input type="number" style={{ width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '8px' }} value={attendance.tempAdvance} onChange={(e) => setAttendance({ ...attendance, tempAdvance: e.target.value })} />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#64748b', marginBottom: '5px' }}>Remarks</label>
+                                        <input type="text" style={{ width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '8px' }} value={attendance.remarks} onChange={(e) => setAttendance({ ...attendance, remarks: e.target.value })} placeholder="Optional notes" />
+                                    </div>
+                                </div>
+                            </div>
 
+                            {/* Column 2: Master Data Update */}
+                            <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                                    <h3 style={{ margin: 0, fontSize: '0.9rem', color: '#1e293b' }}>🛡️ Fixed Master Record</h3>
+                                    <span style={{ fontSize: '0.65rem', color: '#ef4444', fontWeight: 800, background: '#fee2e2', padding: '2px 6px', borderRadius: '4px' }}>PERMANENT UPDATE</span>
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '15px' }}>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.7rem', color: '#64748b', marginBottom: '2px' }}>Basic Salary</label>
+                                        <input type="number" style={{ width: '100%', padding: '6px', fontSize: '0.85rem', border: '1px solid #cbd5e1', borderRadius: '6px' }} value={attendance.basic_salary} onChange={(e) => setAttendance({ ...attendance, basic_salary: e.target.value })} />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.7rem', color: '#64748b', marginBottom: '2px' }}>HRA</label>
+                                        <input type="number" style={{ width: '100%', padding: '6px', fontSize: '0.85rem', border: '1px solid #cbd5e1', borderRadius: '6px' }} value={attendance.hra} onChange={(e) => setAttendance({ ...attendance, hra: e.target.value })} />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.7rem', color: '#64748b', marginBottom: '2px' }}>PF Ded.</label>
+                                        <input type="number" style={{ width: '100%', padding: '6px', fontSize: '0.85rem', border: '1px solid #cbd5e1', borderRadius: '6px' }} value={attendance.pf} onChange={(e) => setAttendance({ ...attendance, pf: e.target.value })} />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.7rem', color: '#64748b', marginBottom: '2px' }}>ESI Ded.</label>
+                                        <input type="number" style={{ width: '100%', padding: '6px', fontSize: '0.85rem', border: '1px solid #cbd5e1', borderRadius: '6px' }} value={attendance.esi} onChange={(e) => setAttendance({ ...attendance, esi: e.target.value })} />
+                                    </div>
+                                </div>
+
+                                <div style={{ padding: '10px 0', borderTop: '1px solid #e2e8f0', marginTop: '10px' }}>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                                         <div>
-                                            <label style={{ display: 'block', fontSize: '0.7rem', marginBottom: '2px' }}>Basic Salary</label>
-                                            <input type="number" style={{ width: '100%', padding: '6px', fontSize: '0.8rem', border: '1px solid #cbd5e1', borderRadius: '4px' }} value={attendance.basic_salary} onChange={(e) => setAttendance({ ...attendance, basic_salary: e.target.value })} />
+                                            <label style={{ display: 'block', fontSize: '0.7rem', color: '#64748b', marginBottom: '2px' }}>Department</label>
+                                            <input type="text" style={{ width: '100%', padding: '6px', fontSize: '0.85rem', border: '1px solid #cbd5e1', borderRadius: '6px' }} value={attendance.department} onChange={(e) => setAttendance({ ...attendance, department: e.target.value })} />
                                         </div>
                                         <div>
-                                            <label style={{ display: 'block', fontSize: '0.7rem', marginBottom: '2px' }}>HRA</label>
-                                            <input type="number" style={{ width: '100%', padding: '6px', fontSize: '0.8rem', border: '1px solid #cbd5e1', borderRadius: '4px' }} value={attendance.hra} onChange={(e) => setAttendance({ ...attendance, hra: e.target.value })} />
+                                            <label style={{ display: 'block', fontSize: '0.7rem', color: '#64748b', marginBottom: '2px' }}>Designation</label>
+                                            <input type="text" style={{ width: '100%', padding: '6px', fontSize: '0.85rem', border: '1px solid #cbd5e1', borderRadius: '6px' }} value={attendance.designation} onChange={(e) => setAttendance({ ...attendance, designation: e.target.value })} />
                                         </div>
                                         <div>
-                                            <label style={{ display: 'block', fontSize: '0.7rem', marginBottom: '2px' }}>Conveyance</label>
-                                            <input type="number" style={{ width: '100%', padding: '6px', fontSize: '0.8rem', border: '1px solid #cbd5e1', borderRadius: '4px' }} value={attendance.conveyance} onChange={(e) => setAttendance({ ...attendance, conveyance: e.target.value })} />
+                                            <label style={{ display: 'block', fontSize: '0.7rem', color: '#64748b', marginBottom: '2px' }}>PAN No.</label>
+                                            <input type="text" style={{ width: '100%', padding: '6px', fontSize: '0.85rem', border: '1px solid #cbd5e1', borderRadius: '6px' }} value={attendance.pan_no} onChange={(e) => setAttendance({ ...attendance, pan_no: e.target.value })} />
                                         </div>
                                         <div>
-                                            <label style={{ display: 'block', fontSize: '0.7rem', marginBottom: '2px' }}>PF Ded.</label>
-                                            <input type="number" style={{ width: '100%', padding: '6px', fontSize: '0.8rem', border: '1px solid #cbd5e1', borderRadius: '4px' }} value={attendance.pf} onChange={(e) => setAttendance({ ...attendance, pf: e.target.value })} />
+                                            <label style={{ display: 'block', fontSize: '0.7rem', color: '#64748b', marginBottom: '2px' }}>Bank Name</label>
+                                            <input type="text" style={{ width: '100%', padding: '6px', fontSize: '0.85rem', border: '1px solid #cbd5e1', borderRadius: '6px' }} value={attendance.bank_name} onChange={(e) => setAttendance({ ...attendance, bank_name: e.target.value })} />
                                         </div>
-                                        <div>
-                                            <label style={{ display: 'block', fontSize: '0.7rem', marginBottom: '2px' }}>ESI Ded.</label>
-                                            <input type="number" style={{ width: '100%', padding: '6px', fontSize: '0.8rem', border: '1px solid #cbd5e1', borderRadius: '4px' }} value={attendance.esi} onChange={(e) => setAttendance({ ...attendance, esi: e.target.value })} />
-                                        </div>
-                                        <div>
-                                            <label style={{ display: 'block', fontSize: '0.7rem', marginBottom: '2px' }}>Med. Reimb.</label>
-                                            <input type="number" style={{ width: '100%', padding: '6px', fontSize: '0.8rem', border: '1px solid #cbd5e1', borderRadius: '4px' }} value={attendance.med_reimb} onChange={(e) => setAttendance({ ...attendance, med_reimb: e.target.value })} />
+                                        <div style={{ gridColumn: 'span 2' }}>
+                                            <label style={{ display: 'block', fontSize: '0.7rem', color: '#64748b', marginBottom: '2px' }}>Account No.</label>
+                                            <input type="text" style={{ width: '100%', padding: '6px', fontSize: '0.85rem', border: '1px solid #cbd5e1', borderRadius: '6px' }} value={attendance.account_no} onChange={(e) => setAttendance({ ...attendance, account_no: e.target.value })} />
                                         </div>
                                     </div>
-                                    <p style={{ fontSize: '0.65rem', color: '#64748b', marginTop: '10px', fontStyle: 'italic' }}>* Changes made here will permanently update the employee's fixed salary record.</p>
                                 </div>
-                            )}
+                                <p style={{ fontSize: '0.65rem', color: '#94a3b8', marginTop: '12px', textAlign: 'center' }}>* Any edits here update the master employee database.</p>
+                            </div>
                         </div>
 
-                        <div style={{ display: 'flex', gap: '10px', marginTop: '30px' }}>
+                        <div style={{ display: 'flex', gap: '15px', marginTop: '30px', borderTop: '1px solid #f1f5f9', paddingTop: '20px' }}>
                             <button
                                 onClick={() => setShowPayrollModal(false)}
-                                style={{ flex: 1, padding: '10px', background: '#f1f5f9', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
+                                style={{ flex: 1, padding: '12px', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}
                             >Cancel</button>
                             <button
                                 onClick={generatePayroll}
-                                style={{ flex: 1, padding: '10px', background: existingPayrollId ? '#10b981' : '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}
+                                style={{ flex: 2, padding: '12px', background: existingPayrollId ? '#10b981' : '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 700, fontSize: '1rem', boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.2)' }}
                             >
-                                {existingPayrollId ? 'Update Existing record' : 'Generate Payslip'}
+                                {existingPayrollId ? '✅ Update Records & Slip' : '🚀 Generate Monthly Payslip'}
                             </button>
                         </div>
                     </div>

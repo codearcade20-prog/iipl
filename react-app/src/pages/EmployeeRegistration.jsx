@@ -22,15 +22,6 @@ const EmployeeRegistration = () => {
         bank_name: '',
         account_no: '',
         ifsc_code: '',
-        hra: 0,
-        conveyance: 0,
-        child_edu: 0,
-        child_hostel: 0,
-        med_reimb: 0,
-        special_allowance: 0,
-        pf: 0,
-        esi: 0,
-        lwf: 0,
         payment_method: 'Bank Transfer'
     });
 
@@ -89,15 +80,6 @@ const EmployeeRegistration = () => {
                 bank_name: '',
                 account_no: '',
                 ifsc_code: '',
-                hra: 0,
-                conveyance: 0,
-                child_edu: 0,
-                child_hostel: 0,
-                med_reimb: 0,
-                special_allowance: 0,
-                pf: 0,
-                esi: 0,
-                lwf: 0,
                 payment_method: 'Bank Transfer'
             });
         } catch (e) {
@@ -274,46 +256,7 @@ const EmployeeRegistration = () => {
                                     onChange={handleInputChange}
                                 />
                             </div>
-                        </div>
 
-                        <h2 className={styles.sectionTitle} style={{ marginTop: '40px' }}>💰 Fixed Payroll Structure</h2>
-                        <div className={styles.formGrid}>
-                            <div className={styles.inputGroup}>
-                                <label className={styles.label} htmlFor="hra">HRA (Fixed)</label>
-                                <input className={styles.input} id="hra" type="number" value={formData.hra} onChange={handleInputChange} />
-                            </div>
-                            <div className={styles.inputGroup}>
-                                <label className={styles.label} htmlFor="conveyance">Conveyance (Fixed)</label>
-                                <input className={styles.input} id="conveyance" type="number" value={formData.conveyance} onChange={handleInputChange} />
-                            </div>
-                            <div className={styles.inputGroup}>
-                                <label className={styles.label} htmlFor="med_reimb">Medical (Fixed)</label>
-                                <input className={styles.input} id="med_reimb" type="number" value={formData.med_reimb} onChange={handleInputChange} />
-                            </div>
-                            <div className={styles.inputGroup}>
-                                <label className={styles.label} htmlFor="special_allowance">Special Allowance (Fixed)</label>
-                                <input className={styles.input} id="special_allowance" type="number" value={formData.special_allowance} onChange={handleInputChange} />
-                            </div>
-                            <div className={styles.inputGroup}>
-                                <label className={styles.label} htmlFor="child_edu">Child Education (Fixed)</label>
-                                <input className={styles.input} id="child_edu" type="number" value={formData.child_edu} onChange={handleInputChange} />
-                            </div>
-                            <div className={styles.inputGroup}>
-                                <label className={styles.label} htmlFor="child_hostel">Child Hostel (Fixed)</label>
-                                <input className={styles.input} id="child_hostel" type="number" value={formData.child_hostel} onChange={handleInputChange} />
-                            </div>
-                            <div className={styles.inputGroup}>
-                                <label className={styles.label} htmlFor="pf">PF (Monthly Deduction)</label>
-                                <input className={styles.input} id="pf" type="number" value={formData.pf} onChange={handleInputChange} />
-                            </div>
-                            <div className={styles.inputGroup}>
-                                <label className={styles.label} htmlFor="esi">ESI (Monthly Deduction)</label>
-                                <input className={styles.input} id="esi" type="number" value={formData.esi} onChange={handleInputChange} />
-                            </div>
-                            <div className={styles.inputGroup}>
-                                <label className={styles.label} htmlFor="lwf">LWF</label>
-                                <input className={styles.input} id="lwf" type="number" value={formData.lwf} onChange={handleInputChange} />
-                            </div>
                             <div className={styles.inputGroup}>
                                 <label className={styles.label}>Payment Method</label>
                                 <select className={styles.input} id="payment_method" value={formData.payment_method} onChange={handleInputChange}>
