@@ -152,13 +152,13 @@
     transform: translateY(-2px);
 }
 
-.printBtn {
-    color: #0284c7;
-    border-color: #bae6fd;
+.editBtn {
+    color: #be185d;
+    border-color: #fbcfe8;
 }
 
-.printBtn:hover {
-    background: #f0f9ff;
+.editBtn:hover {
+    background: #fdf2f8;
 }
 
 .deleteBtn {

@@ -1,17 +1,75 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useMessage } from '../context/MessageContext';
 import { LoadingOverlay } from '../components/ui';
 import styles from './PayrollPage.module.css';
 
 const PayrollPage = () => {
+    const navigate = useNavigate();
     const { alert, toast, confirm } = useMessage();
     const [loading, setLoading] = useState(false);
     const [employees, setEmployees] = useState([]);
     const [payrolls, setPayrolls] = useState([]);
     const [selectedEmployee, setSelectedEmployee] = useState(null);
     const [editingId, setEditingId] = useState(null);
+
+    // Check for edit mode from URL
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.hash.split('?')[1]);
+        const editId = params.get('edit');
+        if (editId) {
+            loadPayrollForEdit(editId);
+        }
+    }, [employees]); // Run once employees are loaded
+
+    const loadPayrollForEdit = async (id) => {
+        setLoading(true);
+        try {
+            const { data, error } = await supabase
+                .from('payrolls')
+                .select('*')
+                .eq('id', id)
+                .single();
+
+            if (data && !error) {
+                setEditingId(data.id);
+                setFormData({
+                    employee_id: data.employee_id,
+                    pay_period: data.pay_period,
+                    pay_days: data.pay_days,
+                    per_day_wage: data.per_day_wage,
+                    basic_da: data.basic_da,
+                    hra: data.hra,
+                    conveyance: data.conveyance,
+                    child_edu: data.child_edu,
+                    child_hostel: data.child_hostel,
+                    med_reimb: data.med_reimb,
+                    special_allowance: data.special_allowance,
+                    increment: data.increment,
+                    arrears: data.arrears,
+                    other_earnings: data.other_earnings,
+                    allowance_increase: data.allowance_increase,
+                    pf: data.pf,
+                    esi: data.esi,
+                    advance: data.advance,
+                    lwf: data.lwf,
+                    lop_amount: data.lop_amount,
+                    payment_method: data.payment_method,
+                    remarks: data.remarks || ''
+                });
+                // Find and set selected employee for details display
+                if (employees.length > 0) {
+                    const emp = employees.find(e => e.id === data.employee_id);
+                    setSelectedEmployee(emp);
+                }
+            }
+        } catch (e) {
+            console.error("Error loading for edit:", e);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const initialFormData = {
         employee_id: '',
@@ -61,18 +119,40 @@ const PayrollPage = () => {
         setPayrolls(data || []);
     };
 
-    const handleEmployeeChange = (e) => {
+    const handleEmployeeChange = async (e) => {
         const empId = e.target.value;
         const emp = employees.find(ev => ev.id === empId);
         setSelectedEmployee(emp);
+
         if (emp) {
+            // Priority 1: Load fixed master data from the employees table
+            const baseWage = (parseFloat(emp.basic_salary) || 0);
+            const perDay = (baseWage / 30).toFixed(2);
+
             setFormData(prev => ({
                 ...prev,
                 employee_id: empId,
-                per_day_wage: (parseFloat(emp.basic_salary) / 30).toFixed(2)
+                per_day_wage: perDay,
+                basic_da: baseWage,
+                hra: emp.hra || 0,
+                conveyance: emp.conveyance || 0,
+                child_edu: emp.child_edu || 0,
+                child_hostel: emp.child_hostel || 0,
+                med_reimb: emp.med_reimb || 0,
+                special_allowance: emp.special_allowance || 0,
+                pf: emp.pf || 0,
+                esi: emp.esi || 0,
+                lwf: emp.lwf || 0,
+                payment_method: emp.payment_method || 'Bank Transfer',
+                // Reset transients
+                increment: 0, arrears: 0, other_earnings: 0, allowance_increase: 0,
+                lop_amount: 0, advance: 0, remarks: ''
             }));
+
+            // Optional: Still fetch previous month to catch anomalies or specific settings if needed
+            // But since the user wants "fixed once", we follow the employee master mostly
         } else {
-            setFormData(prev => ({ ...prev, employee_id: '' }));
+            setFormData(initialFormData);
         }
     };
 
@@ -124,9 +204,32 @@ const PayrollPage = () => {
             if (editingId) {
                 await supabase.from('payrolls').update(payload).eq('id', editingId);
                 toast("Payroll updated successfully!");
+                // User wants to return to history after an explicit edit, not see the slip again
+                navigate('/payroll-history');
             } else {
-                await supabase.from('payrolls').insert([payload]);
-                toast("Payroll saved successfully!");
+                // Check if a record already exists for this employee (Any Month) to avoid duplication
+                const { data: existing } = await supabase
+                    .from('payrolls')
+                    .select('id')
+                    .eq('employee_id', formData.employee_id)
+                    .maybeSingle();
+
+                let result;
+                if (existing) {
+                    // Update existing
+                    result = await supabase.from('payrolls').update(payload).eq('id', existing.id).select();
+                } else {
+                    // Insert new
+                    result = await supabase.from('payrolls').insert([payload]).select();
+                }
+
+                if (result.error) throw result.error;
+                toast(existing ? "Existing payroll updated!" : "Payroll saved successfully!");
+
+                // For NEW generations (even if overwriting), still show the slip as requested before
+                if (result.data && result.data[0]) {
+                    navigate(`/salary-slip/${result.data[0].id}`);
+                }
             }
             setFormData(initialFormData);
             setSelectedEmployee(null);
@@ -173,10 +276,16 @@ const PayrollPage = () => {
     const handleDelete = async (id) => {
         if (await confirm("Delete this payroll record?")) {
             setLoading(true);
-            await supabase.from('payrolls').delete().eq('id', id);
-            fetchPayrolls();
-            setLoading(false);
-            toast("Deleted successfully");
+            try {
+                const { error } = await supabase.from('payrolls').delete().eq('id', id);
+                if (error) throw error;
+                fetchPayrolls();
+                toast("Deleted successfully");
+            } catch (e) {
+                alert(e.message);
+            } finally {
+                setLoading(false);
+            }
         }
     };
 
@@ -212,9 +321,17 @@ const PayrollPage = () => {
                                     <label className={styles.label}>Select Employee</label>
                                     <select className={styles.select} value={formData.employee_id} onChange={handleEmployeeChange}>
                                         <option value="">Choose Employee...</option>
-                                        {employees.map(emp => (
-                                            <option key={emp.id} value={emp.id}>{emp.full_name} ({emp.employee_id})</option>
-                                        ))}
+                                        {employees
+                                            .filter(emp => {
+                                                // In Edit mode, show only the employee being edited
+                                                if (editingId) return emp.id === formData.employee_id;
+                                                // In New mode, show all employees (Restriction removed by USER)
+                                                return true;
+                                            })
+                                            .map(emp => (
+                                                <option key={emp.id} value={emp.id}>{emp.full_name} ({emp.employee_id})</option>
+                                            ))
+                                        }
                                     </select>
                                 </div>
                                 <div className={styles.inputGroup}>

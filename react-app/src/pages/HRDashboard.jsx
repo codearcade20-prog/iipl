@@ -26,20 +26,6 @@ const HRDashboard = () => {
             link: "/payroll",
             icon: <Calculator size={32} />,
             color: styles.green
-        },
-        {
-            title: "Employee Records",
-            desc: "View and manage the complete list of registered employees with search.",
-            link: "/employee-list",
-            icon: <Users size={32} />,
-            color: styles.purple
-        },
-        {
-            title: "Payroll History",
-            desc: "Access historical payroll records and download generated salary slips.",
-            link: "/payroll-history",
-            icon: <History size={32} />,
-            color: styles.orange
         }
     ];
 

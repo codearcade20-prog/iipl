@@ -11,7 +11,8 @@ import {
     FileText,
     Calendar,
     Download,
-    Eye
+    Eye,
+    Edit
 } from 'lucide-react';
 import styles from './PayrollHistory.module.css';
 
@@ -44,18 +45,24 @@ const PayrollHistory = () => {
     };
 
     const handleDelete = async (id) => {
-        if (await confirm("Are you sure you want to delete this payroll record?")) {
-            setLoading(true);
-            try {
-                const { error } = await supabase.from('payrolls').delete().eq('id', id);
-                if (error) throw error;
-                toast("Payroll record deleted.");
-                fetchPayrolls();
-            } catch (e) {
-                alert("Error deleting: " + e.message);
-            } finally {
-                setLoading(false);
+        const password = window.prompt("To delete this payroll record, please enter the administrator password:");
+
+        if (password === 'boss702') {
+            if (await confirm("Are you sure you want to delete this payroll record?")) {
+                setLoading(true);
+                try {
+                    const { error } = await supabase.from('payrolls').delete().eq('id', id);
+                    if (error) throw error;
+                    toast("Payroll record deleted.");
+                    fetchPayrolls();
+                } catch (e) {
+                    alert("Error deleting: " + e.message);
+                } finally {
+                    setLoading(false);
+                }
             }
+        } else if (password !== null) {
+            alert("Incorrect password! Deletion cancelled.");
         }
     };
 
@@ -135,8 +142,8 @@ const PayrollHistory = () => {
                                     </td>
                                     <td>
                                         <div className={styles.actionCell}>
-                                            <Link to={`/salary-slip/${py.id}`} className={`${styles.actionBtn} ${styles.printBtn}`} title="View & Print Slip">
-                                                <Printer size={16} />
+                                            <Link to={`/payroll?edit=${py.id}`} className={`${styles.actionBtn} ${styles.editBtn}`} title="Edit Payroll Record">
+                                                <Edit size={16} />
                                             </Link>
                                             <button onClick={() => handleDelete(py.id)} className={`${styles.actionBtn} ${styles.deleteBtn}`} title="Delete Record">
                                                 <Trash2 size={16} />

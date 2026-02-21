@@ -1,0 +1,11 @@
+-- Add fixed payroll columns to employees table
+ALTER TABLE public.employees ADD COLUMN IF NOT EXISTS hra NUMERIC DEFAULT 0;
+ALTER TABLE public.employees ADD COLUMN IF NOT EXISTS conveyance NUMERIC DEFAULT 0;
+ALTER TABLE public.employees ADD COLUMN IF NOT EXISTS child_edu NUMERIC DEFAULT 0;
+ALTER TABLE public.employees ADD COLUMN IF NOT EXISTS child_hostel NUMERIC DEFAULT 0;
+ALTER TABLE public.employees ADD COLUMN IF NOT EXISTS med_reimb NUMERIC DEFAULT 0;
+ALTER TABLE public.employees ADD COLUMN IF NOT EXISTS special_allowance NUMERIC DEFAULT 0;
+ALTER TABLE public.employees ADD COLUMN IF NOT EXISTS pf NUMERIC DEFAULT 0;
+ALTER TABLE public.employees ADD COLUMN IF NOT EXISTS esi NUMERIC DEFAULT 0;
+ALTER TABLE public.employees ADD COLUMN IF NOT EXISTS lwf NUMERIC DEFAULT 0;
+ALTER TABLE public.employees ADD COLUMN IF NOT EXISTS payment_method TEXT DEFAULT 'Bank Transfer';

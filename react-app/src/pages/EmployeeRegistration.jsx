@@ -21,7 +21,17 @@ const EmployeeRegistration = () => {
         pan_no: '',
         bank_name: '',
         account_no: '',
-        ifsc_code: ''
+        ifsc_code: '',
+        hra: 0,
+        conveyance: 0,
+        child_edu: 0,
+        child_hostel: 0,
+        med_reimb: 0,
+        special_allowance: 0,
+        pf: 0,
+        esi: 0,
+        lwf: 0,
+        payment_method: 'Bank Transfer'
     });
 
     const handleInputChange = (e) => {
@@ -39,6 +49,20 @@ const EmployeeRegistration = () => {
 
         setLoading(true);
         try {
+            // Check for existing records to provide clear specialized errors
+            const { data: existing } = await supabase
+                .from('employees')
+                .select('employee_id, email, pan_no, phone')
+                .or(`employee_id.eq.${formData.employee_id},email.eq.${formData.email},pan_no.eq.${formData.pan_no},phone.eq.${formData.phone}`);
+
+            if (existing && existing.length > 0) {
+                const dup = existing[0];
+                if (dup.employee_id === formData.employee_id) throw new Error(`Employee ID "${formData.employee_id}" is already used!`);
+                if (dup.email === formData.email && formData.email) throw new Error(`Email "${formData.email}" is already registered!`);
+                if (dup.pan_no === formData.pan_no && formData.pan_no) throw new Error(`PAN Number "${formData.pan_no}" is already used!`);
+                if (dup.phone === formData.phone && formData.phone) throw new Error(`Phone number "${formData.phone}" is already registered!`);
+            }
+
             const { error } = await supabase
                 .from('employees')
                 .insert([
@@ -64,7 +88,17 @@ const EmployeeRegistration = () => {
                 pan_no: '',
                 bank_name: '',
                 account_no: '',
-                ifsc_code: ''
+                ifsc_code: '',
+                hra: 0,
+                conveyance: 0,
+                child_edu: 0,
+                child_hostel: 0,
+                med_reimb: 0,
+                special_allowance: 0,
+                pf: 0,
+                esi: 0,
+                lwf: 0,
+                payment_method: 'Bank Transfer'
             });
         } catch (e) {
             console.error(e);
@@ -239,6 +273,54 @@ const EmployeeRegistration = () => {
                                     value={formData.ifsc_code}
                                     onChange={handleInputChange}
                                 />
+                            </div>
+                        </div>
+
+                        <h2 className={styles.sectionTitle} style={{ marginTop: '40px' }}>💰 Fixed Payroll Structure</h2>
+                        <div className={styles.formGrid}>
+                            <div className={styles.inputGroup}>
+                                <label className={styles.label} htmlFor="hra">HRA (Fixed)</label>
+                                <input className={styles.input} id="hra" type="number" value={formData.hra} onChange={handleInputChange} />
+                            </div>
+                            <div className={styles.inputGroup}>
+                                <label className={styles.label} htmlFor="conveyance">Conveyance (Fixed)</label>
+                                <input className={styles.input} id="conveyance" type="number" value={formData.conveyance} onChange={handleInputChange} />
+                            </div>
+                            <div className={styles.inputGroup}>
+                                <label className={styles.label} htmlFor="med_reimb">Medical (Fixed)</label>
+                                <input className={styles.input} id="med_reimb" type="number" value={formData.med_reimb} onChange={handleInputChange} />
+                            </div>
+                            <div className={styles.inputGroup}>
+                                <label className={styles.label} htmlFor="special_allowance">Special Allowance (Fixed)</label>
+                                <input className={styles.input} id="special_allowance" type="number" value={formData.special_allowance} onChange={handleInputChange} />
+                            </div>
+                            <div className={styles.inputGroup}>
+                                <label className={styles.label} htmlFor="child_edu">Child Education (Fixed)</label>
+                                <input className={styles.input} id="child_edu" type="number" value={formData.child_edu} onChange={handleInputChange} />
+                            </div>
+                            <div className={styles.inputGroup}>
+                                <label className={styles.label} htmlFor="child_hostel">Child Hostel (Fixed)</label>
+                                <input className={styles.input} id="child_hostel" type="number" value={formData.child_hostel} onChange={handleInputChange} />
+                            </div>
+                            <div className={styles.inputGroup}>
+                                <label className={styles.label} htmlFor="pf">PF (Monthly Deduction)</label>
+                                <input className={styles.input} id="pf" type="number" value={formData.pf} onChange={handleInputChange} />
+                            </div>
+                            <div className={styles.inputGroup}>
+                                <label className={styles.label} htmlFor="esi">ESI (Monthly Deduction)</label>
+                                <input className={styles.input} id="esi" type="number" value={formData.esi} onChange={handleInputChange} />
+                            </div>
+                            <div className={styles.inputGroup}>
+                                <label className={styles.label} htmlFor="lwf">LWF</label>
+                                <input className={styles.input} id="lwf" type="number" value={formData.lwf} onChange={handleInputChange} />
+                            </div>
+                            <div className={styles.inputGroup}>
+                                <label className={styles.label}>Payment Method</label>
+                                <select className={styles.input} id="payment_method" value={formData.payment_method} onChange={handleInputChange}>
+                                    <option>Bank Transfer</option>
+                                    <option>Cash</option>
+                                    <option>Cheque</option>
+                                </select>
                             </div>
                         </div>
 

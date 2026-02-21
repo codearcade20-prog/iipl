@@ -40,7 +40,7 @@ const SalarySlip = () => {
     return (
         <div className={styles.pageContainer}>
             <div className={styles.controls}>
-                <Link to="/payroll" className={styles.backBtn}>← Back to Payroll</Link>
+                <Link to="/employee-list" className={styles.backBtn}>← Back to Employee List</Link>
                 <button onClick={handlePrint} className={styles.printBtn}>⎙ Print Salary Slip</button>
             </div>
 
