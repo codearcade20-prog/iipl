@@ -1734,7 +1734,8 @@ const AdminDashboard = () => {
                                             { id: 'bill', label: 'Bill Preparation' },
                                             { id: 'gm', label: 'General Manager' },
                                             { id: 'approved_payments', label: 'Approved Payments' },
-                                            { id: 'hr', label: 'HR Module' }
+                                            { id: 'hr', label: 'HR Module' },
+                                            { id: 'wages', label: 'Wages Module' }
                                         ].map(mod => (
                                             <div
                                                 key={mod.id}

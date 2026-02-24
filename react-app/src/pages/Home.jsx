@@ -108,6 +108,13 @@ const Home = () => {
                         <p className={styles.cardText}>Manage employee registrations, details, and payroll information.</p>
                     </Link>
                 )}
+                {(hasPermission('wages') || hasPermission('admin')) && (
+                    <Link to="/wages" className={styles.navCard}>
+                        <div className={styles.icon}>💰</div>
+                        <h3 className={styles.cardTitle}>Wages</h3>
+                        <p className={styles.cardText}>Calculate and manage daily/weekly wages for site workers and labor.</p>
+                    </Link>
+                )}
             </div>
 
             <footer className={styles.footer}>

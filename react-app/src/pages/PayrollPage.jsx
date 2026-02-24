@@ -59,7 +59,8 @@ const PayrollPage = () => {
                     lwf: data.lwf,
                     lop_amount: data.lop_amount,
                     payment_method: data.payment_method,
-                    remarks: data.remarks || '',
+                    remarks: data.remarks?.replace(" [SHOW_LOP]", "") || '',
+                    showLop: data.remarks?.includes("[SHOW_LOP]") || false,
                     department: emp?.department || '',
                     designation: emp?.designation || '',
                     pan_no: emp?.pan_no || '',
@@ -101,6 +102,7 @@ const PayrollPage = () => {
         lop_amount: 0,
         payment_method: 'Bank Transfer',
         remarks: '',
+        showLop: false,
         department: '',
         designation: '',
         pan_no: '',
@@ -160,7 +162,7 @@ const PayrollPage = () => {
                 account_no: emp.account_no || '',
                 // Reset transients
                 increment: 0, arrears: 0, other_earnings: 0, allowance_increase: 0,
-                lop_amount: 0, advance: 0, remarks: ''
+                lop_amount: 0, advance: 0, remarks: '', showLop: false
             }));
 
             // Optional: Still fetch previous month to catch anomalies or specific settings if needed
@@ -171,10 +173,12 @@ const PayrollPage = () => {
     };
 
     const handleInputChange = (e) => {
-        const { id, value, type } = e.target;
+        const { id, value, type, checked } = e.target;
         if (type === 'number') {
             // Allow empty string so user can delete the number
             setFormData(prev => ({ ...prev, [id]: value === '' ? '' : parseFloat(value) }));
+        } else if (type === 'checkbox') {
+            setFormData(prev => ({ ...prev, [id]: checked }));
         } else {
             setFormData(prev => ({ ...prev, [id]: value }));
         }
@@ -232,9 +236,11 @@ const PayrollPage = () => {
         }
 
         // 1. Prepare Payroll Payload (Remove non-payroll fields before saving to 'payrolls' table)
-        const { department, designation, pan_no, bank_name, account_no, ...payrollData } = formData;
+        const { department, designation, pan_no, bank_name, account_no, showLop, ...payrollData } = formData;
+        const finalRemarks = payrollData.remarks.replace(" [SHOW_LOP]", "") + (showLop ? " [SHOW_LOP]" : "");
         const payload = {
             ...payrollData,
+            remarks: finalRemarks,
             gross_salary: totals.gross,
             total_deductions: totals.deductions,
             net_pay: totals.net
@@ -305,7 +311,8 @@ const PayrollPage = () => {
             lwf: payroll.lwf,
             lop_amount: payroll.lop_amount,
             payment_method: payroll.payment_method,
-            remarks: payroll.remarks || '',
+            remarks: payroll.remarks?.replace(" [SHOW_LOP]", "") || '',
+            showLop: payroll.remarks?.includes("[SHOW_LOP]") || false,
             department: emp?.department || '',
             designation: emp?.designation || '',
             pan_no: emp?.pan_no || '',
@@ -517,6 +524,16 @@ const PayrollPage = () => {
                                 <div className={styles.inputGroup} style={{ gridColumn: 'span 2' }}>
                                     <label className={styles.label}>Remarks</label>
                                     <input type="text" id="remarks" className={styles.input} value={formData.remarks} onChange={handleInputChange} placeholder="Any notes..." />
+                                </div>
+                                <div className={styles.inputGroup} style={{ gridColumn: 'span 3', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <input
+                                        type="checkbox"
+                                        id="showLop"
+                                        style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                                        checked={formData.showLop}
+                                        onChange={handleInputChange}
+                                    />
+                                    <label htmlFor="showLop" style={{ fontSize: '0.9rem', fontWeight: 600, color: '#475569', cursor: 'pointer' }}>Show LOP Amount in Payslip</label>
                                 </div>
                             </div>
                         </div>

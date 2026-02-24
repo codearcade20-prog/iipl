@@ -36,6 +36,15 @@ const SalarySlip = () => {
     if (!payroll) return <div className={styles.pageContainer}>Salary Slip not found.</div>;
 
     const emp = payroll.employees;
+    const showLop = payroll.remarks?.includes("[SHOW_LOP]");
+
+    // Earnings remain FIXED as per master record
+    const basicDisplay = payroll.basic_da;
+    const grossDisplay = payroll.gross_salary;
+
+    // Deductions: Hide LOP amount from individual rows and total row unless checked
+    const otherDeducDisplay = showLop ? (payroll.lwf + payroll.lop_amount) : payroll.lwf;
+    const totalDeducDisplay = showLop ? payroll.total_deductions : (payroll.total_deductions - payroll.lop_amount);
 
     return (
         <div className={styles.pageContainer}>
@@ -123,7 +132,7 @@ const SalarySlip = () => {
                             <tbody>
                                 <tr>
                                     <td>Basic Salary + DA</td>
-                                    <td className={styles.amountCol}>{payroll.basic_da.toFixed(2)}</td>
+                                    <td className={styles.amountCol}>{basicDisplay.toFixed(2)}</td>
                                     <td>Provident Fund (PF)</td>
                                     <td className={styles.amountCol}>{payroll.pf.toFixed(2)}</td>
                                 </tr>
@@ -154,14 +163,14 @@ const SalarySlip = () => {
                                 <tr>
                                     <td>Other Earnings</td>
                                     <td className={styles.amountCol}>{(payroll.increment + payroll.arrears + payroll.other_earnings + payroll.allowance_increase).toFixed(2)}</td>
-                                    <td>Other Deductions / LWF</td>
-                                    <td className={styles.amountCol}>{(payroll.lwf + payroll.lop_amount).toFixed(2)}</td>
+                                    <td>{showLop ? 'Other Deductions / LWF / LOP' : 'Other Deductions / LWF'}</td>
+                                    <td className={styles.amountCol}>{otherDeducDisplay.toFixed(2)}</td>
                                 </tr>
                                 <tr className={styles.totalRow}>
                                     <td className={styles.totalLabel}>Total Earnings</td>
-                                    <td className={styles.amountCol}>{payroll.gross_salary.toFixed(2)}</td>
+                                    <td className={styles.amountCol}>{grossDisplay.toFixed(2)}</td>
                                     <td className={styles.totalLabel}>Total Deductions</td>
-                                    <td className={styles.amountCol}>{payroll.total_deductions.toFixed(2)}</td>
+                                    <td className={styles.amountCol}>{totalDeducDisplay.toFixed(2)}</td>
                                 </tr>
                             </tbody>
                         </table>

@@ -33,6 +33,7 @@ const EmployeeList = () => {
         arrears: 0,
         tempAdvance: 0,
         remarks: '',
+        showLop: false,
         // Master Overrides
         basic_salary: 0,
         hra: 0,
@@ -111,6 +112,7 @@ const EmployeeList = () => {
             arrears: 0,
             tempAdvance: 0,
             remarks: '',
+            showLop: false,
             basic_salary: emp.basic_salary || 0,
             hra: emp.hra || 0,
             conveyance: emp.conveyance || 0,
@@ -216,6 +218,9 @@ const EmployeeList = () => {
             const total_deductions = pf + esi + lwf + advance + lop_amount;
             const net = gross - total_deductions;
 
+            const baseRemarks = attendance.remarks || `Generated via Auto-Payroll. Working Days: ${workingDays}, LOP Days: ${lopDays}`;
+            const finalRemarks = baseRemarks.replace(" [SHOW_LOP]", "") + (attendance.showLop ? " [SHOW_LOP]" : "");
+
             const payrollPayload = {
                 employee_id: activeEmployee.id,
                 pay_period: selectedMonth,
@@ -239,7 +244,7 @@ const EmployeeList = () => {
                 total_deductions: total_deductions,
                 net_pay: net,
                 payment_method: activeEmployee.payment_method || 'Bank Transfer',
-                remarks: attendance.remarks || `Generated via Auto-Payroll. Working Days: ${workingDays}, LOP Days: ${lopDays}`
+                remarks: finalRemarks
             };
 
             let result;
@@ -434,6 +439,16 @@ const EmployeeList = () => {
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#64748b', marginBottom: '5px' }}>Remarks</label>
                                         <input type="text" style={{ width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '8px' }} value={attendance.remarks} onChange={(e) => setAttendance({ ...attendance, remarks: e.target.value })} placeholder="Optional notes" />
+                                    </div>
+                                    <div style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'center', gap: '10px', marginTop: '5px' }}>
+                                        <input
+                                            type="checkbox"
+                                            id="showLop"
+                                            style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                                            checked={attendance.showLop}
+                                            onChange={(e) => setAttendance({ ...attendance, showLop: e.target.checked })}
+                                        />
+                                        <label htmlFor="showLop" style={{ fontSize: '0.9rem', fontWeight: 600, color: '#475569', cursor: 'pointer' }}>Show LOP Amount in Payslip</label>
                                     </div>
                                 </div>
                             </div>

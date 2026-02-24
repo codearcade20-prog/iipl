@@ -20,6 +20,7 @@ import SalarySlip from './pages/SalarySlip';
 import HRDashboard from './pages/HRDashboard';
 import EmployeeList from './pages/EmployeeList';
 import PayrollHistory from './pages/PayrollHistory';
+import WagesPage from './pages/WagesPage';
 import { MessageProvider } from './context/MessageContext';
 
 function App() {
@@ -46,7 +47,9 @@ function App() {
             <Route path="/payroll" element={<ProtectedRoute module="hr"><PayrollPage /></ProtectedRoute>} />
             <Route path="/payroll-history" element={<ProtectedRoute module="hr"><PayrollHistory /></ProtectedRoute>} />
             <Route path="/salary-slip/:id" element={<ProtectedRoute module="hr"><SalarySlip /></ProtectedRoute>} />
+            <Route path="/wages" element={<ProtectedRoute module="wages"><WagesPage /></ProtectedRoute>} />
           </Routes>
+
         </Router>
       </MessageProvider>
     </AuthProvider>
