@@ -107,7 +107,9 @@ const WagesPage = () => {
             const lookup = {};
             data.forEach(rec => {
                 lookup[rec.labor_id] = {
-                    status: rec.attendance,
+                    time_in: rec.time_in || '',
+                    time_out: rec.time_out || '',
+                    attn_val: rec.attendance_value || 0,
                     wages: rec.wages_amount,
                     remarks: rec.remarks,
                     id: rec.id
@@ -125,14 +127,51 @@ const WagesPage = () => {
         if (activeTab === 'attendance') fetchAttendance();
     }, [selectedSite, selectedDate, activeTab]);
 
+    const calculateAttendanceValue = (timeIn, timeOut) => {
+        if (!timeIn || !timeOut) return 0;
+        const [h1, m1] = timeIn.split(':').map(Number);
+        const [h2, m2] = timeOut.split(':').map(Number);
+        const t1 = h1 + m1 / 60;
+        const t2 = h2 + m2 / 60;
+        if (t2 <= t1) return 0;
+
+        const slabs = [
+            { s: 6.5, e: 9.5, r: 0.142 },
+            { s: 9.5, e: 18.5, r: 0.111 },
+            { s: 18.5, e: 24.0, r: 0.142 }
+        ];
+
+        let val = 0;
+        slabs.forEach(slab => {
+            const overlapS = Math.max(t1, slab.s);
+            const overlapE = Math.min(t2, slab.e);
+            if (overlapE > overlapS) val += (overlapE - overlapS) * slab.r;
+        });
+        return parseFloat(val.toFixed(3));
+    };
+
     const handleAttendanceChange = (laborId, field, value) => {
-        setAttendanceEntry(prev => ({
-            ...prev,
-            [laborId]: {
-                ...prev[laborId] || { status: 'Present', wages: labors.find(l => l.id === laborId)?.daily_rate || 0 },
-                [field]: value
+        setAttendanceEntry(prev => {
+            const current = prev[laborId] || {
+                time_in: '',
+                time_out: '',
+                wages: labors.find(l => l.id === laborId)?.daily_rate || 0,
+                attn_val: 0
+            };
+
+            const updated = { ...current, [field]: value };
+
+            // Re-calculate attendance value if times change
+            if (field === 'time_in' || field === 'time_out') {
+                updated.attn_val = calculateAttendanceValue(updated.time_in, updated.time_out);
+
+                // Auto-calculate wages based on attendance value
+                const dailyRate = labors.find(l => l.id === laborId)?.daily_rate || 0;
+                updated.wages = (updated.attn_val * dailyRate).toFixed(2);
             }
-        }));
+
+            return { ...prev, [laborId]: updated };
+        });
     };
 
     const saveAttendance = async () => {
@@ -145,13 +184,19 @@ const WagesPage = () => {
             );
 
             for (const labor of filteredLabors) {
-                const entry = attendanceEntry[labor.id] || { status: 'Present', wages: labor.daily_rate };
+                const entry = attendanceEntry[labor.id] || { time_in: '', time_out: '', attn_val: 0, wages: 0 };
+
+                // Only save if time_in and time_out are provided
+                if (!entry.time_in || !entry.time_out) continue;
+
                 const payload = {
                     labor_id: labor.id,
                     site_id: selectedSite,
                     engineer_id: labor.engineer_id || null,
                     work_date: selectedDate,
-                    attendance: entry.status || 'Present',
+                    time_in: entry.time_in,
+                    time_out: entry.time_out,
+                    attendance_value: entry.attn_val,
                     wages_amount: parseFloat(entry.wages) || 0,
                     remarks: entry.remarks || '',
                     payment_week: getWeekOfYear(new Date(selectedDate))
@@ -308,22 +353,28 @@ const WagesPage = () => {
                 </div>
                 <div className={styles.tableContainer}>
                     <table className={styles.table}>
-                        <thead><tr><th>Labor</th><th>Attendance</th><th>Wage</th><th>Remarks</th></tr></thead>
+                        <thead><tr><th>Labor</th><th>Time In / Out</th><th>Attn Value</th><th>Wage</th><th>Remarks</th></tr></thead>
                         <tbody>
                             {filteredLabors.map(l => {
-                                const entry = attendanceEntry[l.id] || { status: 'Present', wages: l.daily_rate };
+                                const entry = attendanceEntry[l.id] || { time_in: '', time_out: '', attn_val: 0, wages: 0 };
                                 return (
                                     <tr key={l.id}>
-                                        <td><strong>{l.name}</strong><br /><small>{l.phone}</small></td>
+                                        <td><strong>{l.name}</strong><br /><small>Rate: ₹{l.daily_rate}</small></td>
                                         <td>
-                                            <div className={styles.attendanceBtns}>
-                                                {['Present', 'Half Day', 'Absent'].map(st => (
-                                                    <button key={st} className={`${styles.attnBtn} ${st === 'Present' ? styles.btnP : st === 'Half Day' ? styles.btnH : styles.btnA} ${entry.status === st ? (st === 'Present' ? styles.activeP : st === 'Half Day' ? styles.activeH : styles.activeA) : ''}`} onClick={() => handleAttendanceChange(l.id, 'status', st)}>{st[0]}</button>
-                                                ))}
+                                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                                <input type="time" className={styles.input} style={{ width: '100px' }} value={entry.time_in || ''} onChange={e => handleAttendanceChange(l.id, 'time_in', e.target.value)} />
+                                                <span>-</span>
+                                                <input type="time" className={styles.input} style={{ width: '100px' }} value={entry.time_out || ''} onChange={e => handleAttendanceChange(l.id, 'time_out', e.target.value)} />
                                             </div>
                                         </td>
-                                        <td><input type="number" className={styles.input} style={{ width: '80px' }} value={entry.wages} onChange={e => handleAttendanceChange(l.id, 'wages', e.target.value)} disabled={entry.status === 'Absent'} /></td>
-                                        <td><input type="text" className={styles.input} value={entry.remarks || ''} onChange={e => handleAttendanceChange(l.id, 'remarks', e.target.value)} /></td>
+                                        <td style={{ fontWeight: 600, color: '#2563eb' }}>{entry.attn_val}</td>
+                                        <td>
+                                            <div style={{ display: 'flex', alignItems: 'center' }}>
+                                                <span style={{ marginRight: '5px' }}>₹</span>
+                                                <input type="number" className={styles.input} style={{ width: '90px' }} value={entry.wages} onChange={e => handleAttendanceChange(l.id, 'wages', e.target.value)} />
+                                            </div>
+                                        </td>
+                                        <td><input type="text" className={styles.input} placeholder="Note..." value={entry.remarks || ''} onChange={e => handleAttendanceChange(l.id, 'remarks', e.target.value)} /></td>
                                     </tr>
                                 )
                             })}

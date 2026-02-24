@@ -31,6 +31,9 @@ CREATE TABLE IF NOT EXISTS public.labor_attendance_wages (
     site_id BIGINT REFERENCES public.sites(id) ON DELETE CASCADE,
     engineer_id UUID REFERENCES public.site_engineers(id) ON DELETE CASCADE, -- Now references external engineers
     work_date DATE NOT NULL,
+    time_in TIME,
+    time_out TIME,
+    attendance_value NUMERIC DEFAULT 0, -- Calculated multiplier
     attendance TEXT DEFAULT 'Present', -- Present, Absent, Half Day
     wages_amount NUMERIC DEFAULT 0,
     remarks TEXT,
