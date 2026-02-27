@@ -78,6 +78,75 @@ const AdminDashboard = () => {
     // --- GLOBAL LOADING STATE ---
     const [saving, setSaving] = useState(false);
 
+    // --- DIAGNOSTICS STATE ---
+    const [diagnostics, setDiagnostics] = useState({
+        loading: false,
+        results: [],
+        summary: { total: 0, passed: 0, failed: 0 }
+    });
+
+    const runDiagnostics = async () => {
+        setDiagnostics(prev => ({ ...prev, loading: true, results: [] }));
+        const checks = [
+            { name: "Connectivity", table: "app_settings", description: "Basic connection to Supabase" },
+            { name: "User Management", table: "app_users", description: "Access to user accounts table" },
+            { name: "Site Registry", table: "sites", description: "Access to project sites table" },
+            { name: "Vendor Registry", table: "vendors", description: "Access to vendors table" },
+            { name: "Payment History", table: "payment_history", description: "Access to payment and invoice records" },
+            { name: "Wages Module - Labors", table: "labors", description: "Access to labor records" },
+            { name: "Wages Module - Engineers", table: "site_engineers", description: "Access to external engineers" },
+            { name: "Wages Module - Attendance", table: "labor_attendance_wages", description: "Access to attendance logs" },
+            { name: "Recycle Bin", table: "recycle_bin", description: "Access to deleted items storage" },
+            { name: "Storage Bucket", table: "storage", description: "Access to 'signatures' storage bucket" }
+        ];
+
+        let passed = 0;
+        let results = [];
+
+        for (let check of checks) {
+            try {
+                const startTime = performance.now();
+                let error, count;
+
+                if (check.table === 'storage') {
+                    const { data, error: storageError } = await supabase.storage.from('signatures').list('', { limit: 1 });
+                    error = storageError;
+                    count = data ? data.length : 0;
+                } else {
+                    const res = await supabase.from(check.table).select('*', { count: 'exact', head: true });
+                    error = res.error;
+                    count = res.count;
+                }
+
+                const endTime = performance.now();
+                const duration = (endTime - startTime).toFixed(0);
+
+                if (error) throw error;
+
+                results.push({
+                    ...check,
+                    status: 'pass',
+                    message: `OK (${count || 0} records)`,
+                    latency: `${duration}ms`
+                });
+                passed++;
+            } catch (err) {
+                results.push({
+                    ...check,
+                    status: 'fail',
+                    message: err.message,
+                    code: err.code
+                });
+            }
+        }
+
+        setDiagnostics({
+            loading: false,
+            results,
+            summary: { total: checks.length, passed, failed: checks.length - passed }
+        });
+    };
+
     // --- AUTH ---
     const handleLogin = () => {
         if (password === 'boss207') {
@@ -97,6 +166,7 @@ const AdminDashboard = () => {
             else if (currentView === 'bin') fetchBin();
             else if (currentView === 'users') fetchUsers();
             else if (currentView === 'settings') fetchSettings();
+            else if (currentView === 'system') runDiagnostics();
             else fetchHistory();
         }
     }, [isAuthenticated, currentView]);
@@ -819,6 +889,10 @@ const AdminDashboard = () => {
                                     className={`${styles.navButton} ${currentView === 'settings' ? styles.navButtonActive : ''}`}
                                     onClick={() => setCurrentView('settings')}
                                 >Settings</button>
+                                <button
+                                    className={`${styles.navButton} ${currentView === 'system' ? styles.navButtonActive : ''}`}
+                                    onClick={() => { setCurrentView('system'); runDiagnostics(); }}
+                                >System Health</button>
                             </>
                         )}
                     </div>
@@ -1409,6 +1483,121 @@ const AdminDashboard = () => {
                     </div>
                 )}
 
+                {/* --- SYSTEM DIAGNOSTICS VIEW --- */}
+                {currentView === 'system' && (
+                    <div className={styles.card}>
+                        <div className={styles.cardHeader}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div style={{
+                                    width: '40px',
+                                    height: '40px',
+                                    background: '#eff6ff',
+                                    borderRadius: '10px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    color: '#2563eb',
+                                    fontSize: '1.2rem'
+                                }}>⚙️</div>
+                                <h3 className={styles.cardTitle}>Database Connection & Health Diagnostics</h3>
+                            </div>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={runDiagnostics}
+                                disabled={diagnostics.loading}
+                                style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                            >
+                                {diagnostics.loading ? '⏳ Testing...' : '🔄 Rerun All Tests'}
+                            </Button>
+                        </div>
+                        <div style={{ padding: '30px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginBottom: '30px' }}>
+                                <div style={{ background: '#f0f9ff', padding: '20px', borderRadius: '12px', textAlign: 'center', border: '1px solid #bae6fd' }}>
+                                    <div style={{ fontSize: '0.8rem', color: '#0369a1', marginBottom: '4px', textTransform: 'uppercase', fontWeight: 700 }}>Total Tests</div>
+                                    <div style={{ fontSize: '2rem', fontWeight: 700, color: '#0c4a6e' }}>{diagnostics.summary.total}</div>
+                                </div>
+                                <div style={{ background: '#f0fdf4', padding: '20px', borderRadius: '12px', textAlign: 'center', border: '1px solid #bbf7d0' }}>
+                                    <div style={{ fontSize: '0.8rem', color: '#15803d', marginBottom: '4px', textTransform: 'uppercase', fontWeight: 700 }}>Passed</div>
+                                    <div style={{ fontSize: '2rem', fontWeight: 700, color: '#14532d' }}>{diagnostics.summary.passed}</div>
+                                </div>
+                                <div style={{ background: diagnostics.summary.failed > 0 ? '#fef2f2' : '#f8fafc', padding: '20px', borderRadius: '12px', textAlign: 'center', border: `1px solid ${diagnostics.summary.failed > 0 ? '#fecaca' : '#e2e8f0'}` }}>
+                                    <div style={{ fontSize: '0.8rem', color: diagnostics.summary.failed > 0 ? '#b91c1c' : '#64748b', marginBottom: '4px', textTransform: 'uppercase', fontWeight: 700 }}>Issues Found</div>
+                                    <div style={{ fontSize: '2rem', fontWeight: 700, color: diagnostics.summary.failed > 0 ? '#991b1b' : '#334155' }}>{diagnostics.summary.failed}</div>
+                                </div>
+                            </div>
+
+                            <div className={styles.tableContainer}>
+                                <table className={styles.table}>
+                                    <thead>
+                                        <tr>
+                                            <th>Component / Table</th>
+                                            <th>Description</th>
+                                            <th>Status</th>
+                                            <th>Details / Latency</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {diagnostics.results.map((res, i) => (
+                                            <tr key={i}>
+                                                <td style={{ fontWeight: 600 }}>{res.name} <br /><small style={{ color: '#64748b', fontWeight: 400 }}>{res.table}</small></td>
+                                                <td>{res.description}</td>
+                                                <td>
+                                                    <span className={`${styles.badge} ${res.status === 'pass' ? styles.badgePaid : styles.badgePending}`} style={{
+                                                        background: res.status === 'pass' ? '#dcfce7' : '#fee2e2',
+                                                        color: res.status === 'pass' ? '#15803d' : '#991b1b'
+                                                    }}>
+                                                        {res.status === 'pass' ? '✓ Healthy' : '✗ Issue Found'}
+                                                    </span>
+                                                </td>
+                                                <td style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>
+                                                    {res.status === 'pass' ? (
+                                                        <span style={{ color: '#64748b' }}>{res.message} <span style={{ marginLeft: 8, color: '#94a3b8' }}>[{res.latency}]</span></span>
+                                                    ) : (
+                                                        <div style={{ color: '#b91c1c' }}>
+                                                            <strong>Error:</strong> {res.message}
+                                                            {res.code && <div style={{ fontSize: '0.75rem', marginTop: 4 }}>Code: {res.code}</div>}
+                                                        </div>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {diagnostics.loading && diagnostics.results.length === 0 && (
+                                            <tr>
+                                                <td colSpan="4" style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
+                                                    <div style={{ marginBottom: 15 }}>⏳ Running system diagnostics...</div>
+                                                    <div style={{ fontSize: '0.85rem' }}>Checking database connectivity and table structures.</div>
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {diagnostics.summary.failed > 0 && (
+                                <div style={{
+                                    marginTop: '25px',
+                                    padding: '20px',
+                                    background: '#fff7ed',
+                                    borderRadius: '12px',
+                                    border: '1px solid #fed7aa',
+                                    color: '#9a3412'
+                                }}>
+                                    <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                                        ⚠️ Connection Troubleshooting
+                                    </h4>
+                                    <ul style={{ paddingLeft: '20px', fontSize: '0.9rem', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                        <li>Check if your internet connection is stable.</li>
+                                        <li>Ensure all SQL scripts provided in the setup (e.g. <code>create_wages_tables.sql</code>) have been executed in the Supabase SQL editor.</li>
+                                        <li>Verify that Row Level Security (RLS) policies are correctly configured for failed tables.</li>
+                                        <li>If you see "PGRST116" or "406", it might mean a table is empty or column types mismatch.</li>
+                                    </ul>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
                 {/* --- SETTINGS VIEW --- */}
                 {currentView === 'settings' && isSuperAdmin && (
                     <div className={styles.card}>
@@ -1462,325 +1651,335 @@ const AdminDashboard = () => {
             </div>
 
             {/* Vendor Modal */}
-            {vendorModalOpen && (
-                <div className={styles.modalOverlay}>
-                    <div className={styles.modalContent}>
-                        <h3 className={styles.modalTitle}>{editingVendorId ? 'Edit Vendor' : 'Add Vendor'}</h3>
-                        <div className="flex flex-col gap-3">
-                            <Input placeholder="Vendor Name" value={vendorForm.name} onChange={e => setVendorForm({ ...vendorForm, name: e.target.value })} />
-                            <Input placeholder="Account Holder Name" value={vendorForm.holderName} onChange={e => setVendorForm({ ...vendorForm, holderName: e.target.value })} />
-                            <div style={{ marginBottom: '12px' }}>
-                                <label style={{ display: 'block', marginBottom: '6px', fontWeight: 500, fontSize: '0.9rem' }}>Vendor Type</label>
-                                <select
-                                    className={styles.statusSelect}
-                                    value={vendorForm.vendorType}
-                                    onChange={e => setVendorForm({ ...vendorForm, vendorType: e.target.value })}
-                                    style={{ width: '100%', padding: '10px' }}
-                                >
-                                    <option value="both">Both (Payment Request & Invoice)</option>
-                                    <option value="payment_request">Payment Request Only</option>
-                                    <option value="invoice">Invoice Only</option>
-                                </select>
+            {
+                vendorModalOpen && (
+                    <div className={styles.modalOverlay}>
+                        <div className={styles.modalContent}>
+                            <h3 className={styles.modalTitle}>{editingVendorId ? 'Edit Vendor' : 'Add Vendor'}</h3>
+                            <div className="flex flex-col gap-3">
+                                <Input placeholder="Vendor Name" value={vendorForm.name} onChange={e => setVendorForm({ ...vendorForm, name: e.target.value })} />
+                                <Input placeholder="Account Holder Name" value={vendorForm.holderName} onChange={e => setVendorForm({ ...vendorForm, holderName: e.target.value })} />
+                                <div style={{ marginBottom: '12px' }}>
+                                    <label style={{ display: 'block', marginBottom: '6px', fontWeight: 500, fontSize: '0.9rem' }}>Vendor Type</label>
+                                    <select
+                                        className={styles.statusSelect}
+                                        value={vendorForm.vendorType}
+                                        onChange={e => setVendorForm({ ...vendorForm, vendorType: e.target.value })}
+                                        style={{ width: '100%', padding: '10px' }}
+                                    >
+                                        <option value="both">Both (Payment Request & Invoice)</option>
+                                        <option value="payment_request">Payment Request Only</option>
+                                        <option value="invoice">Invoice Only</option>
+                                    </select>
+                                </div>
+                                <div className={styles.formGrid}>
+                                    <Input placeholder="PAN Number" value={vendorForm.pan} onChange={e => setVendorForm({ ...vendorForm, pan: e.target.value })} />
+                                    <Input placeholder="Phone Number" value={vendorForm.phone} onChange={e => setVendorForm({ ...vendorForm, phone: e.target.value })} />
+                                </div>
+                                <Input placeholder="Address" multiline={true} rows={3} value={vendorForm.address} onChange={e => setVendorForm({ ...vendorForm, address: e.target.value })} />
+                                <Input placeholder="Account Number" value={vendorForm.acc} onChange={e => setVendorForm({ ...vendorForm, acc: e.target.value })} />
+                                <div className={styles.formGrid}>
+                                    <Input placeholder="Bank Name" value={vendorForm.bank} onChange={e => setVendorForm({ ...vendorForm, bank: e.target.value })} />
+                                    <Input placeholder="IFSC Code" value={vendorForm.ifsc} onChange={e => setVendorForm({ ...vendorForm, ifsc: e.target.value })} />
+                                </div>
                             </div>
-                            <div className={styles.formGrid}>
-                                <Input placeholder="PAN Number" value={vendorForm.pan} onChange={e => setVendorForm({ ...vendorForm, pan: e.target.value })} />
-                                <Input placeholder="Phone Number" value={vendorForm.phone} onChange={e => setVendorForm({ ...vendorForm, phone: e.target.value })} />
+                            <div className={styles.modalActions}>
+                                <Button variant="secondary" onClick={() => setVendorModalOpen(false)}>Cancel</Button>
+                                <Button onClick={saveVendor}>Save Vendor</Button>
                             </div>
-                            <Input placeholder="Address" multiline={true} rows={3} value={vendorForm.address} onChange={e => setVendorForm({ ...vendorForm, address: e.target.value })} />
-                            <Input placeholder="Account Number" value={vendorForm.acc} onChange={e => setVendorForm({ ...vendorForm, acc: e.target.value })} />
-                            <div className={styles.formGrid}>
-                                <Input placeholder="Bank Name" value={vendorForm.bank} onChange={e => setVendorForm({ ...vendorForm, bank: e.target.value })} />
-                                <Input placeholder="IFSC Code" value={vendorForm.ifsc} onChange={e => setVendorForm({ ...vendorForm, ifsc: e.target.value })} />
-                            </div>
-                        </div>
-                        <div className={styles.modalActions}>
-                            <Button variant="secondary" onClick={() => setVendorModalOpen(false)}>Cancel</Button>
-                            <Button onClick={saveVendor}>Save Vendor</Button>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Move to Advances Modal */}
-            {showMoveModal && (
-                <div className={styles.modalOverlay}>
-                    <div className={styles.modalContent} style={{ maxWidth: '500px' }}>
-                        <h3 className={styles.modalTitle}>Move to Advances</h3>
-                        <div style={{ padding: '10px', background: '#f8fafc', borderRadius: '8px', marginBottom: '20px' }}>
-                            <div className="flex justify-between items-center mb-1">
-                                <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Work Order:</span>
-                                <span style={{ fontWeight: 600 }}>{moveData.item?.wo_no || moveData.item?.invoice_no}</span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Total Record Amount:</span>
-                                <span style={{ fontWeight: 600 }}>₹{parseFloat(moveData.item?.amount || 0).toLocaleString('en-IN')}</span>
-                            </div>
-                        </div>
-
-                        <div className="flex flex-col gap-4">
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '6px', fontWeight: 600, fontSize: '0.9rem' }}>Payment Mode (Applied to all splits)</label>
-                                <select
-                                    value={moveData.mode}
-                                    onChange={e => setMoveData({ ...moveData, mode: e.target.value })}
-                                    style={{ width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '6px', background: 'white' }}
-                                >
-                                    <option value="M1">M1</option>
-                                    <option value="M2">M2</option>
-                                    <option value="M3">M3</option>
-                                    <option value="M4">M4</option>
-                                    <option value="M5">M5</option>
-                                </select>
+            {
+                showMoveModal && (
+                    <div className={styles.modalOverlay}>
+                        <div className={styles.modalContent} style={{ maxWidth: '500px' }}>
+                            <h3 className={styles.modalTitle}>Move to Advances</h3>
+                            <div style={{ padding: '10px', background: '#f8fafc', borderRadius: '8px', marginBottom: '20px' }}>
+                                <div className="flex justify-between items-center mb-1">
+                                    <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Work Order:</span>
+                                    <span style={{ fontWeight: 600 }}>{moveData.item?.wo_no || moveData.item?.invoice_no}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Total Record Amount:</span>
+                                    <span style={{ fontWeight: 600 }}>₹{parseFloat(moveData.item?.amount || 0).toLocaleString('en-IN')}</span>
+                                </div>
                             </div>
 
-                            <div style={{ marginTop: '5px' }}>
-                                <label style={{ display: 'block', marginBottom: '10px', fontWeight: 600, fontSize: '0.9rem' }}>Payment Splits (Editable)</label>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '250px', overflowY: 'auto', paddingRight: '5px' }}>
-                                    {moveData.splits.map((split, index) => (
-                                        <div key={index} style={{ display: 'flex', gap: '8px', alignItems: 'center', background: 'white', padding: '8px', borderRadius: '6px', border: '1px solid #f1f5f9' }}>
-                                            <div style={{ flex: 1 }}>
-                                                <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block', marginBottom: '2px' }}>Amount</span>
-                                                <input
-                                                    type="text"
-                                                    inputMode="decimal"
-                                                    value={split.amount}
-                                                    onChange={e => {
-                                                        const newSplits = [...moveData.splits];
-                                                        newSplits[index] = { ...newSplits[index], amount: e.target.value };
-                                                        setMoveData({ ...moveData, splits: newSplits });
-                                                    }}
-                                                    style={{ width: '100%', padding: '6px', border: '1px solid #e2e8f0', borderRadius: '4px' }}
-                                                />
-                                            </div>
-                                            <div style={{ flex: 1 }}>
-                                                <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block', marginBottom: '2px' }}>Date</span>
-                                                <input
-                                                    type="date"
-                                                    value={split.date}
-                                                    onChange={e => {
-                                                        const newSplits = [...moveData.splits];
-                                                        newSplits[index] = { ...newSplits[index], date: e.target.value };
-                                                        setMoveData({ ...moveData, splits: newSplits });
-                                                    }}
-                                                    style={{ width: '100%', padding: '6px', border: '1px solid #e2e8f0', borderRadius: '4px' }}
-                                                />
-                                            </div>
-                                            <Button
-                                                variant="danger"
-                                                style={{ padding: '8px', marginTop: '16px' }}
-                                                onClick={() => {
-                                                    const newSplits = moveData.splits.filter((_, i) => i !== index);
-                                                    setMoveData({ ...moveData, splits: newSplits });
-                                                }}
-                                            >
-                                                ×
-                                            </Button>
-                                        </div>
-                                    ))}
-                                    <Button
-                                        variant="outline"
-                                        style={{ fontSize: '0.8rem', padding: '6px' }}
-                                        onClick={() => {
-                                            setMoveData({
-                                                ...moveData,
-                                                splits: [...moveData.splits, { amount: 0, date: new Date().toISOString().split('T')[0] }]
-                                            });
-                                        }}
+                            <div className="flex flex-col gap-4">
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '6px', fontWeight: 600, fontSize: '0.9rem' }}>Payment Mode (Applied to all splits)</label>
+                                    <select
+                                        value={moveData.mode}
+                                        onChange={e => setMoveData({ ...moveData, mode: e.target.value })}
+                                        style={{ width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '6px', background: 'white' }}
                                     >
-                                        + Add Split
-                                    </Button>
+                                        <option value="M1">M1</option>
+                                        <option value="M2">M2</option>
+                                        <option value="M3">M3</option>
+                                        <option value="M4">M4</option>
+                                        <option value="M5">M5</option>
+                                    </select>
                                 </div>
-                                <div style={{ marginTop: '10px', fontSize: '0.85rem', textAlign: 'right', fontWeight: 600 }}>
-                                    Total: ₹{moveData.splits.reduce((sum, s) => sum + (parseFloat(s.amount) || 0), 0).toLocaleString('en-IN')}
-                                </div>
-                            </div>
 
-                            <div className={styles.modalActions}>
-                                <Button variant="secondary" onClick={() => setShowMoveModal(false)}>Cancel</Button>
-                                <Button onClick={confirmMoveToAdvances}>Confirm Move</Button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Edit History Modal */}
-            {editHistoryModalOpen && editingHistoryItem && (
-                <div className={styles.modalOverlay}>
-                    <div className={styles.modalContent} style={{ width: '500px' }}>
-                        <div className={styles.modalHeader}>
-                            <h3>Edit History Record</h3>
-                            <button onClick={() => setEditHistoryModalOpen(false)} className={styles.closeBtn}>×</button>
-                        </div>
-                        <div className={styles.modalBody}>
-                            <Input
-                                label="Vendor Name"
-                                value={editingHistoryItem.vendor_name}
-                                onChange={e => setEditingHistoryItem({ ...editingHistoryItem, vendor_name: e.target.value })}
-                            />
-                            <Input
-                                label="Project"
-                                value={editingHistoryItem.project}
-                                onChange={e => setEditingHistoryItem({ ...editingHistoryItem, project: e.target.value })}
-                            />
-                            <div className="grid grid-cols-2 gap-4">
-                                <Input
-                                    label="Date"
-                                    type="date"
-                                    value={editingHistoryItem.date}
-                                    onChange={e => setEditingHistoryItem({ ...editingHistoryItem, date: e.target.value })}
-                                />
-                                <Input
-                                    label="Total Amount"
-                                    type="text"
-                                    inputMode="decimal"
-                                    value={editingHistoryItem.amount}
-                                    onChange={e => setEditingHistoryItem({ ...editingHistoryItem, amount: e.target.value })}
-                                />
-                            </div>
-                            <div className="grid grid-cols-2 gap-4 mt-2">
-                                <Input
-                                    label="Paid Amount"
-                                    type="text"
-                                    inputMode="decimal"
-                                    value={editingHistoryItem.paid_amount || 0}
-                                    onChange={e => setEditingHistoryItem({ ...editingHistoryItem, paid_amount: e.target.value })}
-                                />
-                                <Input
-                                    label="Remaining Amount"
-                                    type="text"
-                                    inputMode="decimal"
-                                    value={editingHistoryItem.remaining_amount ?? (editingHistoryItem.amount - (editingHistoryItem.paid_amount || 0))}
-                                    onChange={e => setEditingHistoryItem({ ...editingHistoryItem, remaining_amount: e.target.value })}
-                                />
-                            </div>
-                            <div className="grid grid-cols-3 gap-4">
-                                <Input
-                                    label="WO / Invoice No"
-                                    value={editingHistoryItem.invoice_no || ''}
-                                    onChange={e => setEditingHistoryItem({ ...editingHistoryItem, invoice_no: e.target.value })}
-                                />
-                                <Input
-                                    label="Work Order Date"
-                                    type="date"
-                                    value={editingHistoryItem.wo_date || ''}
-                                    onChange={e => setEditingHistoryItem({ ...editingHistoryItem, wo_date: e.target.value })}
-                                />
-                                <div />
-                            </div>
-                        </div>
-                        <div className={styles.modalFooter}>
-                            <Button variant="secondary" onClick={() => setEditHistoryModalOpen(false)}>Cancel</Button>
-                            <Button onClick={saveHistoryEdit}>Save Changes</Button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* User Management Modal */}
-            {userModalOpen && (
-                <div className={styles.modalOverlay}>
-                    <div className={styles.modalContent} style={{ maxWidth: '650px' }}>
-                        <div className={styles.modalHeader}>
-                            <h3 className={styles.modalTitle}>{editingUserId ? 'Edit User' : 'Add New User'}</h3>
-                            <button onClick={() => setUserModalOpen(false)} className={styles.closeBtn}>×</button>
-                        </div>
-                        <div className={styles.modalBody}>
-                            <div className={styles.formGrid}>
-                                <Input
-                                    label="Username"
-                                    placeholder="Enter username"
-                                    value={userForm.username}
-                                    onChange={e => setUserForm({ ...userForm, username: e.target.value })}
-                                />
-                                <Input
-                                    label="Password"
-                                    type="password"
-                                    placeholder="Enter password"
-                                    value={userForm.password}
-                                    onChange={e => setUserForm({ ...userForm, password: e.target.value })}
-                                />
-                            </div>
-
-                            <div style={{ marginTop: '24px', padding: '16px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
-                                    <input
-                                        type="checkbox"
-                                        style={{ width: '20px', height: '20px', cursor: 'pointer' }}
-                                        checked={userForm.is_admin}
-                                        onChange={e => setUserForm({ ...userForm, is_admin: e.target.checked })}
-                                    />
-                                    <div>
-                                        <div style={{ fontWeight: 700, color: '#1e293b' }}>Admin Access</div>
-                                        <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Grant all permissions and full system access</div>
-                                    </div>
-                                </label>
-                            </div>
-
-                            {!userForm.is_admin && (
-                                <div style={{ marginTop: '24px' }}>
-                                    <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: '#475569', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <Shield size={16} /> Module Permissions
-                                    </h4>
-                                    <div className={styles.permissionGrid}>
-                                        {[
-                                            { id: 'invoice', label: 'Invoice Generator' },
-                                            { id: 'payment', label: 'Payment Request' },
-                                            { id: 'history', label: 'Payment History' },
-                                            { id: 'workorders', label: 'Work Orders' },
-                                            { id: 'admin', label: 'Admin Control' },
-                                            { id: 'vendor', label: 'Vendor Dashboard' },
-                                            { id: 'overview', label: 'Project Overview' },
-                                            { id: 'bill', label: 'Bill Preparation' },
-                                            { id: 'gm', label: 'General Manager' },
-                                            { id: 'approved_payments', label: 'Approved Payments' },
-                                            { id: 'hr', label: 'HR Module' },
-                                            { id: 'wages', label: 'Wages Module' }
-                                        ].map(mod => (
-                                            <div
-                                                key={mod.id}
-                                                className={`${styles.permissionCard} ${userForm.permissions.includes(mod.id) ? styles.active : ''}`}
-                                                onClick={() => togglePermission(mod.id)}
-                                            >
-                                                <input
-                                                    type="checkbox"
-                                                    checked={userForm.permissions.includes(mod.id)}
-                                                    onChange={(e) => { e.stopPropagation(); togglePermission(mod.id); }}
-                                                />
-                                                <span>{mod.label}</span>
+                                <div style={{ marginTop: '5px' }}>
+                                    <label style={{ display: 'block', marginBottom: '10px', fontWeight: 600, fontSize: '0.9rem' }}>Payment Splits (Editable)</label>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '250px', overflowY: 'auto', paddingRight: '5px' }}>
+                                        {moveData.splits.map((split, index) => (
+                                            <div key={index} style={{ display: 'flex', gap: '8px', alignItems: 'center', background: 'white', padding: '8px', borderRadius: '6px', border: '1px solid #f1f5f9' }}>
+                                                <div style={{ flex: 1 }}>
+                                                    <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block', marginBottom: '2px' }}>Amount</span>
+                                                    <input
+                                                        type="text"
+                                                        inputMode="decimal"
+                                                        value={split.amount}
+                                                        onChange={e => {
+                                                            const newSplits = [...moveData.splits];
+                                                            newSplits[index] = { ...newSplits[index], amount: e.target.value };
+                                                            setMoveData({ ...moveData, splits: newSplits });
+                                                        }}
+                                                        style={{ width: '100%', padding: '6px', border: '1px solid #e2e8f0', borderRadius: '4px' }}
+                                                    />
+                                                </div>
+                                                <div style={{ flex: 1 }}>
+                                                    <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block', marginBottom: '2px' }}>Date</span>
+                                                    <input
+                                                        type="date"
+                                                        value={split.date}
+                                                        onChange={e => {
+                                                            const newSplits = [...moveData.splits];
+                                                            newSplits[index] = { ...newSplits[index], date: e.target.value };
+                                                            setMoveData({ ...moveData, splits: newSplits });
+                                                        }}
+                                                        style={{ width: '100%', padding: '6px', border: '1px solid #e2e8f0', borderRadius: '4px' }}
+                                                    />
+                                                </div>
+                                                <Button
+                                                    variant="danger"
+                                                    style={{ padding: '8px', marginTop: '16px' }}
+                                                    onClick={() => {
+                                                        const newSplits = moveData.splits.filter((_, i) => i !== index);
+                                                        setMoveData({ ...moveData, splits: newSplits });
+                                                    }}
+                                                >
+                                                    ×
+                                                </Button>
                                             </div>
                                         ))}
+                                        <Button
+                                            variant="outline"
+                                            style={{ fontSize: '0.8rem', padding: '6px' }}
+                                            onClick={() => {
+                                                setMoveData({
+                                                    ...moveData,
+                                                    splits: [...moveData.splits, { amount: 0, date: new Date().toISOString().split('T')[0] }]
+                                                });
+                                            }}
+                                        >
+                                            + Add Split
+                                        </Button>
+                                    </div>
+                                    <div style={{ marginTop: '10px', fontSize: '0.85rem', textAlign: 'right', fontWeight: 600 }}>
+                                        Total: ₹{moveData.splits.reduce((sum, s) => sum + (parseFloat(s.amount) || 0), 0).toLocaleString('en-IN')}
                                     </div>
                                 </div>
-                            )}
-                        </div>
-                        <div className={styles.modalFooter}>
-                            <Button variant="secondary" onClick={() => setUserModalOpen(false)}>Cancel</Button>
-                            <Button onClick={saveAppUser} style={{ padding: '10px 24px' }}>Save User Account</Button>
+
+                                <div className={styles.modalActions}>
+                                    <Button variant="secondary" onClick={() => setShowMoveModal(false)}>Cancel</Button>
+                                    <Button onClick={confirmMoveToAdvances}>Confirm Move</Button>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
+
+            {/* Edit History Modal */}
+            {
+                editHistoryModalOpen && editingHistoryItem && (
+                    <div className={styles.modalOverlay}>
+                        <div className={styles.modalContent} style={{ width: '500px' }}>
+                            <div className={styles.modalHeader}>
+                                <h3>Edit History Record</h3>
+                                <button onClick={() => setEditHistoryModalOpen(false)} className={styles.closeBtn}>×</button>
+                            </div>
+                            <div className={styles.modalBody}>
+                                <Input
+                                    label="Vendor Name"
+                                    value={editingHistoryItem.vendor_name}
+                                    onChange={e => setEditingHistoryItem({ ...editingHistoryItem, vendor_name: e.target.value })}
+                                />
+                                <Input
+                                    label="Project"
+                                    value={editingHistoryItem.project}
+                                    onChange={e => setEditingHistoryItem({ ...editingHistoryItem, project: e.target.value })}
+                                />
+                                <div className="grid grid-cols-2 gap-4">
+                                    <Input
+                                        label="Date"
+                                        type="date"
+                                        value={editingHistoryItem.date}
+                                        onChange={e => setEditingHistoryItem({ ...editingHistoryItem, date: e.target.value })}
+                                    />
+                                    <Input
+                                        label="Total Amount"
+                                        type="text"
+                                        inputMode="decimal"
+                                        value={editingHistoryItem.amount}
+                                        onChange={e => setEditingHistoryItem({ ...editingHistoryItem, amount: e.target.value })}
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4 mt-2">
+                                    <Input
+                                        label="Paid Amount"
+                                        type="text"
+                                        inputMode="decimal"
+                                        value={editingHistoryItem.paid_amount || 0}
+                                        onChange={e => setEditingHistoryItem({ ...editingHistoryItem, paid_amount: e.target.value })}
+                                    />
+                                    <Input
+                                        label="Remaining Amount"
+                                        type="text"
+                                        inputMode="decimal"
+                                        value={editingHistoryItem.remaining_amount ?? (editingHistoryItem.amount - (editingHistoryItem.paid_amount || 0))}
+                                        onChange={e => setEditingHistoryItem({ ...editingHistoryItem, remaining_amount: e.target.value })}
+                                    />
+                                </div>
+                                <div className="grid grid-cols-3 gap-4">
+                                    <Input
+                                        label="WO / Invoice No"
+                                        value={editingHistoryItem.invoice_no || ''}
+                                        onChange={e => setEditingHistoryItem({ ...editingHistoryItem, invoice_no: e.target.value })}
+                                    />
+                                    <Input
+                                        label="Work Order Date"
+                                        type="date"
+                                        value={editingHistoryItem.wo_date || ''}
+                                        onChange={e => setEditingHistoryItem({ ...editingHistoryItem, wo_date: e.target.value })}
+                                    />
+                                    <div />
+                                </div>
+                            </div>
+                            <div className={styles.modalFooter}>
+                                <Button variant="secondary" onClick={() => setEditHistoryModalOpen(false)}>Cancel</Button>
+                                <Button onClick={saveHistoryEdit}>Save Changes</Button>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+
+            {/* User Management Modal */}
+            {
+                userModalOpen && (
+                    <div className={styles.modalOverlay}>
+                        <div className={styles.modalContent} style={{ maxWidth: '650px' }}>
+                            <div className={styles.modalHeader}>
+                                <h3 className={styles.modalTitle}>{editingUserId ? 'Edit User' : 'Add New User'}</h3>
+                                <button onClick={() => setUserModalOpen(false)} className={styles.closeBtn}>×</button>
+                            </div>
+                            <div className={styles.modalBody}>
+                                <div className={styles.formGrid}>
+                                    <Input
+                                        label="Username"
+                                        placeholder="Enter username"
+                                        value={userForm.username}
+                                        onChange={e => setUserForm({ ...userForm, username: e.target.value })}
+                                    />
+                                    <Input
+                                        label="Password"
+                                        type="password"
+                                        placeholder="Enter password"
+                                        value={userForm.password}
+                                        onChange={e => setUserForm({ ...userForm, password: e.target.value })}
+                                    />
+                                </div>
+
+                                <div style={{ marginTop: '24px', padding: '16px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                                        <input
+                                            type="checkbox"
+                                            style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                                            checked={userForm.is_admin}
+                                            onChange={e => setUserForm({ ...userForm, is_admin: e.target.checked })}
+                                        />
+                                        <div>
+                                            <div style={{ fontWeight: 700, color: '#1e293b' }}>Admin Access</div>
+                                            <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Grant all permissions and full system access</div>
+                                        </div>
+                                    </label>
+                                </div>
+
+                                {!userForm.is_admin && (
+                                    <div style={{ marginTop: '24px' }}>
+                                        <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: '#475569', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <Shield size={16} /> Module Permissions
+                                        </h4>
+                                        <div className={styles.permissionGrid}>
+                                            {[
+                                                { id: 'invoice', label: 'Invoice Generator' },
+                                                { id: 'payment', label: 'Payment Request' },
+                                                { id: 'history', label: 'Payment History' },
+                                                { id: 'workorders', label: 'Work Orders' },
+                                                { id: 'admin', label: 'Admin Control' },
+                                                { id: 'vendor', label: 'Vendor Dashboard' },
+                                                { id: 'overview', label: 'Project Overview' },
+                                                { id: 'bill', label: 'Bill Preparation' },
+                                                { id: 'gm', label: 'General Manager' },
+                                                { id: 'approved_payments', label: 'Approved Payments' },
+                                                { id: 'hr', label: 'HR Module' },
+                                                { id: 'wages', label: 'Wages Module' }
+                                            ].map(mod => (
+                                                <div
+                                                    key={mod.id}
+                                                    className={`${styles.permissionCard} ${userForm.permissions.includes(mod.id) ? styles.active : ''}`}
+                                                    onClick={() => togglePermission(mod.id)}
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={userForm.permissions.includes(mod.id)}
+                                                        onChange={(e) => { e.stopPropagation(); togglePermission(mod.id); }}
+                                                    />
+                                                    <span>{mod.label}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                            <div className={styles.modalFooter}>
+                                <Button variant="secondary" onClick={() => setUserModalOpen(false)}>Cancel</Button>
+                                <Button onClick={saveAppUser} style={{ padding: '10px 24px' }}>Save User Account</Button>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
 
             {/* Site Modal */}
-            {siteModalOpen && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
-                    <div style={{ background: 'white', padding: 30, borderRadius: 16, width: 450 }}>
-                        <h3 className={styles.cardTitle} style={{ marginBottom: 20 }}>{editingSiteId ? 'Edit Site' : 'Add New Site'}</h3>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
-                            <Input label="Site Name" value={siteForm.name} onChange={e => setSiteForm({ ...siteForm, name: e.target.value })} placeholder="e.g. Khazana Pondy" />
-                            <Input label="Location" value={siteForm.location} onChange={e => setSiteForm({ ...siteForm, location: e.target.value })} placeholder="City / Area" />
-                            <Input label="Client Name" value={siteForm.client} onChange={e => setSiteForm({ ...siteForm, client: e.target.value })} placeholder="Client Company" />
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 25 }}>
-                            <Button variant="secondary" onClick={() => setSiteModalOpen(false)}>Cancel</Button>
-                            <Button onClick={saveSite}>Save Site</Button>
+            {
+                siteModalOpen && (
+                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
+                        <div style={{ background: 'white', padding: 30, borderRadius: 16, width: 450 }}>
+                            <h3 className={styles.cardTitle} style={{ marginBottom: 20 }}>{editingSiteId ? 'Edit Site' : 'Add New Site'}</h3>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
+                                <Input label="Site Name" value={siteForm.name} onChange={e => setSiteForm({ ...siteForm, name: e.target.value })} placeholder="e.g. Khazana Pondy" />
+                                <Input label="Location" value={siteForm.location} onChange={e => setSiteForm({ ...siteForm, location: e.target.value })} placeholder="City / Area" />
+                                <Input label="Client Name" value={siteForm.client} onChange={e => setSiteForm({ ...siteForm, client: e.target.value })} placeholder="Client Company" />
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 25 }}>
+                                <Button variant="secondary" onClick={() => setSiteModalOpen(false)}>Cancel</Button>
+                                <Button onClick={saveSite}>Save Site</Button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
             {viewItem && <TemplateModal record={viewItem} onClose={() => setViewItem(null)} />}
-        </div>
+        </div >
     );
 };
 

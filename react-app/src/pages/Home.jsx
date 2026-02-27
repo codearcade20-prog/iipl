@@ -15,7 +15,7 @@ const Home = () => {
                 </div>
                 <h1 className={styles.companyName}>Innovative Interiors</h1>
                 <p className={styles.tagline}>Vendor Management System</p>
-                <div className={styles.dashboardLabel}>Quality Survey Team Dashboard</div>
+                <div className={styles.dashboardLabel}>Quantity Survey Team Dashboard</div>
             </header>
 
             <div className={styles.navGrid}>

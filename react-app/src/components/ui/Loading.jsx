@@ -2,7 +2,8 @@ import React from 'react';
 import styles from './Loading.module.css';
 import { Loader2 } from 'lucide-react';
 
-export const LoadingOverlay = ({ message = 'Loading...' }) => {
+export const LoadingOverlay = ({ visible = true, message = 'Loading...' }) => {
+    if (!visible) return null;
     return (
         <div className={styles.overlay}>
             <div className={styles.container}>
