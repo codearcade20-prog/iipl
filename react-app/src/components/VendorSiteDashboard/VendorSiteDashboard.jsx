@@ -1901,7 +1901,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                 </nav>
 
                 <div className={styles.sidebarFooter}>
-                    <p>Developed By <a href="https://www.youtube.com/channel/UC6McNBm7VIaLlwAjKOP5_VA" target="_blank" rel="noreferrer">Codearcade</a></p>
+                    <p>Developed By <a href="https://codearcade20.vercel.app" target="_blank" rel="noreferrer">Codearcade</a></p>
                     <Link to="/" style={{ display: 'block', marginTop: '1rem', color: '#10b981', fontWeight: 600 }}>← Back to Main</Link>
                 </div>
             </aside>

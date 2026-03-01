@@ -9,8 +9,8 @@ const Home = () => {
     return (
         <div className={styles.container}>
             <header className={styles.header}>
-                <div style={{ position: 'absolute', top: '20px', right: '20px', display: 'flex', alignItems: 'center', gap: '15px' }}>
-                    <span style={{ color: '#64748b', fontSize: '0.9rem' }}>Welcome, <strong>{user?.username}</strong></span>
+                <div className={styles.userSection}>
+                    <span className={styles.welcomeText}>Welcome, <strong>{user?.username}</strong></span>
                     <button onClick={logout} className={styles.logoutBtn}>Logout 🚪</button>
                 </div>
                 <h1 className={styles.companyName}>Innovative Interiors</h1>
@@ -119,7 +119,7 @@ const Home = () => {
 
             <footer className={styles.footer}>
                 <p className={styles.devTag}>
-                    Developed By <a href="https://www.youtube.com/channel/UC6McNBm7VIaLlwAjKOP5_VA" target="_blank" rel="noreferrer">Codearcade</a>
+                    Developed By <a href="https://codearcade20.vercel.app" target="_blank" rel="noreferrer">Codearcade</a>
                 </p>
             </footer>
         </div>
