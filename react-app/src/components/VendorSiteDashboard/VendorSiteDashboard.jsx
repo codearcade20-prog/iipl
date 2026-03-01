@@ -80,7 +80,6 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
         pdfUrl: ''
     });
     const [advances, setAdvances] = useState([{ amount: '', date: '', payment_mode: 'M1' }]);
-    const fileInputRef = useRef(null);
 
     // Statements State
     const [statementMode, setStatementMode] = useState('menu'); // menu, master, vendor, tracker
@@ -251,7 +250,6 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
         setEditingState(null);
         setFormData({ siteName: '', vendorName: '', woNo: '', woDate: '', woValue: '', billCertifiedValue: '', housekeeping: '', retention: '', remarks: '', pdfUrl: '' });
         setAdvances([{ amount: '', date: '', payment_mode: 'M1' }]);
-        if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
     // --- CRUD Operations ---
@@ -351,29 +349,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
         setLoading(true);
 
         try {
-            // Handle PDF Upload first
-            let finalPdfUrl = formData.pdfUrl;
-            if (fileInputRef.current && fileInputRef.current.files[0]) {
-                const file = fileInputRef.current.files[0];
-                // Improved filename sanitization (keep the extension properly)
-                const extension = file.name.split('.').pop();
-                const cleanBaseName = file.name.split('.').slice(0, -1).join('.').replace(/[^a-zA-Z0-9]/g, '');
-                const fileName = `wo_${Date.now()}_${cleanBaseName}.${extension}`;
-
-                const { error: uploadError } = await vendorSupabase.storage
-                    .from('work_orders')
-                    .upload(fileName, file);
-
-                if (uploadError) throw uploadError;
-
-                const { data: publicUrlData } = vendorSupabase.storage
-                    .from('work_orders')
-                    .getPublicUrl(fileName);
-
-                if (publicUrlData?.publicUrl) {
-                    finalPdfUrl = publicUrlData.publicUrl;
-                }
-            }
+            const finalPdfUrl = formData.pdfUrl;
 
             const cleanAdvances = advances.filter(a => a.amount > 0);
 
@@ -826,9 +802,21 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                     />
                 </div>
                 <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>Work Order PDF</label>
-                    <input type="file" className={styles.formInput} ref={fileInputRef} accept="application/pdf" />
-                    {formData.pdfUrl && <div style={{ marginTop: '0.5rem', fontSize: '0.8rem' }}><a href={formData.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#4f46e5' }}>View Current PDF</a></div>}
+                    <label className={styles.formLabel}>Work Order Link (Google Drive)</label>
+                    <input
+                        type="url"
+                        className={styles.formInput}
+                        value={formData.pdfUrl}
+                        onChange={e => setFormData({ ...formData, pdfUrl: e.target.value })}
+                        placeholder="https://drive.google.com/..."
+                    />
+                    {formData.pdfUrl && (
+                        <div style={{ marginTop: '0.5rem', fontSize: '0.8rem' }}>
+                            <a href={formData.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#4f46e5', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <FileText size={14} /> View Current Link
+                            </a>
+                        </div>
+                    )}
                 </div>
 
                 <div className={styles.formGroup}>
