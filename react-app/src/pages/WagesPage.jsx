@@ -28,33 +28,40 @@ const WagesPage = () => {
     const { user } = useAuth();
     const { alert, confirm, toast } = useMessage();
 
+    const formatDate = (dateStr) => {
+        if (!dateStr) return '-';
+        const d = new Date(dateStr);
+        return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    };
+
     const [activeTab, setActiveTab] = useState('attendance');
     const [loading, setLoading] = useState(false);
     const [isInitialLoad, setIsInitialLoad] = useState(true);
 
     // Data States
     const [sites, setSites] = useState([]);
-    const [siteEngineers, setSiteEngineers] = useState([]);
+    const [subcontractors, setSubcontractors] = useState([]);
     const [labors, setLabors] = useState([]);
 
     // Filter States
     const [selectedSite, setSelectedSite] = useState('');
-    const [selectedEngineer, setSelectedEngineer] = useState('');
+    const [selectedSubcontractor, setSelectedSubcontractor] = useState('');
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-    const [searchEng, setSearchEng] = useState('');
+    const [searchSub, setSearchSub] = useState('');
     const [searchLabor, setSearchLabor] = useState('');
+    const [hideCompleted, setHideCompleted] = useState(true);
 
     // Labor Management States
     const [laborModalOpen, setLaborModalOpen] = useState(false);
     const [editingLabor, setEditingLabor] = useState(null);
     const [laborForm, setLaborForm] = useState({
-        name: '', phone: '', site_id: '', engineer_id: '', daily_rate: 0, status: 'Active'
+        name: '', phone: '', site_id: '', subcontractor_id: '', daily_rate: 0, status: 'Active'
     });
 
-    // Site Engineer Management States
-    const [engModalOpen, setEngModalOpen] = useState(false);
-    const [editingEng, setEditingEng] = useState(null);
-    const [engForm, setEngForm] = useState({
+    // Subcontractor Management States
+    const [subModalOpen, setSubModalOpen] = useState(false);
+    const [editingSub, setEditingSub] = useState(null);
+    const [subForm, setSubForm] = useState({
         name: '', phone: '', site_id: '', status: 'Active'
     });
 
@@ -67,21 +74,27 @@ const WagesPage = () => {
     const [rawReportData, setRawReportData] = useState([]);
     const [summaryView, setSummaryView] = useState('all');
 
+    // Correction Modal States
+    const [correctionModalOpen, setCorrectionModalOpen] = useState(false);
+    const [correctionLabor, setCorrectionLabor] = useState(null);
+    const [correctionRecords, setCorrectionRecords] = useState([]);
+    const [isSavingCorrection, setIsSavingCorrection] = useState(false);
+
     useEffect(() => {
         const loadInitialData = async () => {
             setIsInitialLoad(true);
             try {
                 const [sitesRes, engRes, laborsRes] = await Promise.all([
                     supabase.from('sites').select('id, name').order('name'),
-                    supabase.from('site_engineers').select('id, name, phone, site_id, status').order('name'),
-                    supabase.from('labors').select('id, name, phone, site_id, engineer_id, daily_rate, status')
+                    supabase.from('subcontractors').select('id, name, phone, status').order('name'),
+                    supabase.from('labors').select('*, sites(name), subcontractors(name)').order('name')
                 ]);
 
                 if (sitesRes.error) throw sitesRes.error;
 
                 const siteData = sitesRes.data || [];
                 setSites(siteData);
-                setSiteEngineers(engRes.data || []);
+                setSubcontractors(engRes.data || []);
                 setLabors(laborsRes.data || []);
 
                 // Auto-select first site and fetch its attendance IMMEDIATELY to avoid sequential loaders
@@ -105,11 +118,11 @@ const WagesPage = () => {
         try {
             const [sitesRes, engRes, laborsRes] = await Promise.all([
                 supabase.from('sites').select('*').order('name'),
-                supabase.from('site_engineers').select('*, sites(name)').order('name'),
-                supabase.from('labors').select('*, sites(name), site_engineers(name)')
+                supabase.from('subcontractors').select('*').order('name'),
+                supabase.from('labors').select('*, sites(name), subcontractors(name)').order('name')
             ]);
             setSites(sitesRes.data || []);
-            setSiteEngineers(engRes.data || []);
+            setSubcontractors(engRes.data || []);
             setLabors(laborsRes.data || []);
         } catch (e) { console.error(e); }
     };
@@ -125,7 +138,7 @@ const WagesPage = () => {
         try {
             const { data, error } = await supabase
                 .from('labor_attendance_wages')
-                .select('id, labor_id, time_in, time_out, attendance_value, wages_amount, remarks, payment_status')
+                .select('id, labor_id, time_in, time_out, attendance_value, wages_amount, remarks, payment_status, subcontractor_id')
                 .eq('site_id', selectedSite)
                 .eq('work_date', selectedDate);
 
@@ -210,7 +223,7 @@ const WagesPage = () => {
             const updates = [];
             const filteredLabors = labors.filter(l =>
                 l.status === 'Active' && l.site_id == selectedSite &&
-                (!selectedEngineer || l.engineer_id === selectedEngineer)
+                (!selectedSubcontractor || l.subcontractor_id === selectedSubcontractor)
             );
 
             for (const labor of filteredLabors) {
@@ -222,7 +235,7 @@ const WagesPage = () => {
                 const payload = {
                     labor_id: labor.id,
                     site_id: selectedSite,
-                    engineer_id: labor.engineer_id || null,
+                    subcontractor_id: labor.subcontractor_id || null,
                     work_date: selectedDate,
                     time_in: entry.time_in,
                     time_out: entry.time_out,
@@ -249,11 +262,11 @@ const WagesPage = () => {
             setEditingLabor(lab.id);
             setLaborForm({
                 name: lab.name, phone: lab.phone || '', site_id: lab.site_id || '',
-                engineer_id: lab.engineer_id || '', daily_rate: lab.daily_rate || 0, status: lab.status || 'Active'
+                subcontractor_id: lab.subcontractor_id || '', daily_rate: lab.daily_rate || 0, status: lab.status || 'Active'
             });
         } else {
             setEditingLabor(null);
-            setLaborForm({ name: '', phone: '', site_id: selectedSite, engineer_id: '', daily_rate: 0, status: 'Active' });
+            setLaborForm({ name: '', phone: '', site_id: selectedSite, subcontractor_id: '', daily_rate: 0, status: 'Active' });
         }
         setLaborModalOpen(true);
     };
@@ -264,7 +277,7 @@ const WagesPage = () => {
         try {
             const payload = { ...laborForm };
             if (!payload.site_id) payload.site_id = null;
-            if (!payload.engineer_id) payload.engineer_id = null;
+            if (!payload.subcontractor_id) payload.subcontractor_id = null;
 
             if (editingLabor) await supabase.from('labors').update(payload).eq('id', editingLabor);
             else await supabase.from('labors').insert([payload]);
@@ -276,30 +289,30 @@ const WagesPage = () => {
         finally { setLoading(false); }
     };
 
-    // --- SITE ENGINEER CRUD ---
+    // --- SUBCONTRACTOR CRUD ---
 
-    const openEngModal = (eng = null) => {
-        if (eng) {
-            setEditingEng(eng.id);
-            setEngForm({ name: eng.name, phone: eng.phone || '', site_id: eng.site_id || '', status: eng.status || 'Active' });
+    const openSubModal = (sub = null) => {
+        if (sub) {
+            setEditingSub(sub.id);
+            setSubForm({ name: sub.name, phone: sub.phone || '', status: sub.status || 'Active' });
         } else {
-            setEditingEng(null);
-            setEngForm({ name: '', phone: '', site_id: selectedSite, status: 'Active' });
+            setEditingSub(null);
+            setSubForm({ name: '', phone: '', status: 'Active' });
         }
-        setEngModalOpen(true);
+        setSubModalOpen(true);
     };
 
-    const saveEng = async () => {
-        if (!engForm.name) return alert('Name is required');
+    const saveSub = async () => {
+        if (!subForm.name) return alert('Name is required');
         setLoading(true);
         try {
-            const payload = { ...engForm };
-            if (!payload.site_id) payload.site_id = null;
-            if (editingEng) await supabase.from('site_engineers').update(payload).eq('id', editingEng);
-            else await supabase.from('site_engineers').insert([payload]);
-            setEngModalOpen(false);
+            const payload = { ...subForm };
+
+            if (editingSub) await supabase.from('subcontractors').update(payload).eq('id', editingSub);
+            else await supabase.from('subcontractors').insert([payload]);
+            setSubModalOpen(false);
             fetchInitialData();
-            toast('Site Engineer saved!');
+            toast('Subcontractor saved!');
         } catch (error) { alert(error.message); }
         finally { setLoading(false); }
     };
@@ -322,7 +335,7 @@ const WagesPage = () => {
         try {
             const { data, error } = await supabase
                 .from('labor_attendance_wages')
-                .select('*, labors(name, phone), sites(name), site_engineers(name)')
+                .select('*, labors(name, phone), sites(name), subcontractors(name)')
                 .eq('payment_week', reportWeek);
             if (error) throw error;
 
@@ -391,12 +404,68 @@ const WagesPage = () => {
         return `${d.getFullYear()}-W${weekNo.toString().padStart(2, '0')}`;
     };
 
+    const openCorrectionModal = (report) => {
+        setCorrectionLabor(report);
+        // Transform records into an editable format
+        const editable = report.records.map(r => ({
+            ...r,
+            new_time_in: r.time_in ? r.time_in.substring(0, 5) : '',
+            new_time_out: r.time_out ? r.time_out.substring(0, 5) : '',
+            new_attn_val: r.attendance_value || 0,
+            new_wages: r.wages_amount || 0,
+            new_remarks: r.remarks || ''
+        }));
+        setCorrectionRecords(editable);
+        setCorrectionModalOpen(true);
+    };
+
+    const handleCorrectionChange = (idx, field, value) => {
+        setCorrectionRecords(prev => {
+            const updated = [...prev];
+            updated[idx] = { ...updated[idx], [field]: value };
+
+            if (field === 'new_time_in' || field === 'new_time_out') {
+                updated[idx].new_attn_val = calculateAttendanceValue(updated[idx].new_time_in, updated[idx].new_time_out);
+                // Get daily rate of this labor
+                const laborObj = labors.find(l => l.id === updated[idx].labor_id);
+                const dailyRate = parseFloat(laborObj?.daily_rate) || 0;
+                updated[idx].new_wages = (updated[idx].new_attn_val * dailyRate).toFixed(2);
+            }
+            return updated;
+        });
+    };
+
+    const saveCorrections = async () => {
+        setIsSavingCorrection(true);
+        try {
+            const updates = correctionRecords.map(r =>
+                supabase.from('labor_attendance_wages').update({
+                    time_in: r.new_time_in,
+                    time_out: r.new_time_out,
+                    attendance_value: r.new_attn_val,
+                    wages_amount: parseFloat(r.new_wages) || 0,
+                    remarks: r.new_remarks
+                }).eq('id', r.id)
+            );
+            await Promise.all(updates);
+            toast('Corrections saved!');
+            setCorrectionModalOpen(false);
+            fetchWeeklyReport();
+        } catch (error) { alert(error.message); }
+        finally { setIsSavingCorrection(false); }
+    };
+
     // --- RENDERERS ---
 
     const renderAttendance = () => {
-        const filteredLabors = labors.filter(l =>
-            l.status === 'Active' && l.site_id == selectedSite && (!selectedEngineer || l.engineer_id === selectedEngineer)
+        let filteredLabors = labors.filter(l =>
+            l.status === 'Active' && l.site_id == selectedSite && (!selectedEngineer || l.subcontractor_id === selectedEngineer)
         );
+
+        if (hideCompleted) {
+            filteredLabors = filteredLabors.filter(l => !attendanceEntry[l.id]?.time_in);
+        }
+
         return (
             <div className={styles.card}>
                 <div className={styles.formGrid}>
@@ -408,15 +477,24 @@ const WagesPage = () => {
                         </select>
                     </div>
                     <div className={styles.formGroup}>
-                        <label className={styles.label}>Site Engineer</label>
-                        <select className={styles.input} value={selectedEngineer} onChange={e => setSelectedEngineer(e.target.value)}>
-                            <option value="">-- All Engineers --</option>
-                            {siteEngineers.filter(e => e.site_id == selectedSite).map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+                        <label className={styles.label}>Subcontractor</label>
+                        <select className={styles.input} value={selectedSubcontractor} onChange={e => setSelectedSubcontractor(e.target.value)}>
+                            <option value="">-- All Subcontractors --</option>
+                            {subcontractors.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
                         </select>
                     </div>
                     <div className={styles.formGroup}>
-                        <label className={styles.label}>Select Date</label>
-                        <input type="date" className={styles.input} value={selectedDate} onChange={e => setSelectedDate(e.target.value)} />
+                        <label className={styles.label}>Attendance Date</label>
+                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                            <input type="date" className={styles.input} value={selectedDate} onChange={e => setSelectedDate(e.target.value)} />
+                            <button
+                                onClick={(e) => { e.preventDefault(); setHideCompleted(!hideCompleted); }}
+                                className={`${styles.tab} ${hideCompleted ? styles.activeTab : ''}`}
+                                style={{ margin: 0, padding: '10px 16px', fontSize: '0.85rem', border: '1px solid #e2e8f0', whiteSpace: 'nowrap' }}
+                            >
+                                {hideCompleted ? '🔥 Pending Only' : '👥 Show All'}
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -476,41 +554,39 @@ const WagesPage = () => {
         );
     };
 
-    const renderEngineers = () => {
-        const filtered = siteEngineers.filter(e =>
-            e.name?.toLowerCase().includes(searchEng.toLowerCase()) ||
-            e.phone?.toLowerCase().includes(searchEng.toLowerCase()) ||
-            e.sites?.name?.toLowerCase().includes(searchEng.toLowerCase())
+    const renderSubcontractors = () => {
+        const filtered = subcontractors.filter(e =>
+            e.name?.toLowerCase().includes(searchSub.toLowerCase()) ||
+            e.phone?.toLowerCase().includes(searchSub.toLowerCase())
         );
 
         return (
             <div className={styles.card}>
                 <div className={styles.header}>
                     <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flex: 1 }}>
-                        <h3 className={styles.title} style={{ fontSize: '1.25rem', margin: 0 }}>Site Engineers Registry</h3>
+                        <h3 className={styles.title} style={{ fontSize: '1.25rem', margin: 0 }}>Subcontractors Registry</h3>
                         <div style={{ position: 'relative', flex: 0.6 }}>
                             <input
                                 type="text"
                                 className={styles.input}
                                 placeholder="Search by name, phone or site..."
-                                value={searchEng}
-                                onChange={e => setSearchEng(e.target.value)}
+                                value={searchSub}
+                                onChange={e => setSearchSub(e.target.value)}
                                 style={{ paddingLeft: '35px' }}
                             />
                             <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
                         </div>
                     </div>
-                    <Button onClick={() => openEngModal()}>
-                        <UserPlus size={18} style={{ marginRight: 8 }} /> Add Engineer
+                    <Button onClick={() => openSubModal()}>
+                        <UserPlus size={18} style={{ marginRight: 8 }} /> Add Subcontractor
                     </Button>
                 </div>
                 <div className={styles.tableContainer}>
                     <table className={styles.table}>
                         <thead>
                             <tr>
-                                <th>Engineer Name</th>
+                                <th>Subcontractor Name</th>
                                 <th>Contact Info</th>
-                                <th>Assigned Site</th>
                                 <th>Status</th>
                                 <th style={{ textAlign: 'right' }}>Actions</th>
                             </tr>
@@ -520,7 +596,6 @@ const WagesPage = () => {
                                 <tr key={e.id}>
                                     <td><span className={styles.strong}>{e.name}</span></td>
                                     <td>{e.phone}</td>
-                                    <td><span className={styles.muted}>{e.sites?.name}</span></td>
                                     <td>
                                         <span className={`${styles.badge} ${e.status === 'Active' ? styles.badgePaid : styles.badgePending}`}>
                                             {e.status}
@@ -528,15 +603,15 @@ const WagesPage = () => {
                                     </td>
                                     <td style={{ textAlign: 'right' }}>
                                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                                            <button onClick={() => openEngModal(e)} className={styles.attnBtn} title="Edit"><Edit size={16} /></button>
-                                            <button onClick={() => deleteItem('site_engineers', e.id)} className={`${styles.attnBtn} ${styles.btnA}`} title="Delete"><Trash2 size={16} /></button>
+                                            <button onClick={() => openSubModal(e)} className={styles.attnBtn} title="Edit"><Edit size={16} /></button>
+                                            <button onClick={() => deleteItem('subcontractors', e.id)} className={`${styles.attnBtn} ${styles.btnA}`} title="Delete"><Trash2 size={16} /></button>
                                         </div>
                                     </td>
                                 </tr>
                             ))}
                             {filtered.length === 0 && (
                                 <tr>
-                                    <td colSpan="5" style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>No engineers matched your search.</td>
+                                    <td colSpan="5" style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>No subcontractors matched your search.</td>
                                 </tr>
                             )}
                         </tbody>
@@ -580,7 +655,7 @@ const WagesPage = () => {
                             <tr>
                                 <th>Labor Name</th>
                                 <th>Contact</th>
-                                <th>Site / Engineer</th>
+                                <th>Site / Subcontractor</th>
                                 <th>Daily Rate</th>
                                 <th>Status</th>
                                 <th style={{ textAlign: 'right' }}>Actions</th>
@@ -593,7 +668,7 @@ const WagesPage = () => {
                                     <td>{l.phone}</td>
                                     <td>
                                         <div className={styles.muted}>{l.sites?.name}</div>
-                                        <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Eng: {l.site_engineers?.name || 'Unassigned'}</div>
+                                        <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Sub: {l.subcontractors?.name || 'Unassigned'}</div>
                                     </td>
                                     <td><span className={styles.price}>₹{l.daily_rate}</span></td>
                                     <td>
@@ -662,6 +737,9 @@ const WagesPage = () => {
                                 </td>
                                 <td style={{ textAlign: 'right' }}>
                                     <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                        <Button size="sm" variant="outline" onClick={() => openCorrectionModal(r)}>
+                                            <Edit size={14} style={{ marginRight: 4 }} /> Correction
+                                        </Button>
                                         {r.status !== 'Paid' && (
                                             <Button size="sm" onClick={() => markAsPaid(r)}>
                                                 Confirm Payment
@@ -689,7 +767,7 @@ const WagesPage = () => {
 
     const renderSummary = () => {
         const bySite = {};
-        const byEngineer = {};
+        const bySubcontractor = {};
         const byLabor = {};
 
         rawReportData.forEach(r => {
@@ -701,10 +779,10 @@ const WagesPage = () => {
             bySite[siteName].wage += wage;
             bySite[siteName].days += days;
 
-            const engName = r.site_engineers?.name || 'Unassigned Engineer';
-            if (!byEngineer[engName]) byEngineer[engName] = { wage: 0, days: 0 };
-            byEngineer[engName].wage += wage;
-            byEngineer[engName].days += days;
+            const engName = r.subcontractors?.name || 'Unassigned Subcontractor';
+            if (!bySubcontractor[engName]) bySubcontractor[engName] = { wage: 0, days: 0 };
+            bySubcontractor[engName].wage += wage;
+            bySubcontractor[engName].days += days;
 
             const labName = r.labors?.name || 'Unknown Labor';
             if (!byLabor[labName]) byLabor[labName] = { wage: 0, days: 0, phone: r.labors?.phone || '-' };
@@ -763,7 +841,7 @@ const WagesPage = () => {
                         </div>
                         <div className={styles.tabs} style={{ margin: 0 }}>
                             <button onClick={() => setSummaryView('site')} className={`${styles.tab} ${summaryView === 'site' ? styles.activeTab : ''}`}>Site Wise</button>
-                            <button onClick={() => setSummaryView('eng')} className={`${styles.tab} ${summaryView === 'eng' ? styles.activeTab : ''}`}>Engineer Wise</button>
+                            <button onClick={() => setSummaryView('eng')} className={`${styles.tab} ${summaryView === 'eng' ? styles.activeTab : ''}`}>Subcontractor Wise</button>
                             <button onClick={() => setSummaryView('labor')} className={`${styles.tab} ${summaryView === 'labor' ? styles.activeTab : ''}`}>Labor Wise</button>
                             <button onClick={() => setSummaryView('all')} className={`${styles.tab} ${summaryView === 'all' ? styles.activeTab : ''}`}>View All</button>
                         </div>
@@ -781,7 +859,7 @@ const WagesPage = () => {
                 <div id="printable-summary">
                     <div style={{ textAlign: 'center', marginBottom: '40px' }}>
                         <h2 className={styles.strong} style={{ fontSize: '1.5rem', marginBottom: '4px' }}>Innovative Interiors Pvt Ltd</h2>
-                        <h3 className={styles.muted} style={{ fontSize: '1.1rem' }}>Wages {summaryView === 'all' ? 'Analytics' : (summaryView === 'site' ? 'Site Wise' : (summaryView === 'eng' ? 'Engineer Wise' : 'Labor Wise'))} Report</h3>
+                        <h3 className={styles.muted} style={{ fontSize: '1.1rem' }}>Wages {summaryView === 'all' ? 'Analytics' : (summaryView === 'site' ? 'Site Wise' : (summaryView === 'eng' ? 'Subcontractor Wise' : 'Labor Wise'))} Report</h3>
                         <div className={styles.strong} style={{ color: '#2563eb' }}>Week: {reportWeek}</div>
                     </div>
 
@@ -811,17 +889,17 @@ const WagesPage = () => {
 
                     {(summaryView === 'all' || summaryView === 'eng') && (
                         <div style={{ marginBottom: '48px' }}>
-                            <div className={styles.label} style={{ marginBottom: '16px', fontSize: '1rem' }}>Site Engineer Summary</div>
+                            <div className={styles.label} style={{ marginBottom: '16px', fontSize: '1rem' }}>Subcontractor Summary</div>
                             <table className={styles.table}>
                                 <thead>
                                     <tr>
-                                        <th>Engineer Name</th>
+                                        <th>Subcontractor Name</th>
                                         <th style={{ textAlign: 'center' }}>Total Labors</th>
                                         <th style={{ textAlign: 'right' }}>Total Wages</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {Object.entries(byEngineer).map(([name, data], i) => (
+                                    {Object.entries(bySubcontractor).map(([name, data], i) => (
                                         <tr key={i}>
                                             <td className={styles.strong}>{name}</td>
                                             <td style={{ textAlign: 'center' }}>{data.days}</td>
@@ -891,7 +969,7 @@ const WagesPage = () => {
                     <BarChart2 size={18} /> Analytics
                 </div>
                 <div className={`${styles.tab} ${activeTab === 'engineers' ? styles.activeTab : ''}`} onClick={() => setActiveTab('engineers')}>
-                    <Briefcase size={18} /> Engineers
+                    <Briefcase size={18} /> Subcontractors
                 </div>
                 <div className={`${styles.tab} ${activeTab === 'labors' ? styles.activeTab : ''}`} onClick={() => setActiveTab('labors')}>
                     <Users size={18} /> Labors
@@ -902,37 +980,79 @@ const WagesPage = () => {
                 {activeTab === 'attendance' && renderAttendance()}
                 {activeTab === 'reports' && renderReports()}
                 {activeTab === 'summary' && renderSummary()}
-                {activeTab === 'engineers' && renderEngineers()}
+                {activeTab === 'engineers' && renderSubcontractors()}
                 {activeTab === 'labors' && renderLaborsList()}
+                {/* --- CORRECTION MODAL --- */}
+                {correctionModalOpen && (
+                    <div className={styles.modalOverlay}>
+                        <div className={styles.modal} style={{ maxWidth: '900px' }}>
+                            <div className={styles.modalHeader}>
+                                <h3>Daily Logs Correction: {correctionLabor?.name}</h3>
+                                <p className={styles.muted}>Review and edit daily logs for week {reportWeek}</p>
+                            </div>
+                            <div className={styles.tableContainer} style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                                <table className={styles.table}>
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Hours (In - Out)</th>
+                                            <th>Wages (₹)</th>
+                                            <th>Remarks</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {correctionRecords.map((r, idx) => (
+                                            <tr key={r.id}>
+                                                <td><div className={styles.strong}>{formatDate(r.work_date)}</div></td>
+                                                <td>
+                                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                                        <input type="time" className={styles.input} value={r.new_time_in} onChange={e => handleCorrectionChange(idx, 'new_time_in', e.target.value)} />
+                                                        <span>to</span>
+                                                        <input type="time" className={styles.input} value={r.new_time_out} onChange={e => handleCorrectionChange(idx, 'new_time_out', e.target.value)} />
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <input type="number" className={styles.input} style={{ width: '100px' }} value={r.new_wages} onChange={e => handleCorrectionChange(idx, 'new_wages', e.target.value)} />
+                                                </td>
+                                                <td>
+                                                    <input type="text" className={styles.input} style={{ width: '100%' }} value={r.new_remarks} onChange={e => handleCorrectionChange(idx, 'new_remarks', e.target.value)} />
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div className={styles.modalActions}>
+                                <Button variant="outline" onClick={() => setCorrectionModalOpen(false)}>Cancel</Button>
+                                <Button onClick={saveCorrections} disabled={isSavingCorrection}>
+                                    {isSavingCorrection ? 'Saving...' : 'Update All Logs'}
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
 
-            {/* Engineer Modal */}
-            {engModalOpen && (
+            {/* Subcontractor Modal */}
+            {subModalOpen && (
                 <div className={styles.modalOverlay}>
                     <div className={styles.modal}>
                         <div className={styles.modalHeader}>
-                            <h3>{editingEng ? 'Edit Site Engineer' : 'New Site Engineer'}</h3>
+                            <h3>{editingSub ? 'Edit Subcontractor' : 'New Subcontractor'}</h3>
                         </div>
                         <div className={styles.formGrid} style={{ gridTemplateColumns: '1fr', padding: 0, background: 'none' }}>
                             <div className={styles.formGroup}>
-                                <label className={styles.label}>Engineer Name</label>
-                                <input className={styles.input} value={engForm.name} onChange={e => setEngForm({ ...engForm, name: e.target.value })} placeholder="Full name" />
+                                <label className={styles.label}>Subcontractor Name</label>
+                                <input className={styles.input} value={subForm.name} onChange={e => setSubForm({ ...subForm, name: e.target.value })} placeholder="Full name" />
                             </div>
                             <div className={styles.formGroup}>
                                 <label className={styles.label}>Phone Number</label>
-                                <input className={styles.input} value={engForm.phone} onChange={e => setEngForm({ ...engForm, phone: e.target.value })} placeholder="Phone" />
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Assigned Site</label>
-                                <select className={styles.input} value={engForm.site_id} onChange={e => setEngForm({ ...engForm, site_id: e.target.value })}>
-                                    <option value="">-- Select Project Site --</option>
-                                    {sites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                                </select>
+                                <input className={styles.input} value={subForm.phone} onChange={e => setSubForm({ ...subForm, phone: e.target.value })} placeholder="Phone" />
                             </div>
                         </div>
                         <div className={styles.modalActions}>
-                            <Button variant="outline" onClick={() => setEngModalOpen(false)}>Cancel</Button>
-                            <Button onClick={saveEng}>Save Engineer</Button>
+                            <Button variant="outline" onClick={() => setSubModalOpen(false)}>Cancel</Button>
+                            <Button onClick={saveSub}>Save Subcontractor</Button>
                         </div>
                     </div>
                 </div>
@@ -958,21 +1078,19 @@ const WagesPage = () => {
                                 <label className={styles.label}>Daily Wage Rate (₹)</label>
                                 <input type="number" className={styles.input} value={laborForm.daily_rate} onChange={e => setLaborForm({ ...laborForm, daily_rate: e.target.value })} />
                             </div>
-                            <div className={styles.formGrid} style={{ padding: 0, gridTemplateColumns: '1fr 1fr', gap: '12px', background: 'none' }}>
-                                <div className={styles.formGroup}>
-                                    <label className={styles.label}>Project Site</label>
-                                    <select className={styles.input} value={laborForm.site_id} onChange={e => setLaborForm({ ...laborForm, site_id: e.target.value })}>
-                                        <option value="">-- Site --</option>
-                                        {sites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                                    </select>
-                                </div>
-                                <div className={styles.formGroup}>
-                                    <label className={styles.label}>Engineer</label>
-                                    <select className={styles.input} value={laborForm.engineer_id} onChange={e => setLaborForm({ ...laborForm, engineer_id: e.target.value })}>
-                                        <option value="">-- Engineer --</option>
-                                        {siteEngineers.filter(e => e.site_id == laborForm.site_id).map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
-                                    </select>
-                                </div>
+                            <div className={styles.formGroup}>
+                                <label className={styles.label}>Project Site</label>
+                                <select className={styles.input} value={laborForm.site_id} onChange={e => setLaborForm({ ...laborForm, site_id: e.target.value })}>
+                                    <option value="">-- Select Site --</option>
+                                    {sites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                </select>
+                            </div>
+                            <div className={styles.formGroup}>
+                                <label className={styles.label}>Subcontractor</label>
+                                <select className={styles.input} value={laborForm.subcontractor_id} onChange={e => setLaborForm({ ...laborForm, subcontractor_id: e.target.value })}>
+                                    <option value="">-- Select Subcontractor --</option>
+                                    {subcontractors.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+                                </select>
                             </div>
                         </div>
                         <div className={styles.modalActions}>

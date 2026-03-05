@@ -90,11 +90,8 @@ const AdminDashboard = () => {
         const checks = [
             { name: "Connectivity", table: "app_settings", description: "Basic connection to Supabase" },
             { name: "User Management", table: "app_users", description: "Access to user accounts table" },
-            { name: "Site Registry", table: "sites", description: "Access to project sites table" },
-            { name: "Vendor Registry", table: "vendors", description: "Access to vendors table" },
-            { name: "Payment History", table: "payment_history", description: "Access to payment and invoice records" },
             { name: "Wages Module - Labors", table: "labors", description: "Access to labor records" },
-            { name: "Wages Module - Engineers", table: "site_engineers", description: "Access to external engineers" },
+            { name: "Wages Module - Subcontractors", table: "subcontractors", description: "Access to external subcontractors" },
             { name: "Wages Module - Attendance", table: "labor_attendance_wages", description: "Access to attendance logs" },
             { name: "Recycle Bin", table: "recycle_bin", description: "Access to deleted items storage" },
             { name: "Storage Bucket", table: "storage", description: "Access to 'signatures' storage bucket" }
