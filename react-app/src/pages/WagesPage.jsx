@@ -140,8 +140,7 @@ const WagesPage = () => {
         try {
             const { data, error } = await supabase
                 .from('labor_attendance_wages')
-                .select('id, labor_id, time_in, time_out, attendance_value, wages_amount, remarks, payment_status, subcontractor_id, wage_category')
-                .eq('site_id', selectedSite)
+                .select('id, labor_id, site_id, time_in, time_out, attendance_value, wages_amount, remarks, payment_status, subcontractor_id, wage_category')
                 .eq('work_date', selectedDate);
 
             if (error) throw error;
@@ -151,8 +150,8 @@ const WagesPage = () => {
 
             data.forEach(rec => {
                 completed.add(rec.labor_id);
-                // Only populate the entry for the current selected category
-                if (rec.wage_category === selectedCategory) {
+                // Only populate the entry for the current selected site AND category
+                if (rec.site_id == selectedSite && rec.wage_category === selectedCategory) {
                     lookup[rec.labor_id] = {
                         time_in: rec.time_in || '',
                         time_out: rec.time_out || '',
