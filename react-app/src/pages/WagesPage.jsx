@@ -55,7 +55,7 @@ const WagesPage = () => {
     const [laborModalOpen, setLaborModalOpen] = useState(false);
     const [editingLabor, setEditingLabor] = useState(null);
     const [laborForm, setLaborForm] = useState({
-        name: '', phone: '', site_id: '', subcontractor_id: '', daily_rate: 0, status: 'Active'
+        name: '', phone: '', subcontractor_id: '', daily_rate: 0, status: 'Active'
     });
 
     // Subcontractor Management States
@@ -87,7 +87,7 @@ const WagesPage = () => {
                 const [sitesRes, engRes, laborsRes] = await Promise.all([
                     supabase.from('sites').select('id, name').order('name'),
                     supabase.from('subcontractors').select('id, name, phone, status').order('name'),
-                    supabase.from('labors').select('*, sites(name), subcontractors(name)').order('name')
+                    supabase.from('labors').select('*, subcontractors(name)').order('name')
                 ]);
 
                 if (sitesRes.error) throw sitesRes.error;
@@ -119,7 +119,7 @@ const WagesPage = () => {
             const [sitesRes, engRes, laborsRes] = await Promise.all([
                 supabase.from('sites').select('*').order('name'),
                 supabase.from('subcontractors').select('*').order('name'),
-                supabase.from('labors').select('*, sites(name), subcontractors(name)').order('name')
+                supabase.from('labors').select('*, subcontractors(name)').order('name')
             ]);
             setSites(sitesRes.data || []);
             setSubcontractors(engRes.data || []);
@@ -222,7 +222,7 @@ const WagesPage = () => {
         try {
             const updates = [];
             const filteredLabors = labors.filter(l =>
-                l.status === 'Active' && l.site_id == selectedSite &&
+                l.status === 'Active' &&
                 (!selectedSubcontractor || l.subcontractor_id === selectedSubcontractor)
             );
 
@@ -261,12 +261,12 @@ const WagesPage = () => {
         if (lab) {
             setEditingLabor(lab.id);
             setLaborForm({
-                name: lab.name, phone: lab.phone || '', site_id: lab.site_id || '',
+                name: lab.name, phone: lab.phone || '',
                 subcontractor_id: lab.subcontractor_id || '', daily_rate: lab.daily_rate || 0, status: lab.status || 'Active'
             });
         } else {
             setEditingLabor(null);
-            setLaborForm({ name: '', phone: '', site_id: selectedSite, subcontractor_id: '', daily_rate: 0, status: 'Active' });
+            setLaborForm({ name: '', phone: '', subcontractor_id: '', daily_rate: 0, status: 'Active' });
         }
         setLaborModalOpen(true);
     };
@@ -276,7 +276,6 @@ const WagesPage = () => {
         setLoading(true);
         try {
             const payload = { ...laborForm };
-            if (!payload.site_id) payload.site_id = null;
             if (!payload.subcontractor_id) payload.subcontractor_id = null;
 
             if (editingLabor) await supabase.from('labors').update(payload).eq('id', editingLabor);
@@ -459,11 +458,11 @@ const WagesPage = () => {
 
     const renderAttendance = () => {
         let filteredLabors = labors.filter(l =>
-            l.status === 'Active' && l.site_id == selectedSite && (!selectedEngineer || l.subcontractor_id === selectedEngineer)
+            l.status === 'Active' && (!selectedSubcontractor || l.subcontractor_id === selectedSubcontractor)
         );
 
         if (hideCompleted) {
-            filteredLabors = filteredLabors.filter(l => !attendanceEntry[l.id]?.time_in);
+            filteredLabors = filteredLabors.filter(l => !attendanceEntry[l.id]?.id);
         }
 
         return (
@@ -655,7 +654,7 @@ const WagesPage = () => {
                             <tr>
                                 <th>Labor Name</th>
                                 <th>Contact</th>
-                                <th>Site / Subcontractor</th>
+                                <th>Assigned Subcontractor</th>
                                 <th>Daily Rate</th>
                                 <th>Status</th>
                                 <th style={{ textAlign: 'right' }}>Actions</th>
@@ -667,8 +666,7 @@ const WagesPage = () => {
                                     <td><span className={styles.strong}>{l.name}</span></td>
                                     <td>{l.phone}</td>
                                     <td>
-                                        <div className={styles.muted}>{l.sites?.name}</div>
-                                        <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Sub: {l.subcontractors?.name || 'Unassigned'}</div>
+                                        <div className={styles.strong}>{l.subcontractors?.name || 'Unassigned'}</div>
                                     </td>
                                     <td><span className={styles.price}>₹{l.daily_rate}</span></td>
                                     <td>
@@ -1077,13 +1075,6 @@ const WagesPage = () => {
                             <div className={styles.formGroup}>
                                 <label className={styles.label}>Daily Wage Rate (₹)</label>
                                 <input type="number" className={styles.input} value={laborForm.daily_rate} onChange={e => setLaborForm({ ...laborForm, daily_rate: e.target.value })} />
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Project Site</label>
-                                <select className={styles.input} value={laborForm.site_id} onChange={e => setLaborForm({ ...laborForm, site_id: e.target.value })}>
-                                    <option value="">-- Select Site --</option>
-                                    {sites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                                </select>
                             </div>
                             <div className={styles.formGroup}>
                                 <label className={styles.label}>Subcontractor</label>
