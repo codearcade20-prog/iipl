@@ -47,6 +47,7 @@ const WagesPage = () => {
     const [selectedSite, setSelectedSite] = useState('');
     const [selectedSubcontractor, setSelectedSubcontractor] = useState('');
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+    const [selectedCategory, setSelectedCategory] = useState('Direct wages');
     const [searchSub, setSearchSub] = useState('');
     const [searchLabor, setSearchLabor] = useState('');
     const [hideCompleted, setHideCompleted] = useState(true);
@@ -55,7 +56,7 @@ const WagesPage = () => {
     const [laborModalOpen, setLaborModalOpen] = useState(false);
     const [editingLabor, setEditingLabor] = useState(null);
     const [laborForm, setLaborForm] = useState({
-        name: '', phone: '', subcontractor_id: '', daily_rate: 0, status: 'Active'
+        name: '', phone: '', subcontractor_id: '', role: '', designation: '', daily_rate: 0, status: 'Active'
     });
 
     // Subcontractor Management States
@@ -138,9 +139,10 @@ const WagesPage = () => {
         try {
             const { data, error } = await supabase
                 .from('labor_attendance_wages')
-                .select('id, labor_id, time_in, time_out, attendance_value, wages_amount, remarks, payment_status, subcontractor_id')
+                .select('id, labor_id, time_in, time_out, attendance_value, wages_amount, remarks, payment_status, subcontractor_id, wage_category')
                 .eq('site_id', selectedSite)
-                .eq('work_date', selectedDate);
+                .eq('work_date', selectedDate)
+                .eq('wage_category', selectedCategory);
 
             if (error) throw error;
 
@@ -168,7 +170,7 @@ const WagesPage = () => {
         if (!isInitialLoad && activeTab === 'attendance' && selectedSite) {
             fetchAttendance();
         }
-    }, [selectedSite, selectedDate, activeTab, isInitialLoad]);
+    }, [selectedSite, selectedDate, selectedCategory, activeTab, isInitialLoad]);
 
     const calculateAttendanceValue = (timeIn, timeOut) => {
         if (!timeIn || !timeOut) return 0;
@@ -242,6 +244,7 @@ const WagesPage = () => {
                     attendance_value: entry.attn_val,
                     wages_amount: parseFloat(entry.wages) || 0,
                     remarks: entry.remarks || '',
+                    wage_category: selectedCategory,
                     payment_week: getWeekOfYear(new Date(selectedDate))
                 };
                 if (entry.id) updates.push(supabase.from('labor_attendance_wages').update(payload).eq('id', entry.id));
@@ -262,11 +265,15 @@ const WagesPage = () => {
             setEditingLabor(lab.id);
             setLaborForm({
                 name: lab.name, phone: lab.phone || '',
-                subcontractor_id: lab.subcontractor_id || '', daily_rate: lab.daily_rate || 0, status: lab.status || 'Active'
+                subcontractor_id: lab.subcontractor_id || '',
+                role: lab.role || '',
+                designation: lab.designation || '',
+                daily_rate: lab.daily_rate || 0,
+                status: lab.status || 'Active'
             });
         } else {
             setEditingLabor(null);
-            setLaborForm({ name: '', phone: '', subcontractor_id: '', daily_rate: 0, status: 'Active' });
+            setLaborForm({ name: '', phone: '', subcontractor_id: '', role: '', designation: '', daily_rate: 0, status: 'Active' });
         }
         setLaborModalOpen(true);
     };
@@ -412,7 +419,8 @@ const WagesPage = () => {
             new_time_out: r.time_out ? r.time_out.substring(0, 5) : '',
             new_attn_val: r.attendance_value || 0,
             new_wages: r.wages_amount || 0,
-            new_remarks: r.remarks || ''
+            new_remarks: r.remarks || '',
+            new_category: r.wage_category || 'Direct wages'
         }));
         setCorrectionRecords(editable);
         setCorrectionModalOpen(true);
@@ -443,7 +451,8 @@ const WagesPage = () => {
                     time_out: r.new_time_out,
                     attendance_value: r.new_attn_val,
                     wages_amount: parseFloat(r.new_wages) || 0,
-                    remarks: r.new_remarks
+                    remarks: r.new_remarks,
+                    wage_category: r.new_category
                 }).eq('id', r.id)
             );
             await Promise.all(updates);
@@ -480,6 +489,14 @@ const WagesPage = () => {
                         <select className={styles.input} value={selectedSubcontractor} onChange={e => setSelectedSubcontractor(e.target.value)}>
                             <option value="">-- All Subcontractors --</option>
                             {subcontractors.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+                        </select>
+                    </div>
+                    <div className={styles.formGroup}>
+                        <label className={styles.label}>Wage Category</label>
+                        <select className={styles.input} value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)}>
+                            {['Direct wages', 'NMR wages', 'Snag wages', 'Third party subvendor work', 'weekly payment agst order'].map(cat => (
+                                <option key={cat} value={cat}>{cat}</option>
+                            ))}
                         </select>
                     </div>
                     <div className={styles.formGroup}>
@@ -654,6 +671,7 @@ const WagesPage = () => {
                             <tr>
                                 <th>Labor Name</th>
                                 <th>Contact</th>
+                                <th>Role / Designation</th>
                                 <th>Assigned Subcontractor</th>
                                 <th>Daily Rate</th>
                                 <th>Status</th>
@@ -665,6 +683,10 @@ const WagesPage = () => {
                                 <tr key={l.id}>
                                     <td><span className={styles.strong}>{l.name}</span></td>
                                     <td>{l.phone}</td>
+                                    <td>
+                                        <div className={styles.strong}>{l.role || '-'}</div>
+                                        <div className={styles.muted} style={{ fontSize: '0.8rem' }}>{l.designation || '-'}</div>
+                                    </td>
                                     <td>
                                         <div className={styles.strong}>{l.subcontractors?.name || 'Unassigned'}</div>
                                     </td>
@@ -767,6 +789,7 @@ const WagesPage = () => {
         const bySite = {};
         const bySubcontractor = {};
         const byLabor = {};
+        const byCategory = {};
 
         rawReportData.forEach(r => {
             const wage = parseFloat(r.wages_amount) || 0;
@@ -786,6 +809,11 @@ const WagesPage = () => {
             if (!byLabor[labName]) byLabor[labName] = { wage: 0, days: 0, phone: r.labors?.phone || '-' };
             byLabor[labName].wage += wage;
             byLabor[labName].days += days;
+
+            const category = r.wage_category || 'Direct wages';
+            if (!byCategory[category]) byCategory[category] = { wage: 0, days: 0 };
+            byCategory[category].wage += wage;
+            byCategory[category].days += days;
         });
 
         const printSummary = (orientation = 'portrait') => {
@@ -839,6 +867,7 @@ const WagesPage = () => {
                         </div>
                         <div className={styles.tabs} style={{ margin: 0 }}>
                             <button onClick={() => setSummaryView('site')} className={`${styles.tab} ${summaryView === 'site' ? styles.activeTab : ''}`}>Site Wise</button>
+                            <button onClick={() => setSummaryView('category')} className={`${styles.tab} ${summaryView === 'category' ? styles.activeTab : ''}`}>Category Wise</button>
                             <button onClick={() => setSummaryView('eng')} className={`${styles.tab} ${summaryView === 'eng' ? styles.activeTab : ''}`}>Subcontractor Wise</button>
                             <button onClick={() => setSummaryView('labor')} className={`${styles.tab} ${summaryView === 'labor' ? styles.activeTab : ''}`}>Labor Wise</button>
                             <button onClick={() => setSummaryView('all')} className={`${styles.tab} ${summaryView === 'all' ? styles.activeTab : ''}`}>View All</button>
@@ -857,7 +886,7 @@ const WagesPage = () => {
                 <div id="printable-summary">
                     <div style={{ textAlign: 'center', marginBottom: '40px' }}>
                         <h2 className={styles.strong} style={{ fontSize: '1.5rem', marginBottom: '4px' }}>Innovative Interiors Pvt Ltd</h2>
-                        <h3 className={styles.muted} style={{ fontSize: '1.1rem' }}>Wages {summaryView === 'all' ? 'Analytics' : (summaryView === 'site' ? 'Site Wise' : (summaryView === 'eng' ? 'Subcontractor Wise' : 'Labor Wise'))} Report</h3>
+                        <h3 className={styles.muted} style={{ fontSize: '1.1rem' }}>Wages {summaryView === 'all' ? 'Analytics' : (summaryView === 'site' ? 'Site Wise' : (summaryView === 'category' ? 'Category Wise' : (summaryView === 'eng' ? 'Subcontractor Wise' : 'Labor Wise')))} Report</h3>
                         <div className={styles.strong} style={{ color: '#2563eb' }}>Week: {reportWeek}</div>
                     </div>
 
@@ -874,6 +903,29 @@ const WagesPage = () => {
                                 </thead>
                                 <tbody>
                                     {Object.entries(bySite).map(([name, data], i) => (
+                                        <tr key={i}>
+                                            <td className={styles.strong}>{name}</td>
+                                            <td style={{ textAlign: 'center' }}>{data.days}</td>
+                                            <td style={{ textAlign: 'right' }} className={styles.price}>₹{data.wage.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                    {(summaryView === 'all' || summaryView === 'category') && (
+                        <div style={{ marginBottom: '48px' }}>
+                            <div className={styles.label} style={{ marginBottom: '16px', fontSize: '1rem' }}>Wage Category Summary</div>
+                            <table className={styles.table}>
+                                <thead>
+                                    <tr>
+                                        <th>Category</th>
+                                        <th style={{ textAlign: 'center' }}>Total Labors</th>
+                                        <th style={{ textAlign: 'right' }}>Total Wages</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {Object.entries(byCategory).map(([name, data], i) => (
                                         <tr key={i}>
                                             <td className={styles.strong}>{name}</td>
                                             <td style={{ textAlign: 'center' }}>{data.days}</td>
@@ -993,6 +1045,7 @@ const WagesPage = () => {
                                     <thead>
                                         <tr>
                                             <th>Date</th>
+                                            <th>Category</th>
                                             <th>Hours (In - Out)</th>
                                             <th>Wages (₹)</th>
                                             <th>Remarks</th>
@@ -1002,6 +1055,13 @@ const WagesPage = () => {
                                         {correctionRecords.map((r, idx) => (
                                             <tr key={r.id}>
                                                 <td><div className={styles.strong}>{formatDate(r.work_date)}</div></td>
+                                                <td>
+                                                    <select className={styles.input} style={{ fontSize: '0.8rem', padding: '4px' }} value={r.new_category} onChange={e => handleCorrectionChange(idx, 'new_category', e.target.value)}>
+                                                        {['Direct wages', 'NMR wages', 'Snag wages', 'Third party subvendor work', 'weekly payment agst order'].map(cat => (
+                                                            <option key={cat} value={cat}>{cat}</option>
+                                                        ))}
+                                                    </select>
+                                                </td>
                                                 <td>
                                                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                                                         <input type="time" className={styles.input} value={r.new_time_in} onChange={e => handleCorrectionChange(idx, 'new_time_in', e.target.value)} />
@@ -1082,6 +1142,16 @@ const WagesPage = () => {
                                     <option value="">-- Select Subcontractor --</option>
                                     {subcontractors.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
                                 </select>
+                            </div>
+                            <div className={styles.formGrid} style={{ padding: 0, background: 'none', gridGap: '16px' }}>
+                                <div className={styles.formGroup}>
+                                    <label className={styles.label}>Role</label>
+                                    <input className={styles.input} placeholder="e.g. Mason, Helper" value={laborForm.role} onChange={e => setLaborForm({ ...laborForm, role: e.target.value })} />
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label className={styles.label}>Designation</label>
+                                    <input className={styles.input} placeholder="e.g. Senior, Junior" value={laborForm.designation} onChange={e => setLaborForm({ ...laborForm, designation: e.target.value })} />
+                                </div>
                             </div>
                         </div>
                         <div className={styles.modalActions}>
