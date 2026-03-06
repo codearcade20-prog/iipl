@@ -74,6 +74,7 @@ const WagesPage = () => {
     const [weeklyReports, setWeeklyReports] = useState([]);
     const [rawReportData, setRawReportData] = useState([]);
     const [summaryView, setSummaryView] = useState('all');
+    const [completedLaborIds, setCompletedLaborIds] = useState(new Set());
 
     // Correction Modal States
     const [correctionModalOpen, setCorrectionModalOpen] = useState(false);
@@ -141,23 +142,29 @@ const WagesPage = () => {
                 .from('labor_attendance_wages')
                 .select('id, labor_id, time_in, time_out, attendance_value, wages_amount, remarks, payment_status, subcontractor_id, wage_category')
                 .eq('site_id', selectedSite)
-                .eq('work_date', selectedDate)
-                .eq('wage_category', selectedCategory);
+                .eq('work_date', selectedDate);
 
             if (error) throw error;
 
             const lookup = {};
+            const completed = new Set();
+
             data.forEach(rec => {
-                lookup[rec.labor_id] = {
-                    time_in: rec.time_in || '',
-                    time_out: rec.time_out || '',
-                    attn_val: rec.attendance_value || 0,
-                    wages: rec.wages_amount,
-                    remarks: rec.remarks,
-                    id: rec.id
-                };
+                completed.add(rec.labor_id);
+                // Only populate the entry for the current selected category
+                if (rec.wage_category === selectedCategory) {
+                    lookup[rec.labor_id] = {
+                        time_in: rec.time_in || '',
+                        time_out: rec.time_out || '',
+                        attn_val: rec.attendance_value || 0,
+                        wages: rec.wages_amount,
+                        remarks: rec.remarks,
+                        id: rec.id
+                    };
+                }
             });
             setAttendanceEntry(lookup);
+            setCompletedLaborIds(completed);
         } catch (error) {
             console.error(error);
         } finally {
@@ -471,7 +478,7 @@ const WagesPage = () => {
         );
 
         if (hideCompleted) {
-            filteredLabors = filteredLabors.filter(l => !attendanceEntry[l.id]?.id);
+            filteredLabors = filteredLabors.filter(l => !completedLaborIds.has(l.id));
         }
 
         return (
