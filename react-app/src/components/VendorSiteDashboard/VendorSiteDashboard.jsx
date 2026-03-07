@@ -1917,15 +1917,17 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                         <p className={styles.subtitle}>Innovative Interiors - QS Dashboard</p>
                     </div>
 
-                    <div className={styles.searchBar}>
-                        <Search size={16} />
-                        <input
-                            type="text"
-                            placeholder="Search site or vendor name"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                    </div>
+                    {currentView !== 'overview' && (
+                        <div className={styles.searchBar}>
+                            <Search size={16} />
+                            <input
+                                type="text"
+                                placeholder="Search site or vendor name"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                        </div>
+                    )}
 
                     <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
                         <button
