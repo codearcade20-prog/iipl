@@ -43,8 +43,9 @@ const SalarySlip = () => {
     const grossDisplay = payroll.gross_salary;
 
     // Deductions: Hide LOP amount from individual rows and total row unless checked
-    const otherDeducDisplay = showLop ? (payroll.lwf + payroll.lop_amount) : payroll.lwf;
-    const totalDeducDisplay = showLop ? payroll.total_deductions : (payroll.total_deductions - payroll.lop_amount);
+    // Deductions: Combine Food Deduction into Other Deductions / LWF / LOP row
+    const otherDeducDisplay = (payroll.lwf || 0) + (payroll.food_deduction || 0) + (showLop ? (payroll.lop_amount || 0) : 0);
+    const totalDeducDisplay = showLop ? payroll.total_deductions : (payroll.total_deductions - (payroll.lop_amount || 0));
 
     return (
         <div className={styles.pageContainer}>
@@ -162,8 +163,12 @@ const SalarySlip = () => {
                                 </tr>
                                 <tr>
                                     <td>Other Earnings</td>
-                                    <td className={styles.amountCol}>{(payroll.increment + payroll.arrears + payroll.other_earnings + payroll.allowance_increase).toFixed(2)}</td>
-                                    <td>{showLop ? 'Other Deductions / LWF / LOP' : 'Other Deductions / LWF'}</td>
+                                    <td className={styles.amountCol}>{(payroll.increment + payroll.arrears + (payroll.other_earnings || 0) + (payroll.allowance_increase || 0)).toFixed(2)}</td>
+                                    <td>
+                                        Other Deductions / LWF
+                                        {showLop ? ' / LOP' : ''}
+                                        {payroll.food_deduction > 0 ? ' / Food' : ''}
+                                    </td>
                                     <td className={styles.amountCol}>{otherDeducDisplay.toFixed(2)}</td>
                                 </tr>
                                 <tr className={styles.totalRow}>

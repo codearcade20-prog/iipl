@@ -32,6 +32,7 @@ const EmployeeList = () => {
         increment: 0,
         arrears: 0,
         tempAdvance: 0,
+        foodDeduction: 0,
         remarks: '',
         showLop: false,
         // Master Overrides
@@ -111,6 +112,7 @@ const EmployeeList = () => {
             increment: 0,
             arrears: 0,
             tempAdvance: 0,
+            foodDeduction: 0,
             remarks: '',
             showLop: false,
             basic_salary: emp.basic_salary || 0,
@@ -213,9 +215,9 @@ const EmployeeList = () => {
             const increment = parseFloat(attendance.increment) || 0;
             const arrears = parseFloat(attendance.arrears) || 0;
             const advance = parseFloat(attendance.tempAdvance) || 0;
-
+            const food_deduction = parseFloat(attendance.foodDeduction) || 0;
             const gross = basic_da + hra + conveyance + med_reimb + special_allowance + child_edu + child_hostel + increment + arrears;
-            const total_deductions = pf + esi + lwf + advance + lop_amount;
+            const total_deductions = pf + esi + lwf + advance + lop_amount + food_deduction;
             const net = gross - total_deductions;
 
             const baseRemarks = attendance.remarks || `Generated via Auto-Payroll. Working Days: ${workingDays}, LOP Days: ${lopDays}`;
@@ -239,6 +241,7 @@ const EmployeeList = () => {
                 esi,
                 lwf,
                 advance,
+                food_deduction,
                 lop_amount,
                 gross_salary: gross,
                 total_deductions: total_deductions,
@@ -435,6 +438,10 @@ const EmployeeList = () => {
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#64748b', marginBottom: '5px' }}>Advance Ded.</label>
                                         <input type="number" style={{ width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '8px' }} value={attendance.tempAdvance} onChange={(e) => setAttendance({ ...attendance, tempAdvance: e.target.value })} />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#64748b', marginBottom: '5px' }}>Food Deduction</label>
+                                        <input type="number" style={{ width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '8px' }} value={attendance.foodDeduction} onChange={(e) => setAttendance({ ...attendance, foodDeduction: e.target.value })} />
                                     </div>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#64748b', marginBottom: '5px' }}>Remarks</label>
