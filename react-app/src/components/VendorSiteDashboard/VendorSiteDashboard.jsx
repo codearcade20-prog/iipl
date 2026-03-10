@@ -88,6 +88,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
     const [balancePopup, setBalancePopup] = useState(null);
     const [masterVendors, setMasterVendors] = useState([]); // Master list from admin
     const [masterSites, setMasterSites] = useState([]); // Master list of sites
+    const contentAreaRef = useRef(null); // Ref for scroll reset
     const [summaryColumns, setSummaryColumns] = useState({
         index: true,
         site: true,
@@ -238,7 +239,11 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
         if (id) setDetailId(id);
         setSidebarOpen(false);
         setSearchQuery('');
-        window.scrollTo(0, 0);
+        
+        // Scroll content area back to top
+        if (contentAreaRef.current) {
+            contentAreaRef.current.scrollTo(0, 0);
+        }
 
         // Reset Form if switching away from add_entry
         if (view !== 'add_entry') {
@@ -1961,7 +1966,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                     </div>
                 </header>
 
-                <div className={styles.contentArea}>
+                <div className={styles.contentArea} ref={contentAreaRef}>
                     {renderContent()}
                 </div>
             </main>
