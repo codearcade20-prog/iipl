@@ -4,18 +4,17 @@
     margin: 0 auto;
     min-height: 100vh;
     background-color: #f8fafc;
-    display: flex;
-    flex-direction: column;
 }
 
 .header {
-    margin-bottom: 2rem;
+    margin-bottom: 2.5rem;
 }
 
 .titleSection {
     display: flex;
     align-items: center;
     gap: 1rem;
+    margin-bottom: 0.5rem;
 }
 
 .backBtn {
@@ -45,56 +44,86 @@
     margin: 0;
 }
 
-.maintenanceContent {
-    flex: 1;
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 1rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e2e8f0;
+    position: relative;
     display: flex;
     flex-direction: column;
+}
+
+.badge {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    font-size: 0.65rem;
+    font-weight: 700;
+    background: #f1f5f9;
+    color: #64748b;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.iconWrapper {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
     align-items: center;
     justify-content: center;
-    text-align: center;
-    padding-bottom: 10vh;
+    margin-bottom: 1.25rem;
 }
 
-.maintenanceIcon {
-    font-size: 5rem;
-    margin-bottom: 1.5rem;
-    animation: pulse 2s infinite;
-}
-
-.maintenanceTitle {
-    font-size: 2.5rem;
-    font-weight: 800;
+.cardTitle {
+    font-size: 1.25rem;
+    font-weight: 700;
     color: #1e293b;
-    margin: 0 0 1rem 0;
+    margin: 0 0 0.5rem 0;
 }
 
-.maintenanceText {
-    font-size: 1.125rem;
+.cardDescription {
+    font-size: 0.9rem;
     color: #64748b;
-    max-width: 500px;
-    line-height: 1.6;
-    margin: 0 0 2rem 0;
+    line-height: 1.5;
+    margin: 0 0 1.5rem 0;
+    flex-grow: 1;
 }
 
-.homeBtn {
-    padding: 0.75rem 2rem;
+.actionLink, .actionBtn {
+    display: block;
+    width: 100%;
+    padding: 0.75rem;
+    border-radius: 8px;
+    text-align: center;
+    font-weight: 600;
+    text-decoration: none;
+    font-size: 0.9rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.actionLink {
     background: #3b82f6;
     color: white;
-    text-decoration: none;
-    font-weight: 700;
-    border-radius: 0.5rem;
-    transition: all 0.2s;
-    box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.4);
 }
 
-.homeBtn:hover {
+.actionLink:hover {
     background: #2563eb;
-    transform: translateY(-2px);
-    box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.4);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
 }
 
-@keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
+.actionBtn {
+    background: #f1f5f9;
+    color: #94a3b8;
+    cursor: not-allowed;
 }

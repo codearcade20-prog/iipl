@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Wallet, TrendingUp, CreditCard, PieChart } from 'lucide-react';
+import { ArrowLeft, Wallet } from 'lucide-react';
 import styles from './AccountsDashboard.module.css';
 
 const AccountsDashboard = () => {
@@ -15,14 +15,15 @@ const AccountsDashboard = () => {
                 </div>
             </header>
 
-            <main className={styles.maintenanceContent}>
-                <div className={styles.maintenanceIcon}>🛠️</div>
-                <h2 className={styles.maintenanceTitle}>Under Maintenance</h2>
-                <p className={styles.maintenanceText}>
-                    The Accounts module is currently under development. 
-                    Full accounting features and financial reporting will be available soon.
-                </p>
-                <Link to="/" className={styles.homeBtn}>Back to Home</Link>
+            <main className={styles.grid}>
+                <div className={styles.card}>
+                    <div className={styles.iconWrapper} style={{ backgroundColor: '#eff6ff', color: '#3b82f6' }}>
+                        <Wallet size={24} />
+                    </div>
+                    <h3 className={styles.cardTitle}>Petty Cash</h3>
+                    <p className={styles.cardDescription}>Manage site expenses, petty cash entries, and view summary dashboards.</p>
+                    <Link to="/accounts/petty-cash" className={styles.actionLink}>Open Module</Link>
+                </div>
             </main>
         </div>
     );

@@ -1,0 +1,97 @@
+.wrapper {
+    display: flex;
+    min-height: 100vh;
+    background-color: #f8fafc;
+}
+
+.sidebar {
+    width: 260px;
+    background: white;
+    border-right: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+}
+
+.sidebarBrand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 2.5rem;
+    padding: 0.5rem;
+}
+
+.logo {
+    font-size: 1.5rem;
+}
+
+.brandText {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #1e293b;
+    letter-spacing: -0.025em;
+}
+
+.nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    flex: 1;
+}
+
+.navLink {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    border-radius: 10px;
+    text-decoration: none;
+    color: #64748b;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.navLink:hover {
+    background: #f1f5f9;
+    color: #1e293b;
+}
+
+.navLink.active {
+    background: #eff6ff;
+    color: #3b82f6;
+}
+
+.sidebarFooter {
+    padding-top: 1.5rem;
+    border-top: 1px solid #f1f5f9;
+}
+
+.backToAccounts {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #64748b;
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 600;
+    padding: 0.5rem;
+    transition: color 0.2s;
+}
+
+.backToAccounts:hover {
+    color: #1e293b;
+}
+
+.content {
+    flex: 1;
+    overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        display: none;
+    }
+}

@@ -138,6 +138,12 @@
     width: 300px;
 }
 
+@media (max-width: 640px) {
+    .searchBar {
+        width: 100%;
+    }
+}
+
 .searchBar svg {
     position: absolute;
     left: 1rem;
@@ -167,10 +173,16 @@
     padding: 2rem;
 }
 
+@media (max-width: 768px) {
+    .contentArea {
+        padding: 1rem;
+    }
+}
+
 /* Stats Cards */
 .statsGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: 1.5rem;
     margin-bottom: 2rem;
 }
@@ -229,8 +241,14 @@
 /* Grids / Tables */
 .gridContainer {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 1.5rem;
+}
+
+@media (max-width: 480px) {
+    .gridContainer {
+        grid-template-columns: 1fr;
+    }
 }
 
 .infoCard {
@@ -619,8 +637,13 @@
         position: fixed;
         left: -260px;
         height: 100%;
-        z-index: 100;
+        z-index: 2000; /* Higher than overlay */
         box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+        transition: left 0.3s ease;
+    }
+
+    .sidebar.open {
+        left: 0;
     }
 
     .advanceItem {
@@ -630,6 +653,29 @@
     .removeAdvanceBtn {
         width: 100%;
         margin-top: 0.25rem;
+    }
+
+    .topBar {
+        padding: 1rem;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+        position: relative; /* For absolute children */
+    }
+
+    .headerButtons {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+    }
+
+    .pageTitle h1 {
+        font-size: 1.25rem;
+    }
+
+    .searchBar {
+        width: 100%;
+        margin-top: 0.5rem;
     }
 }
 
@@ -664,3 +710,19 @@
         opacity: 1;
     }
 }
+
+.mobileOverlay {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .mobileOverlay {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: 1500; /* Below sidebar but above main content */
+        backdrop-filter: blur(2px);
+        animation: fadeIn 0.3s ease;
+    }
+}

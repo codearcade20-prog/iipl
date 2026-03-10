@@ -1906,6 +1906,14 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                 </div>
             </aside>
 
+            {/* Mobile Overlay to close sidebar */}
+            {sidebarOpen && (
+                <div
+                    className={styles.mobileOverlay}
+                    onClick={() => setSidebarOpen(false)}
+                />
+            )}
+
             <main className={styles.mainContent}>
                 <header className={styles.topBar}>
                     <button className={styles.menuToggle} onClick={() => setSidebarOpen(!sidebarOpen)}>
@@ -1929,7 +1937,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                         </div>
                     )}
 
-                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                    <div className={styles.headerButtons} style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
                         <button
                             className={styles.logoutBtn}
                             onClick={() => navigate('/')}

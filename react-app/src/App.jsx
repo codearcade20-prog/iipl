@@ -22,6 +22,11 @@ import EmployeeList from './pages/EmployeeList';
 import PayrollHistory from './pages/PayrollHistory';
 import WagesPage from './pages/WagesPage';
 import AccountsDashboard from './pages/AccountsDashboard';
+import PettyCashLayout from './pages/PettyCashLayout';
+import PettyCashDashboard from './pages/PettyCashDashboard';
+import PettyCashEntry from './pages/PettyCashEntry';
+import PettyCashHistory from './pages/PettyCashHistory';
+import PettyCashDetail from './pages/PettyCashDetail';
 import { MessageProvider } from './context/MessageContext';
 
 function App() {
@@ -50,6 +55,13 @@ function App() {
             <Route path="/salary-slip/:id" element={<ProtectedRoute module="hr"><SalarySlip /></ProtectedRoute>} />
             <Route path="/wages" element={<ProtectedRoute module="wages"><WagesPage /></ProtectedRoute>} />
             <Route path="/accounts" element={<ProtectedRoute module="accounts"><AccountsDashboard /></ProtectedRoute>} />
+            <Route path="/accounts/petty-cash" element={<ProtectedRoute module="accounts"><PettyCashLayout /></ProtectedRoute>}>
+              <Route index element={<PettyCashDashboard />} />
+              <Route path="entry" element={<PettyCashEntry />} />
+              <Route path="history" element={<PettyCashHistory />} />
+              <Route path="view/:id" element={<PettyCashDetail />} />
+              <Route path="edit/:id" element={<PettyCashEntry />} />
+            </Route>
           </Routes>
 
         </Router>
