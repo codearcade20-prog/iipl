@@ -158,11 +158,11 @@ const AdminDashboard = () => {
     // --- EFFECTS ---
     useEffect(() => {
         if (isAuthenticated) {
+            fetchSettings(); // Always fetch settings like GM signature on auth
             if (currentView === 'vendors') fetchVendors();
             else if (currentView === 'sites') fetchSites();
             else if (currentView === 'bin') fetchBin();
             else if (currentView === 'users') fetchUsers();
-            else if (currentView === 'settings') fetchSettings();
             else if (currentView === 'system') runDiagnostics();
             else fetchHistory();
         }
@@ -1975,7 +1975,12 @@ const AdminDashboard = () => {
                     </div>
                 )
             }
-            {viewItem && <TemplateModal record={viewItem} onClose={() => setViewItem(null)} />}
+            {viewItem && (
+                <TemplateModal
+                    record={viewItem}
+                    onClose={() => setViewItem(null)}
+                />
+            )}
         </div >
     );
 };

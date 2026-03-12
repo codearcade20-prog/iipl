@@ -80,7 +80,11 @@ const GeneralManager = () => {
             try {
                 const { error } = await supabase
                     .from('payment_history')
-                    .update({ status: 'Approved' })
+                    .update({ 
+                        status: 'Approved', 
+                        gm_signed: true,
+                        gm_signature: gmSignatureUrl 
+                    })
                     .eq('id', item.id);
 
                 if (error) throw error;

@@ -15,28 +15,11 @@ const ApprovedPayments = () => {
     const [dateSearch, setDateSearch] = useState('');
     const [projectSearch, setProjectSearch] = useState('');
     const [viewItem, setViewItem] = useState(null);
-    const [gmSignatureUrl, setGmSignatureUrl] = useState('');
     const { alert } = useMessage();
 
     useEffect(() => {
         fetchApprovedHistory();
-        fetchGmSignature();
     }, []);
-
-    const fetchGmSignature = async () => {
-        try {
-            const { data, error } = await supabase
-                .from('app_settings')
-                .select('setting_value')
-                .eq('setting_key', 'gm_signature_url')
-                .single();
-
-            if (error && error.code !== 'PGRST116') throw error;
-            if (data) setGmSignatureUrl(data.setting_value);
-        } catch (e) {
-            console.error('Error fetching GM signature:', e);
-        }
-    };
 
     const fetchApprovedHistory = async () => {
         setLoading(true);
@@ -175,7 +158,6 @@ const ApprovedPayments = () => {
                 <TemplateModal
                     record={viewItem}
                     onClose={() => setViewItem(null)}
-                    gmSignatureUrl={gmSignatureUrl}
                 />
             )}
         </div>

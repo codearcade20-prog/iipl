@@ -149,9 +149,9 @@ const TemplateModal = ({ record, onClose, gmSignatureUrl }) => {
                                         BANK - {bankDetails.bank}
                                     </div>
 
-                                    {gmSignatureUrl && (
+                                    {(record.gm_signature || gmSignatureUrl) && (
                                         <div className={styles.gmInvoiceSigOverlay}>
-                                            <img src={gmSignatureUrl} alt="GM Signature" className={styles.signatureImg} />
+                                            <img src={record.gm_signature || gmSignatureUrl} alt="GM Signature" className={styles.signatureImg} />
                                         </div>
                                     )}
 
@@ -248,9 +248,9 @@ const TemplateModal = ({ record, onClose, gmSignatureUrl }) => {
                                     {record.amount ? "(RUPEES " + numberToWords(Math.round(record.amount)).toUpperCase() + " ONLY)" : ""}
                                 </div>
 
-                                {gmSignatureUrl && (
+                                {(record.gm_signature || gmSignatureUrl) && (
                                     <div className={styles.gmPaymentSigOverlay}>
-                                        <img src={gmSignatureUrl} alt="GM Signature" className={styles.signatureImg} />
+                                        <img src={record.gm_signature || gmSignatureUrl} alt="GM Signature" className={styles.signatureImg} />
                                     </div>
                                 )}
                             </div>

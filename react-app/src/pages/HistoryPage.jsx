@@ -344,7 +344,12 @@ const HistoryPage = () => {
                     </table>
                 </div>
             </div>
-            {viewItem && <TemplateModal record={viewItem} onClose={() => setViewItem(null)} />}
+            {viewItem && (
+                <TemplateModal
+                    record={viewItem}
+                    onClose={() => setViewItem(null)}
+                />
+            )}
         </div>
     );
 };

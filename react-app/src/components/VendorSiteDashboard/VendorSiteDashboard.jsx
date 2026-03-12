@@ -85,6 +85,8 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
     const [statementMode, setStatementMode] = useState('menu'); // menu, master, vendor, tracker
     const [vendorStatementView, setVendorStatementView] = useState('detailed'); // detailed, simple
     const [selectedStatementVendor, setSelectedStatementVendor] = useState(null);
+    const [selectedStatementSite, setSelectedStatementSite] = useState(null);
+    const [siteStatementView, setSiteStatementView] = useState('detailed'); // detailed, simple
     const [balancePopup, setBalancePopup] = useState(null);
     const [masterVendors, setMasterVendors] = useState([]); // Master list from admin
     const [masterSites, setMasterSites] = useState([]); // Master list of sites
@@ -995,6 +997,18 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                             <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.5rem' }}>Vendor Payment Tracker</h3>
                             <p style={{ color: '#64748b' }}>Consolidated tracker grouped by vendors (Classic Excel Format).</p>
                         </div>
+
+                        <div
+                            className={styles.infoCard}
+                            onClick={() => setStatementMode('site')}
+                            style={{ padding: '3rem 2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', transition: 'transform 0.2s', textAlign: 'center' }}
+                            onMouseOver={e => e.currentTarget.style.transform = 'translateY(-5px)'}
+                            onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}
+                        >
+                            <div className={`${styles.statIcon} ${styles.bgGradient2}`} style={{ marginBottom: '1.5rem' }}><Building2 size={32} /></div>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.5rem' }}>Generate Site Statement</h3>
+                            <p style={{ color: '#64748b' }}>Detailed individual ledger or summary for a specific site.</p>
+                        </div>
                     </div>
                 </div>
             );
@@ -1288,6 +1302,291 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                 )}
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            );
+        }
+
+        if (statementMode === 'site') {
+            if (!selectedStatementSite) {
+                return (
+                    <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+                        <div className={styles.detailHeader}>
+                            <button className={styles.backBtn} onClick={() => setStatementMode('menu')}>
+                                <ArrowLeft size={16} /> Back
+                            </button>
+                            <h1>Select Site</h1>
+                        </div>
+                        <div className={styles.searchBar} style={{ width: '100%', marginBottom: '2rem' }}>
+                            <Search size={16} />
+                            <input
+                                type="text"
+                                placeholder="Search for a site..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                        </div>
+                        <div className={styles.gridContainer}>
+                            {sites
+                                .filter(s => s.name.toLowerCase().includes((searchQuery || '').toLowerCase()))
+                                .map(s => (
+                                    <div key={s.name} className={styles.infoCard} onClick={() => { setSelectedStatementSite(s); setSearchQuery(''); }}>
+                                        <div className={styles.cardHeader}>
+                                            <Building2 size={20} />
+                                            <span>{s.name}</span>
+                                        </div>
+                                        <div className={styles.cardBody}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                <span className={styles.listItemSub}>Work Orders</span>
+                                                <span style={{ fontWeight: 600 }}>{s.count}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
+                            }
+                        </div>
+                    </div>
+                );
+            }
+
+            // Site Statement Rendering
+            const site = selectedStatementSite;
+            const dateStr = new Date().toLocaleDateString();
+
+            let content;
+            if (siteStatementView === 'detailed') {
+                let grandTotalCertified = 0;
+                let grandTotalWoValue = 0;
+                let grandTotalDebit = 0;
+
+                content = (
+                    <div style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                        {site.entries.map((entry, idx) => {
+                            const billCertified = parseFloat(entry.bill_certified_value) || 0;
+                            const housekeeping = parseFloat(entry.housekeeping) || 0;
+                            const retention = parseFloat(entry.retention) || 0;
+                            const woValue = parseFloat(entry.wo_value) || 0;
+                            const advs = parseAdvances(entry.advance_details);
+                            const totalPaid = advs.reduce((sum, a) => sum + (parseFloat(a.amount) || 0), 0);
+
+                            const finalBillValue = billCertified > 0 ? billCertified : woValue;
+                            const finalDebit = housekeeping + retention + totalPaid;
+                            const vendorBalance = finalBillValue - finalDebit;
+
+                            grandTotalCertified += finalBillValue;
+                            grandTotalWoValue += woValue;
+                            grandTotalDebit += finalDebit;
+
+                            return (
+                                <div key={idx} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
+                                    <div style={{ padding: '1.25rem 1.5rem', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                        <div>
+                                            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1e293b', marginBottom: '0.25rem' }}>{entry.vendor_name}</h3>
+                                            <div style={{ color: '#64748b', fontSize: '0.9rem' }}>
+                                                <span style={{ fontWeight: 500 }}>WO No:</span> {entry.wo_no || 'N/A'}
+                                                <span style={{ margin: '0 0.5rem', color: '#cbd5e1' }}>|</span>
+                                                <span style={{ fontWeight: 500 }}>Date:</span> {formatDate(entry.wo_date)}
+                                            </div>
+                                        </div>
+                                        <div style={{ textAlign: 'right' }}>
+                                            <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', fontWeight: 600 }}>Balance</div>
+                                            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: vendorBalance >= 0 ? '#10b981' : '#ef4444' }}>
+                                                {formatCurrency(vendorBalance)}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div style={{ padding: '0' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem 1.5rem' }}>
+                                            <span style={{ fontWeight: 600, color: '#334155' }}>Value (Certified/WO)</span>
+                                            <span style={{ fontWeight: 600, color: '#334155' }}>{formatCurrency(finalBillValue)}</span>
+                                        </div>
+
+                                        {(housekeeping > 0 || retention > 0) && (
+                                            <div style={{ padding: '0 1.5rem 1rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                                {housekeeping > 0 && (
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.95rem' }}>
+                                                        <span style={{ color: '#475569' }}>Less: Housekeeping</span>
+                                                        <span style={{ color: '#ef4444' }}>- {formatCurrency(housekeeping)}</span>
+                                                    </div>
+                                                )}
+                                                {retention > 0 && (
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.95rem' }}>
+                                                        <span style={{ color: '#475569' }}>Less: Retention</span>
+                                                        <span style={{ color: '#ef4444' }}>- {formatCurrency(retention)}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {advs.length > 0 && (
+                                            <div style={{ background: '#f8fafc', padding: '1rem 1.5rem', borderTop: '1px solid #e2e8f0' }}>
+                                                {advs.map((adv, i) => (
+                                                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
+                                                        <span style={{ color: '#64748b' }}>{adv.date} | Paid ({adv.payment_mode || 'M1'})</span>
+                                                        <span style={{ color: '#64748b' }}>- {formatCurrency(adv.amount)}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
+
+                        <div style={{ marginTop: '1rem', borderTop: '2px solid #0f172a', paddingTop: '1.5rem', display: 'flex', justifyContent: 'flex-end' }}>
+                            <div style={{ width: '400px', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem' }}>
+                                    <span style={{ color: '#64748b' }}>Total Billed Value:</span>
+                                    <span style={{ fontWeight: 600 }}>{formatCurrency(grandTotalCertified)}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem' }}>
+                                    <span style={{ color: '#64748b' }}>Total Deductions & Paid:</span>
+                                    <span style={{ fontWeight: 600 }}>{formatCurrency(grandTotalDebit)}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', marginTop: '0.5rem', borderTop: '1px solid #cbd5e1', paddingTop: '0.75rem' }}>
+                                    <span>Net Payable:</span>
+                                    <span style={{ color: (grandTotalCertified - grandTotalDebit) >= 0 ? '#10b981' : '#ef4444' }}>
+                                        {formatCurrency(grandTotalCertified - grandTotalDebit)}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            } else {
+                // Summary/Simple View for Site
+                let totalCertified = 0, totalDeductions = 0, totalPaid = 0, totalWoValue = 0;
+                content = (
+                    <table className={styles.masterTable} style={{ marginTop: '2rem' }}>
+                        <thead>
+                            <tr>
+                                {summaryColumns.index && <th>#</th>}
+                                <th>Vendor Name</th>
+                                {summaryColumns.wo_no && <th>WO No</th>}
+                                {summaryColumns.wo_date && <th>WO Date</th>}
+                                {summaryColumns.wo_value && <th style={{ textAlign: 'right' }}>Value</th>}
+                                {summaryColumns.bill_certified && <th style={{ textAlign: 'right' }}>Bill Certified</th>}
+                                {summaryColumns.deductions && <th style={{ textAlign: 'right' }}>Deductions</th>}
+                                {summaryColumns.paid && <th style={{ textAlign: 'right' }}>Paid</th>}
+                                {summaryColumns.balance && <th style={{ textAlign: 'right' }}>Balance</th>}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {site.entries.map((entry, idx) => {
+                                const billCertified = parseFloat(entry.bill_certified_value) || 0;
+                                const woValue = parseFloat(entry.wo_value) || 0;
+                                const hsk = parseFloat(entry.housekeeping) || 0;
+                                const ret = parseFloat(entry.retention) || 0;
+                                const advs = parseAdvances(entry.advance_details);
+                                const paid = advs.reduce((s, a) => s + (parseFloat(a.amount) || 0), 0);
+
+                                const finalBillValue = billCertified > 0 ? billCertified : woValue;
+                                const deductions = hsk + ret;
+                                const balance = finalBillValue - deductions - paid;
+
+                                totalCertified += finalBillValue;
+                                totalWoValue += woValue;
+                                totalDeductions += deductions;
+                                totalPaid += paid;
+
+                                return (
+                                    <tr key={idx}>
+                                        {summaryColumns.index && <td style={{ textAlign: 'center' }}>{idx + 1}</td>}
+                                        <td>{entry.vendor_name}</td>
+                                        {summaryColumns.wo_no && <td>{entry.wo_no || 'N/A'}</td>}
+                                        {summaryColumns.wo_date && <td>{formatDate(entry.wo_date)}</td>}
+                                        {summaryColumns.wo_value && <td style={{ textAlign: 'right' }}>{formatCurrency(woValue)}</td>}
+                                        {summaryColumns.bill_certified && <td style={{ textAlign: 'right' }}>{formatCurrency(billCertified)}</td>}
+                                        {summaryColumns.deductions && <td style={{ textAlign: 'right' }}>{formatCurrency(deductions)}</td>}
+                                        {summaryColumns.paid && <td style={{ textAlign: 'right' }}>{formatCurrency(paid)}</td>}
+                                        {summaryColumns.balance && <td style={{ textAlign: 'right', fontWeight: 600, color: balance >= 0 ? '#10b981' : '#ef4444' }}>{formatCurrency(balance)}</td>}
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                        <tfoot>
+                            <tr style={{ background: '#f8fafc', fontWeight: 'bold' }}>
+                                <td colSpan={[summaryColumns.index, true, summaryColumns.wo_no, summaryColumns.wo_date].filter(Boolean).length} style={{ textAlign: 'right' }}>Site Totals</td>
+                                {summaryColumns.wo_value && <td style={{ textAlign: 'right' }}>{formatCurrency(totalWoValue)}</td>}
+                                {summaryColumns.bill_certified && <td style={{ textAlign: 'right' }}>{formatCurrency(totalCertified)}</td>}
+                                {summaryColumns.deductions && <td style={{ textAlign: 'right' }}>{formatCurrency(totalDeductions)}</td>}
+                                {summaryColumns.paid && <td style={{ textAlign: 'right' }}>{formatCurrency(totalPaid)}</td>}
+                                {summaryColumns.balance && <td style={{ textAlign: 'right' }}>{formatCurrency(totalCertified - totalDeductions - totalPaid)}</td>}
+                            </tr>
+                        </tfoot>
+                    </table>
+                );
+            }
+
+            return (
+                <div className={styles.statementContainer}>
+                    <div className={styles.printHide} style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', padding: '1rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            <Button variant="secondary" onClick={() => { setSelectedStatementSite(null); setSiteStatementView('detailed'); }}>
+                                <ArrowLeft size={16} /> Back to Selection
+                            </Button>
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.75rem', position: 'relative' }}>
+                            {siteStatementView === 'simple' && (
+                                <>
+                                    <Button
+                                        variant="secondary"
+                                        onClick={() => setShowColumnSettings(!showColumnSettings)}
+                                        style={{ display: 'flex', gap: '8px' }}
+                                    >
+                                        <Settings size={16} /> Columns
+                                    </Button>
+                                    {showColumnSettings && (
+                                        <div style={{
+                                            position: 'absolute',
+                                            top: '100%',
+                                            right: 0,
+                                            marginTop: '0.5rem',
+                                            padding: '1rem',
+                                            background: 'white',
+                                            border: '1px solid #e2e8f0',
+                                            borderRadius: '12px',
+                                            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                                            zIndex: 50,
+                                            minWidth: '200px'
+                                        }}>
+                                            <div style={{ fontWeight: 600, paddingBottom: '0.5rem', borderBottom: '1px solid #e2e8f0', marginBottom: '0.5rem' }}>Visible Columns</div>
+                                            {Object.keys(summaryColumns).map(key => (
+                                                <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={summaryColumns[key]}
+                                                        onChange={(e) => setSummaryColumns(prev => ({ ...prev, [key]: e.target.checked }))}
+                                                    />
+                                                    {key.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                                                </label>
+                                            ))}
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                            <Button
+                                variant="secondary"
+                                onClick={() => setSiteStatementView(siteStatementView === 'detailed' ? 'simple' : 'detailed')}
+                                style={{ display: 'flex', gap: '8px' }}
+                            >
+                                {siteStatementView === 'detailed' ? <TableIcon size={16} /> : <FileText size={16} />}
+                                Switch to {siteStatementView === 'detailed' ? 'Summary' : 'Detailed'} View
+                            </Button>
+                            <Button onClick={() => { setPrintOrientation('portrait'); setShowPrintModal(true); }}>
+                                <Printer size={18} style={{ marginRight: '0.5rem' }} /> Print Statement
+                            </Button>
+                        </div>
+                    </div>
+
+                    <div id="print-area">
+                        <div className={styles.printOnly} style={{ textAlign: 'center', marginBottom: '2rem', borderBottom: '2px solid #000', paddingBottom: '1rem' }}>
+                            <h1 style={{ fontSize: '2rem', fontWeight: 800, margin: 0 }}>{site.name.toUpperCase()}</h1>
+                            <p style={{ fontSize: '1.1rem', margin: '0.5rem 0' }}>SITE STATEMENT REPORT</p>
+                            <p style={{ fontSize: '0.9rem', color: '#444' }}>Generated on: {dateStr}</p>
+                        </div>
+                        {content}
                     </div>
                 </div>
             );
