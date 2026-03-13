@@ -9,6 +9,8 @@ import styles from './AdminDashboard.module.css';
 import TemplateModal from '../components/TemplateModal';
 import { useMessage } from '../context/MessageContext';
 import { formatDate } from '../utils';
+import SignatureImage from '../components/SignatureImage';
+
 
 const AdminDashboard = () => {
     const { logout } = useAuth();
@@ -1662,7 +1664,7 @@ const AdminDashboard = () => {
                                         {gmSignature ? (
                                             <div style={{ marginBottom: '20px' }}>
                                                 <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '10px' }}>Current Signature:</p>
-                                                <img
+                                                <SignatureImage
                                                     src={gmSignature}
                                                     alt="GM Signature"
                                                     style={{ maxHeight: '100px', maxWidth: '100%', border: '1px solid #e2e8f0', borderRadius: '8px', background: 'white' }}
@@ -1703,7 +1705,7 @@ const AdminDashboard = () => {
                                         {mdSignature ? (
                                             <div style={{ marginBottom: '20px' }}>
                                                 <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '10px' }}>Current Signature:</p>
-                                                <img
+                                                <SignatureImage
                                                     src={mdSignature}
                                                     alt="MD Signature"
                                                     style={{ maxHeight: '100px', maxWidth: '100%', border: '1px solid #e2e8f0', borderRadius: '8px', background: 'white' }}

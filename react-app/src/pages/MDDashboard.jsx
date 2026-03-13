@@ -20,6 +20,8 @@ import {
 import { useMessage } from '../context/MessageContext';
 import LoadingScreen from '../components/LoadingScreen';
 import styles from './MDDashboard.module.css';
+import SignatureImage from '../components/SignatureImage';
+
 
 const MDDashboard = () => {
     const navigate = useNavigate();
@@ -407,7 +409,7 @@ const MDDashboard = () => {
                                         </div>
                                         <div className={styles.footerCol}>
                                             {selectedEntry.md_signature && (
-                                                <img src={selectedEntry.md_signature} alt="MD Signature" className={styles.footerSig} />
+                                                <SignatureImage src={selectedEntry.md_signature} alt="MD Signature" className={styles.footerSig} />
                                             )}
                                             <div className={styles.sigLine}></div>
                                             <p>Managing Director</p>
