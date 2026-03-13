@@ -4,6 +4,8 @@ import { supabase } from '../lib/supabase';
 import { LoadingOverlay } from './ui';
 import styles from './TemplateModal.module.css';
 import { numberToWords, formatDate } from '../utils';
+import SignatureImage from './SignatureImage';
+
 
 const TemplateModal = ({ record, onClose, gmSignatureUrl }) => {
     const [vendor, setVendor] = useState(null);
@@ -151,7 +153,7 @@ const TemplateModal = ({ record, onClose, gmSignatureUrl }) => {
 
                                     {(record.gm_signature || gmSignatureUrl) && (
                                         <div className={styles.gmInvoiceSigOverlay}>
-                                            <img src={record.gm_signature || gmSignatureUrl} alt="GM Signature" className={styles.signatureImg} />
+                                            <SignatureImage src={record.gm_signature || gmSignatureUrl} alt="GM Signature" className={styles.signatureImg} />
                                         </div>
                                     )}
 
@@ -250,7 +252,7 @@ const TemplateModal = ({ record, onClose, gmSignatureUrl }) => {
 
                                 {(record.gm_signature || gmSignatureUrl) && (
                                     <div className={styles.gmPaymentSigOverlay}>
-                                        <img src={record.gm_signature || gmSignatureUrl} alt="GM Signature" className={styles.signatureImg} />
+                                        <SignatureImage src={record.gm_signature || gmSignatureUrl} alt="GM Signature" className={styles.signatureImg} />
                                     </div>
                                 )}
                             </div>

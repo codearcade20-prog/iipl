@@ -5,6 +5,8 @@ import { Printer, ArrowLeft, Download, Calendar, MapPin, User, FileText, CreditC
 import LoadingScreen from '../components/LoadingScreen';
 import { useMessage } from '../context/MessageContext';
 import styles from './PettyCashDetail.module.css';
+import SignatureImage from '../components/SignatureImage';
+
 
 const PettyCashDetail = () => {
     const { id } = useParams();
@@ -265,7 +267,7 @@ const PettyCashDetail = () => {
                         <div className={styles.sigBox}>
                             {entry.md_signature ? (
                                 <div className={styles.signatureDisplay}>
-                                    <img src={entry.md_signature} alt="MD Signature" className={styles.sigImage} />
+                                    <SignatureImage src={entry.md_signature} alt="MD Signature" className={styles.sigImage} />
                                     <div className={styles.sigLine}></div>
                                 </div>
                             ) : (
