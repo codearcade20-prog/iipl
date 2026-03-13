@@ -637,7 +637,8 @@ const AdminDashboard = () => {
             if (error) throw error;
             if (data) {
                 const gm = data.find(s => s.setting_key === 'gm_signature_url');
-        if (gm) setGmSignature(gm.setting_value);
+                const md = data.find(s => s.setting_key === 'md_signature_url');
+                if (gm) setGmSignature(gm.setting_value);
                 if (md) setMdSignature(md.setting_value);
             }
         } catch (e) { console.error(e); }
@@ -657,7 +658,10 @@ const AdminDashboard = () => {
             // 1. Upload to Supabase Storage
             const { error: uploadError } = await supabase.storage
                 .from('signatures')
-                .upload(filePath, file);
+                .upload(filePath, file, {
+                    contentType: file.type || 'image/png',
+                    upsert: true
+                });
 
             if (uploadError) throw uploadError;
 
@@ -694,7 +698,10 @@ const AdminDashboard = () => {
 
             const { error: uploadError } = await supabase.storage
                 .from('signatures')
-                .upload(filePath, file);
+                .upload(filePath, file, {
+                    contentType: file.type || 'image/png',
+                    upsert: true
+                });
 
             if (uploadError) throw uploadError;
 
