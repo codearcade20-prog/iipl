@@ -2,13 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { DollarSign, ArrowUpRight, ArrowDownRight, Clock, Plus, ArrowRight } from 'lucide-react';
+import LoadingScreen from '../components/LoadingScreen';
 import styles from './PettyCashDashboard.module.css';
 
 const PettyCashDashboard = () => {
     const navigate = useNavigate();
     const [stats, setStats] = useState({
-        balance: 0,
-        income: 0,
         expenses: 0
     });
     const [recentEntries, setRecentEntries] = useState([]);
@@ -32,8 +31,6 @@ const PettyCashDashboard = () => {
             const totalExpenses = entries?.reduce((sum, entry) => sum + (parseFloat(entry.total_amount) || 0), 0) || 0;
             
             setStats({
-                balance: 0 - totalExpenses, // Simple negative balance if no income is recorded yet
-                income: 0,
                 expenses: totalExpenses
             });
 
@@ -44,6 +41,8 @@ const PettyCashDashboard = () => {
             setLoading(false);
         }
     };
+
+    if (loading) return <LoadingScreen message="Analyzing cash flow..." />;
 
     return (
         <div className={styles.container}>
@@ -58,24 +57,6 @@ const PettyCashDashboard = () => {
             </header>
 
             <section className={styles.statGrid}>
-                <div className={styles.statCard}>
-                    <div className={styles.statIcon} style={{ background: '#eff6ff', color: '#3b82f6' }}>
-                        <DollarSign size={20} />
-                    </div>
-                    <div className={styles.statInfo}>
-                        <span className={styles.statLabel}>Current Balance</span>
-                        <span className={styles.statValue}>₹{stats.balance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                    </div>
-                </div>
-                <div className={styles.statCard}>
-                    <div className={styles.statIcon} style={{ background: '#f0fdf4', color: '#22c55e' }}>
-                        <ArrowDownRight size={20} />
-                    </div>
-                    <div className={styles.statInfo}>
-                        <span className={styles.statLabel}>Total Income</span>
-                        <span className={styles.statValue}>₹{stats.income.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                    </div>
-                </div>
                 <div className={styles.statCard}>
                     <div className={styles.statIcon} style={{ background: '#fef2f2', color: '#ef4444' }}>
                         <ArrowUpRight size={20} />
@@ -104,10 +85,12 @@ const PettyCashDashboard = () => {
                                 <div className={styles.activityInfo}>
                                     <div className={styles.activityTitle}>{entry.site_name}</div>
                                     <div className={styles.activityMeta}>
-                                        <span>{new Date(entry.date).toLocaleDateString('en-GB')}</span>
-                                        <span className={styles.dot}>•</span>
-                                        <span>{entry.request_person}</span>
-                                    </div>
+                                         <span className={styles.voucherTag}>#{entry.voucher_no}</span>
+                                         <span className={styles.dot}>•</span>
+                                         <span>{new Date(entry.date).toLocaleDateString('en-GB')}</span>
+                                         <span className={styles.dot}>•</span>
+                                         <span>{entry.request_person}</span>
+                                     </div>
                                 </div>
                                 <div className={styles.activityAmount}>
                                     - ₹{parseFloat(entry.total_amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}

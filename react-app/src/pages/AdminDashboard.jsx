@@ -73,7 +73,9 @@ const AdminDashboard = () => {
     const [viewItem, setViewItem] = useState(null);
     // --- SETTINGS STATE ---
     const [gmSignature, setGmSignature] = useState('');
+    const [mdSignature, setMdSignature] = useState('');
     const [uploading, setUploading] = useState(false);
+    const [uploadingMd, setUploadingMd] = useState(false);
 
     // --- GLOBAL LOADING STATE ---
     const [saving, setSaving] = useState(false);
@@ -631,10 +633,13 @@ const AdminDashboard = () => {
             const { data, error } = await supabase
                 .from('app_settings')
                 .select('*')
-                .eq('setting_key', 'gm_signature_url')
-                .single();
-            if (error && error.code !== 'PGRST116') throw error;
-            if (data) setGmSignature(data.setting_value);
+                .in('setting_key', ['gm_signature_url', 'md_signature_url']);
+            if (error) throw error;
+            if (data) {
+                const gm = data.find(s => s.setting_key === 'gm_signature_url');
+        if (gm) setGmSignature(gm.setting_value);
+                if (md) setMdSignature(md.setting_value);
+            }
         } catch (e) { console.error(e); }
         finally { setSaving(false); }
     };
@@ -674,6 +679,41 @@ const AdminDashboard = () => {
             await alert('Upload failed: ' + e.message);
         } finally {
             setUploading(false);
+        }
+    };
+
+    const handleMdSignatureUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setUploadingMd(true);
+        try {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `md_signature_${Date.now()}.${fileExt}`;
+            const filePath = `${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('signatures')
+                .upload(filePath, file);
+
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('signatures')
+                .getPublicUrl(filePath);
+
+            const { error: dbError } = await supabase
+                .from('app_settings')
+                .upsert({ setting_key: 'md_signature_url', setting_value: publicUrl }, { onConflict: 'setting_key' });
+
+            if (dbError) throw dbError;
+
+            setMdSignature(publicUrl);
+            toast('MD Signature uploaded successfully!');
+        } catch (e) {
+            await alert('Upload failed: ' + e.message);
+        } finally {
+            setUploadingMd(false);
         }
     };
 
@@ -1602,44 +1642,87 @@ const AdminDashboard = () => {
                             <h3 className={styles.cardTitle}>System Settings</h3>
                         </div>
                         <div style={{ padding: '30px' }}>
-                            <div style={{ maxWidth: '500px' }}>
-                                <h4 style={{ marginBottom: '15px' }}>General Manager Digital Signature</h4>
-                                <div style={{
-                                    border: '2px dashed #e2e8f0',
-                                    borderRadius: '12px',
-                                    padding: '30px',
-                                    textAlign: 'center',
-                                    background: '#f8fafc'
-                                }}>
-                                    {gmSignature ? (
-                                        <div style={{ marginBottom: '20px' }}>
-                                            <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '10px' }}>Current Signature:</p>
-                                            <img
-                                                src={gmSignature}
-                                                alt="GM Signature"
-                                                style={{ maxHeight: '100px', maxWidth: '100%', border: '1px solid #e2e8f0', borderRadius: '8px', background: 'white' }}
-                                            />
-                                        </div>
-                                    ) : (
-                                        <div style={{ marginBottom: '20px', color: '#94a3b8' }}>
-                                            <div style={{ fontSize: '3rem', marginBottom: '10px' }}>🖋️</div>
-                                            <p>No signature uploaded yet</p>
-                                        </div>
-                                    )}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
+                                <div>
+                                    <h4 style={{ marginBottom: '15px' }}>General Manager Digital Signature</h4>
+                                    <div style={{
+                                        border: '2px dashed #e2e8f0',
+                                        borderRadius: '12px',
+                                        padding: '30px',
+                                        textAlign: 'center',
+                                        background: '#f8fafc'
+                                    }}>
+                                        {gmSignature ? (
+                                            <div style={{ marginBottom: '20px' }}>
+                                                <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '10px' }}>Current Signature:</p>
+                                                <img
+                                                    src={gmSignature}
+                                                    alt="GM Signature"
+                                                    style={{ maxHeight: '100px', maxWidth: '100%', border: '1px solid #e2e8f0', borderRadius: '8px', background: 'white' }}
+                                                />
+                                            </div>
+                                        ) : (
+                                            <div style={{ marginBottom: '20px', color: '#94a3b8' }}>
+                                                <div style={{ fontSize: '3rem', marginBottom: '10px' }}>🖋️</div>
+                                                <p>No signature uploaded yet</p>
+                                            </div>
+                                        )}
 
-                                    <label className={styles.refreshBtn} style={{ cursor: 'pointer', display: 'inline-flex', justifyContent: 'center', width: 'auto' }}>
-                                        {uploading ? '⌛ Uploading...' : '📁 Choose Signature Image'}
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            onChange={handleSignatureUpload}
-                                            disabled={uploading}
-                                            style={{ display: 'none' }}
-                                        />
-                                    </label>
-                                    <p style={{ marginTop: '10px', fontSize: '0.75rem', color: '#64748b' }}>
-                                        Recommended format: PNG with transparent background.
-                                    </p>
+                                        <label className={styles.refreshBtn} style={{ cursor: 'pointer', display: 'inline-flex', justifyContent: 'center', width: 'auto' }}>
+                                            {uploading ? '⌛ Uploading...' : '📁 Choose Signature Image'}
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={handleSignatureUpload}
+                                                disabled={uploading}
+                                                style={{ display: 'none' }}
+                                            />
+                                        </label>
+                                        <p style={{ marginTop: '10px', fontSize: '0.75rem', color: '#64748b' }}>
+                                            Recommended format: PNG with transparent background.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <h4 style={{ marginBottom: '15px' }}>Managing Director Digital Signature</h4>
+                                    <div style={{
+                                        border: '2px dashed #e2e8f0',
+                                        borderRadius: '12px',
+                                        padding: '30px',
+                                        textAlign: 'center',
+                                        background: '#f8fafc'
+                                    }}>
+                                        {mdSignature ? (
+                                            <div style={{ marginBottom: '20px' }}>
+                                                <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '10px' }}>Current Signature:</p>
+                                                <img
+                                                    src={mdSignature}
+                                                    alt="MD Signature"
+                                                    style={{ maxHeight: '100px', maxWidth: '100%', border: '1px solid #e2e8f0', borderRadius: '8px', background: 'white' }}
+                                                />
+                                            </div>
+                                        ) : (
+                                            <div style={{ marginBottom: '20px', color: '#94a3b8' }}>
+                                                <div style={{ fontSize: '3rem', marginBottom: '10px' }}>🖋️</div>
+                                                <p>No signature uploaded yet</p>
+                                            </div>
+                                        )}
+
+                                        <label className={styles.refreshBtn} style={{ cursor: 'pointer', display: 'inline-flex', justifyContent: 'center', width: 'auto', background: 'var(--primary)', color: 'white' }}>
+                                            {uploadingMd ? '⌛ Uploading...' : '📁 Choose MD Signature'}
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={handleMdSignatureUpload}
+                                                disabled={uploadingMd}
+                                                style={{ display: 'none' }}
+                                            />
+                                        </label>
+                                        <p style={{ marginTop: '10px', fontSize: '0.75rem', color: '#64748b' }}>
+                                            Used for Petty Cash approvals.
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1926,9 +2009,11 @@ const AdminDashboard = () => {
                                                 { id: 'overview', label: 'Project Overview' },
                                                 { id: 'bill', label: 'Bill Preparation' },
                                                 { id: 'gm', label: 'General Manager' },
+                                                { id: 'md', label: 'Managing Director' },
                                                 { id: 'approved_payments', label: 'Approved Payments' },
                                                 { id: 'hr', label: 'HR Module' },
-                                                { id: 'wages', label: 'Wages Module' }
+                                                { id: 'wages', label: 'Wages Module' },
+                                                { id: 'accounts', label: 'Accounts (Petty Cash)' }
                                             ].map(mod => (
                                                 <div
                                                     key={mod.id}

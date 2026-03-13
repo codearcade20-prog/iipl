@@ -1,0 +1,75 @@
+.overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f8fafc;
+    z-index: 9999;
+}
+
+.backgroundBlur {
+    position: absolute;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%);
+    filter: blur(40px);
+    animation: pulse 4s infinite alternate;
+}
+
+.container {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+}
+
+.spinner {
+    display: flex;
+    gap: 8px;
+}
+
+.dot {
+    width: 12px;
+    height: 12px;
+    background: #3b82f6;
+    border-radius: 50%;
+    animation: dance 1.2s infinite ease-in-out;
+}
+
+.dot:nth-child(2) { animation-delay: 0.1s; background: #2563eb; }
+.dot:nth-child(3) { animation-delay: 0.2s; background: #1d4ed8; }
+.dot:nth-child(4) { animation-delay: 0.3s; background: #1e40af; }
+.dot:nth-child(5) { animation-delay: 0.4s; background: #1e3a8a; }
+
+@keyframes dance {
+    0%, 100% { transform: translateY(0); opacity: 0.5; }
+    50% { transform: translateY(-15px); opacity: 1; }
+}
+
+@keyframes pulse {
+    from { transform: scale(1); opacity: 0.3; }
+    to { transform: scale(1.5); opacity: 0.6; }
+}
+
+.textContainer {
+    text-align: center;
+}
+
+.title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin: 0;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.message {
+    font-size: 0.9rem;
+    color: #64748b;
+    margin: 0.5rem 0 0 0;
+    font-weight: 500;
+}

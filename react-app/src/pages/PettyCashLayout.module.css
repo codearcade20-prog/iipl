@@ -94,4 +94,68 @@
     .sidebar {
         display: none;
     }
+
+    .content {
+        padding-bottom: 70px; /* space for mobile bottom nav */
+    }
+
+    .mobileNav {
+        display: flex;
+    }
 }
+
+/* Mobile Bottom Navigation Bar */
+.mobileNav {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    border-top: 1px solid #e2e8f0;
+    z-index: 100;
+    padding: 0.5rem 0.25rem;
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.mobileNavLink {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 0.35rem 0.25rem;
+    border-radius: 10px;
+    text-decoration: none;
+    color: #94a3b8;
+    font-size: 0.65rem;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.mobileNavLink.active {
+    color: #3b82f6;
+    background: #eff6ff;
+}
+
+.mobileNavLink:hover {
+    color: #475569;
+    background: #f8fafc;
+}
+
+@media print {
+    .sidebar {
+        display: none !important;
+    }
+    .mobileNav {
+        display: none !important;
+    }
+    .wrapper {
+        display: block !important;
+    }
+    .content {
+        overflow: visible !important;
+        padding-bottom: 0 !important;
+    }
+}
+

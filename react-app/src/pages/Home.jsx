@@ -85,6 +85,14 @@ const Home = () => {
                     </Link>
                 )}
 
+                {(hasPermission('md') || hasPermission('admin')) && (
+                    <Link to="/md-dashboard" className={styles.navCard}>
+                        <div className={styles.icon}>👔</div>
+                        <h3 className={styles.cardTitle}>Managing Director</h3>
+                        <p className={styles.cardText}>Review and approve petty cash payments with digital signatures and amount adjustment.</p>
+                    </Link>
+                )}
+
                 {(hasPermission('gm') || hasPermission('admin')) && (
                     <Link to="/gm" className={styles.navCard}>
                         <div className={styles.icon}>👔</div>

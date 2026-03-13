@@ -27,6 +27,10 @@ import PettyCashDashboard from './pages/PettyCashDashboard';
 import PettyCashEntry from './pages/PettyCashEntry';
 import PettyCashHistory from './pages/PettyCashHistory';
 import PettyCashDetail from './pages/PettyCashDetail';
+import PettyCashPersonEntry from './pages/PettyCashPersonEntry';
+import PettyCashPersonList from './pages/PettyCashPersonList';
+import PettyCashMasterSheet from './pages/PettyCashMasterSheet';
+import MDDashboard from './pages/MDDashboard';
 import { MessageProvider } from './context/MessageContext';
 
 function App() {
@@ -54,11 +58,17 @@ function App() {
             <Route path="/payroll-history" element={<ProtectedRoute module="hr"><PayrollHistory /></ProtectedRoute>} />
             <Route path="/salary-slip/:id" element={<ProtectedRoute module="hr"><SalarySlip /></ProtectedRoute>} />
             <Route path="/wages" element={<ProtectedRoute module="wages"><WagesPage /></ProtectedRoute>} />
+            <Route path="/md-dashboard" element={<ProtectedRoute module="md"><MDDashboard /></ProtectedRoute>} />
+            <Route path="/md-dashboard/history" element={<ProtectedRoute module="md"><PettyCashHistory /></ProtectedRoute>} />
+            <Route path="/md-dashboard/view/:id" element={<ProtectedRoute module="md"><PettyCashDetail /></ProtectedRoute>} />
             <Route path="/accounts" element={<ProtectedRoute module="accounts"><AccountsDashboard /></ProtectedRoute>} />
             <Route path="/accounts/petty-cash" element={<ProtectedRoute module="accounts"><PettyCashLayout /></ProtectedRoute>}>
               <Route index element={<PettyCashDashboard />} />
               <Route path="entry" element={<PettyCashEntry />} />
               <Route path="history" element={<PettyCashHistory />} />
+              <Route path="master-sheet" element={<PettyCashMasterSheet />} />
+              <Route path="persons" element={<PettyCashPersonList />} />
+              <Route path="persons/new" element={<PettyCashPersonEntry />} />
               <Route path="view/:id" element={<PettyCashDetail />} />
               <Route path="edit/:id" element={<PettyCashEntry />} />
             </Route>

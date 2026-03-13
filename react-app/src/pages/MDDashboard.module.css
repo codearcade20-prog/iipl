@@ -1,0 +1,667 @@
+.container {
+    padding: 2.5rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    min-height: 100vh;
+    background: #f8fafc;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2.5rem;
+}
+
+.headerTitle {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.backBtn {
+    background: white;
+    border: 1px solid #e2e8f0;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #64748b;
+    transition: all 0.2s;
+}
+
+.backBtn:hover {
+    background: #f1f5f9;
+    color: #1e293b;
+    transform: translateX(-3px);
+}
+
+.headerTitle h1 {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin: 0;
+}
+
+.headerTitle p {
+    color: #64748b;
+    margin: 0.25rem 0 0 0;
+}
+
+.headerActions {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.historyBtn {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 10px 18px;
+    background: white;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.historyBtn:hover {
+    background: #f8fafc;
+    color: #1e293b;
+    border-color: #cbd5e1;
+    transform: translateY(-1px);
+}
+
+.signatureBadge {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 8px 16px;
+    background: #eff6ff;
+    color: #1d4ed8;
+    border-radius: 99px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    border: 1px solid #dbeafe;
+}
+
+.filterBar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    background: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.filterGroup {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    color: #64748b;
+}
+
+.select {
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    font-weight: 600;
+    color: #1e293b;
+    cursor: pointer;
+}
+
+.stats {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #64748b;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 1.5rem;
+}
+
+.entryCard {
+    background: white;
+    border-radius: 20px;
+    border: 1px solid #e2e8f0;
+    padding: 1.5rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.entryCard:hover {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    transform: translateY(-5px);
+}
+
+.cardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.voucherNo {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 800;
+    color: #1e293b;
+    font-size: 1rem;
+}
+
+.status {
+    padding: 4px 12px;
+    border-radius: 99px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.status.pending { background: #fffbeb; color: #d97706; }
+.status.approved { background: #f0fdf4; color: #16a34a; }
+.status.rejected { background: #fef2f2; color: #dc2626; }
+.status.paid { background: #eef2ff; color: #4f46e5; }
+
+.cardBody {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.infoRow {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: #475569;
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.personType {
+    font-size: 0.8rem;
+    color: #94a3b8;
+}
+
+.amountBox {
+    margin-top: 0.5rem;
+    display: flex;
+    gap: 1rem;
+    padding: 0.75rem;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px solid #f1f5f9;
+}
+
+.requested, .approved {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.amountBox label {
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: #94a3b8;
+    margin-bottom: 2px;
+}
+
+.requested span {
+    font-weight: 700;
+    color: #1e293b;
+    font-size: 1.1rem;
+}
+
+.approved span {
+    font-weight: 800;
+    color: #16a34a;
+    font-size: 1.1rem;
+}
+
+.cardFooter {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 1.25rem;
+    border-top: 1px dashed #e2e8f0;
+}
+
+.viewBtn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 8px 16px;
+    background: #f1f5f9;
+    color: #475569;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.viewBtn:hover {
+    background: #e2e8f0;
+    color: #1e293b;
+}
+
+.actionGroup {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.approveBtn, .partialBtn, .rejectBtn {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 800;
+    transition: all 0.2s;
+}
+
+.approveBtn { background: #22c55e; color: white; box-shadow: 0 4px 12px rgba(34, 197, 94, 0.2); }
+.approveBtn:hover { background: #16a34a; transform: translateY(-2px); }
+
+.partialBtn { background: #3b82f6; color: white; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2); }
+.partialBtn:hover { background: #2563eb; transform: translateY(-2px); }
+
+.rejectBtn { background: #ef4444; color: white; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2); }
+.rejectBtn:hover { background: #dc2626; transform: translateY(-2px); }
+
+.skeleton {
+    height: 250px;
+    background: linear-gradient(90deg, #f1f5f9 25%, #f8fafc 50%, #f1f5f9 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 20px;
+}
+
+@keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+.emptyState {
+    grid-column: 1 / -1;
+    padding: 5rem;
+    text-align: center;
+    color: #94a3b8;
+    background: white;
+    border-radius: 20px;
+    border: 2px dashed #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+@media (max-width: 768px) {
+    .container { padding: 1rem; }
+
+    .header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .headerTitle h1 { font-size: 1.35rem; }
+    .headerTitle p { font-size: 0.85rem; }
+
+    .headerActions {
+        width: 100%;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .historyBtn { flex: 1; justify-content: center; }
+    .signatureBadge { flex: 1; justify-content: center; }
+
+    .filterBar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+        padding: 0.75rem 1rem;
+    }
+
+    .grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .cardFooter {
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .actionGroup {
+        flex-wrap: wrap;
+        width: 100%;
+    }
+
+    .approveBtn, .partialBtn { flex: 1; justify-content: center; }
+
+    /* Modal goes full-screen on mobile */
+    .modalOverlay {
+        padding: 0;
+        align-items: flex-end;
+    }
+
+    .detailModal {
+        max-width: 100%;
+        max-height: 95vh;
+        border-radius: 24px 24px 0 0;
+    }
+
+    .modalHeader {
+        padding: 1rem 1.25rem;
+    }
+
+    .voucherContainer {
+        padding: 1rem;
+    }
+
+    .voucherInternal {
+        padding: 1.25rem;
+    }
+
+    .voucherDetailsGrid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .itemTable th,
+    .itemTable td {
+        padding: 0.65rem 0.5rem;
+        font-size: 0.82rem;
+    }
+
+    .remarksCell { max-width: 120px; }
+
+    .voucherFooter {
+        margin-top: 2rem;
+        flex-wrap: wrap;
+        gap: 2rem;
+        justify-content: center;
+    }
+
+    .footerCol { width: 140px; }
+
+    .modalActionsSticky {
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        padding: 1rem;
+        margin: 1rem -1rem -1rem -1rem;
+        bottom: 0;
+    }
+
+    .modalActionsSticky button {
+        flex: 1;
+        min-width: 0;
+        padding: 10px 8px;
+        font-size: 0.82rem;
+        justify-content: center;
+    }
+}
+
+.modalOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 2rem;
+}
+
+.detailModal {
+    background: #f8fafc;
+    width: 100%;
+    max-width: 900px;
+    max-height: 90vh;
+    border-radius: 24px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.modalHeader {
+    padding: 1.5rem 2.5rem;
+    background: white;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.closeBtn {
+    background: none;
+    border: none;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.closeBtn:hover {
+    color: #1e293b;
+}
+
+.modalVoucherId {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 800;
+    color: #1e293b;
+    font-size: 1.1rem;
+}
+
+.voucherContainer {
+    overflow-y: auto;
+    padding: 2.5rem;
+    flex: 1;
+}
+
+.voucherInternal {
+    background: white;
+    padding: 3rem;
+    border-radius: 16px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e2e8f0;
+}
+
+.voucherHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border-bottom: 2px solid #1e293b;
+    padding-bottom: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.companyInfo h2 {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin: 0;
+}
+
+.companyInfo p {
+    font-size: 0.9rem;
+    color: #64748b;
+    margin: 0.25rem 0 0 0;
+}
+
+.statusBox {
+    text-align: right;
+}
+
+.statusLabel {
+    padding: 4px 12px;
+    border-radius: 99px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.voucherDate {
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    color: #64748b;
+    font-weight: 600;
+}
+
+.voucherDetailsGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+    margin-bottom: 2.5rem;
+}
+
+.detailItem label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: #94a3b8;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+
+.detailItem p {
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0;
+}
+
+.itemTable {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 3rem;
+}
+
+.itemTable th {
+    text-align: left;
+    padding: 1rem;
+    background: #f8fafc;
+    border-bottom: 1px solid #1e293b;
+    font-size: 0.85rem;
+    color: #475569;
+}
+
+.itemTable td {
+    padding: 1rem;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 0.95rem;
+    color: #334155;
+}
+
+.remarksCell {
+    white-space: pre-wrap;
+    max-width: 400px;
+}
+
+.itemTable tfoot td {
+    padding: 1.25rem 1rem;
+    font-weight: 800;
+    color: #1e293b;
+    border-bottom: none;
+}
+
+.approvedRow td {
+    color: #16a34a !important;
+    background: #f0fdf4;
+}
+
+.mdNote {
+    margin-bottom: 3rem;
+    padding: 1.5rem;
+    background: #fdf2f8;
+    border-radius: 12px;
+    border: 1px solid #fce7f3;
+}
+
+.mdNote label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: #be185d;
+    margin-bottom: 4px;
+}
+
+.mdNote p {
+    margin: 0;
+    color: #831843;
+    font-weight: 500;
+    font-style: italic;
+}
+
+.voucherFooter {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 4rem;
+}
+
+.footerCol {
+    width: 200px;
+    text-align: center;
+}
+
+.sigLine {
+    border-top: 1px solid #1e293b;
+    margin-bottom: 0.5rem;
+}
+
+.footerCol p {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #64748b;
+}
+
+.footerSig {
+    max-height: 60px;
+    max-width: 150px;
+    object-fit: contain;
+    margin-bottom: -10px;
+}
+
+.modalActionsSticky {
+    position: sticky;
+    bottom: -2.5rem;
+    margin: 2rem -2.5rem -2.5rem -2.5rem;
+    padding: 1.5rem 2.5rem;
+    background: white;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    gap: 1.5rem;
+    justify-content: center;
+}
+
+.modalActionsSticky button {
+    padding: 12px 24px;
+    font-size: 0.9rem;
+}

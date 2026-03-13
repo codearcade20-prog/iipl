@@ -7,23 +7,127 @@
 .noPrint {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.headerInfo {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin: 0;
+}
+
+.subtitle {
+    font-size: 0.85rem;
+    color: #64748b;
+    margin: 0.1rem 0 0 0;
+}
+
+.actionButtons {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.statusBadge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 99px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    margin-top: 0.5rem;
+    text-transform: uppercase;
+}
+
+.entryGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.sectionTitle {
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0 0 1rem 0;
+    border-bottom: 1px solid #cbd5e1;
+    padding-bottom: 0.5rem;
+}
+
+.bankGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem 2rem;
+}
+
+.entryTypeTag {
+    background: #3b82f6;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.signatureDisplay {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.sigImage {
+    max-height: 50px;
+    max-width: 150px;
+    object-fit: contain;
+}
+
+.sigName {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-top: 2px;
+}
+
+.sigDate {
+    font-size: 0.75rem;
+    color: #64748b;
+    margin: 0;
 }
 
 .backBtn {
-    background: none;
-    border: none;
-    color: #64748b;
+    background: white;
+    border: 1px solid #e2e8f0;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    font-weight: 600;
+    justify-content: center;
     cursor: pointer;
-    transition: color 0.2s;
+    color: #64748b;
+    transition: all 0.2s;
 }
 
 .backBtn:hover {
+    background: #f1f5f9;
     color: #1e293b;
+    transform: translateX(-3px);
 }
 
 .printBtn {
@@ -121,7 +225,10 @@
 .table td {
     padding: 1rem;
     border-bottom: 1px solid #e2e8f0;
-    font-size: 0.9rem;
+    color: #334155;
+    font-size: 0.95rem;
+    vertical-align: top;
+    white-space: pre-wrap;
 }
 
 .totalAmount {
@@ -165,5 +272,78 @@
         box-shadow: none;
         padding: 0;
         margin: 0;
+    }
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 1rem;
+    }
+
+    .noPrint {
+        margin-bottom: 1rem;
+    }
+
+    .headerInfo {
+        gap: 0.75rem;
+    }
+
+    .title {
+        font-size: 1.2rem;
+    }
+
+    .printBtn {
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
+    }
+
+    .voucher {
+        padding: 1.25rem;
+        min-height: unset;
+    }
+
+    .voucherHeader {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .voucherTitle {
+        text-align: left;
+    }
+
+    .companyName {
+        font-size: 1.35rem;
+    }
+
+    .entryGrid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        padding: 1rem;
+    }
+
+    .entryInfo {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .signatures {
+        flex-wrap: wrap;
+        gap: 2rem;
+        margin-top: 3rem;
+        justify-content: center;
+    }
+
+    .sigBox {
+        width: 140px;
+    }
+
+    .table th,
+    .table td {
+        padding: 0.65rem 0.5rem;
+        font-size: 0.85rem;
+    }
+
+    .bankGrid {
+        grid-template-columns: 1fr;
     }
 }
