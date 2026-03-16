@@ -23,6 +23,61 @@ import {
 } from 'lucide-react';
 import styles from './WagesPage.module.css';
 
+const TimePicker = ({ value, onChange, className }) => {
+    // Expected value format: "HH:mm" or empty string
+    const [h24, m] = (value || "00:00").split(':').map(val => val || '00');
+    
+    const hour24 = parseInt(h24, 10);
+    const period = hour24 >= 12 ? 'PM' : 'AM';
+    let hour12 = hour24 % 12;
+    if (hour12 === 0) hour12 = 12;
+
+    const handleTimeChange = (h12, min, p) => {
+        let h24_new = parseInt(h12, 10);
+        if (p === 'PM' && h24_new < 12) h24_new += 12;
+        if (p === 'AM' && h24_new === 12) h24_new = 0;
+        
+        const formattedH24 = h24_new.toString().padStart(2, '0');
+        const formattedMin = min.toString().padStart(2, '0');
+        onChange(`${formattedH24}:${formattedMin}`);
+    };
+
+    return (
+        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+            <select 
+                className={className} 
+                style={{ width: '60px', padding: '8px 4px', textAlign: 'center' }}
+                value={hour12} 
+                onChange={(e) => handleTimeChange(e.target.value, m, period)}
+            >
+                {Array.from({ length: 12 }, (_, i) => i + 1).map(h => (
+                    <option key={h} value={h}>{h}</option>
+                ))}
+            </select>
+            <span style={{ fontWeight: 'bold' }}>:</span>
+            <select 
+                className={className} 
+                style={{ width: '60px', padding: '8px 4px', textAlign: 'center' }}
+                value={m} 
+                onChange={(e) => handleTimeChange(hour12, e.target.value, period)}
+            >
+                {Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0')).map(min => (
+                    <option key={min} value={min}>{min}</option>
+                ))}
+            </select>
+            <select 
+                className={className} 
+                style={{ width: '65px', padding: '8px 4px', textAlign: 'center' }}
+                value={period} 
+                onChange={(e) => handleTimeChange(hour12, m, e.target.value)}
+            >
+                <option value="AM">AM</option>
+                <option value="PM">PM</option>
+            </select>
+        </div>
+    );
+};
+
 const WagesPage = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
@@ -550,9 +605,9 @@ const WagesPage = () => {
                                         </td>
                                         <td>
                                             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                                <input type="time" className={styles.input} style={{ width: '130px', padding: '8px 12px', fontSize: '0.9rem' }} value={entry.time_in || ''} onChange={e => handleAttendanceChange(l.id, 'time_in', e.target.value)} />
+                                                <TimePicker className={styles.input} value={entry.time_in || ''} onChange={val => handleAttendanceChange(l.id, 'time_in', val)} />
                                                 <span className={styles.muted}>to</span>
-                                                <input type="time" className={styles.input} style={{ width: '130px', padding: '8px 12px', fontSize: '0.9rem' }} value={entry.time_out || ''} onChange={e => handleAttendanceChange(l.id, 'time_out', e.target.value)} />
+                                                <TimePicker className={styles.input} value={entry.time_out || ''} onChange={val => handleAttendanceChange(l.id, 'time_out', val)} />
                                             </div>
                                         </td>
                                         <td style={{ textAlign: 'center' }}>
@@ -1030,9 +1085,9 @@ const WagesPage = () => {
                                                 </td>
                                                 <td>
                                                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                                        <input type="time" className={styles.input} value={r.new_time_in} onChange={e => handleCorrectionChange(idx, 'new_time_in', e.target.value)} />
+                                                        <TimePicker className={styles.input} value={r.new_time_in} onChange={val => handleCorrectionChange(idx, 'new_time_in', val)} />
                                                         <span>to</span>
-                                                        <input type="time" className={styles.input} value={r.new_time_out} onChange={e => handleCorrectionChange(idx, 'new_time_out', e.target.value)} />
+                                                        <TimePicker className={styles.input} value={r.new_time_out} onChange={val => handleCorrectionChange(idx, 'new_time_out', val)} />
                                                     </div>
                                                 </td>
                                                 <td>
