@@ -70,11 +70,16 @@ const WagesPage = () => {
     const [attendanceEntry, setAttendanceEntry] = useState({});
 
     // Reports State
-    const [reportWeek, setReportWeek] = useState(getWeekOfYear(new Date()));
+    const [reportStartDate, setReportStartDate] = useState(new Date(new Date().setDate(new Date().getDate() - 7)).toISOString().split('T')[0]);
+    const [reportEndDate, setReportEndDate] = useState(new Date().toISOString().split('T')[0]);
     const [weeklyReports, setWeeklyReports] = useState([]);
     const [rawReportData, setRawReportData] = useState([]);
     const [summaryView, setSummaryView] = useState('all');
     const [completedLaborIds, setCompletedLaborIds] = useState(new Set());
+    const [searchLaborReport, setSearchLaborReport] = useState('');
+    const [searchCategoryReport, setSearchCategoryReport] = useState('All');
+    const [searchSubcontractorReport, setSearchSubcontractorReport] = useState('All');
+
 
     // Correction Modal States
     const [correctionModalOpen, setCorrectionModalOpen] = useState(false);
@@ -149,7 +154,12 @@ const WagesPage = () => {
             const completed = new Set();
 
             data.forEach(rec => {
-                completed.add(rec.labor_id);
+                // Determine if this worker is "completed" for the DAY across ANY site/category
+                // to avoid double entries or to hide them from pending list once done.
+                if (rec.time_in && rec.time_out) {
+                    completed.add(rec.labor_id);
+                }
+                
                 // Only populate the entry for the current selected site AND category
                 if (rec.site_id == selectedSite && rec.wage_category === selectedCategory) {
                     lookup[rec.labor_id] = {
@@ -237,21 +247,21 @@ const WagesPage = () => {
             for (const labor of filteredLabors) {
                 const entry = attendanceEntry[labor.id] || { time_in: '', time_out: '', attn_val: 0, wages: 0 };
 
-                // Only save if time_in and time_out are provided
-                if (!entry.time_in || !entry.time_out) continue;
+                // Save if at least time_in or time_out is provided
+                if (!entry.time_in && !entry.time_out) continue;
 
                 const payload = {
                     labor_id: labor.id,
                     site_id: selectedSite,
                     subcontractor_id: labor.subcontractor_id || null,
                     work_date: selectedDate,
-                    time_in: entry.time_in,
-                    time_out: entry.time_out,
-                    attendance_value: entry.attn_val,
+                    time_in: entry.time_in || null,
+                    time_out: entry.time_out || null,
+                    attendance_value: entry.attn_val || 0,
                     wages_amount: parseFloat(entry.wages) || 0,
                     remarks: entry.remarks || '',
                     wage_category: selectedCategory,
-                    payment_week: getWeekOfYear(new Date(selectedDate))
+                    payment_week: selectedDate
                 };
                 if (entry.id) updates.push(supabase.from('labor_attendance_wages').update(payload).eq('id', entry.id));
                 else updates.push(supabase.from('labor_attendance_wages').insert([payload]));
@@ -348,7 +358,8 @@ const WagesPage = () => {
             const { data, error } = await supabase
                 .from('labor_attendance_wages')
                 .select('*, labors(name, phone), sites(name), subcontractors(name)')
-                .eq('payment_week', reportWeek);
+                .gte('work_date', reportStartDate)
+                .lte('work_date', reportEndDate);
             if (error) throw error;
 
             setRawReportData(data || []);
@@ -370,13 +381,13 @@ const WagesPage = () => {
     };
 
     useEffect(() => {
-        if ((activeTab === 'reports' || activeTab === 'summary') && reportWeek && !isInitialLoad) {
+        if ((activeTab === 'reports' || activeTab === 'summary') && reportStartDate && reportEndDate && !isInitialLoad) {
             fetchWeeklyReport();
         }
-    }, [reportWeek, activeTab, isInitialLoad]);
+    }, [reportStartDate, reportEndDate, activeTab, isInitialLoad]);
 
     const markAsPaid = async (report) => {
-        if (!await confirm(`Mark all records for ${report.name} as PAID for ${reportWeek}?`)) return;
+        if (!await confirm(`Mark all records for ${report.name} as PAID for the selected period?`)) return;
         setLoading(true);
         try {
             const ids = report.records.map(r => r.id);
@@ -392,7 +403,7 @@ const WagesPage = () => {
     };
 
     const deleteWeeklyRecords = async (report) => {
-        if (!await confirm(`Are you sure you want to DELETE all attendance records for ${report.name} in week ${reportWeek}? This action cannot be undone.`)) return;
+        if (!await confirm(`Are you sure you want to DELETE all attendance records for ${report.name} in the selected period? This action cannot be undone.`)) return;
         setLoading(true);
         try {
             const ids = report.records.map(r => r.id);
@@ -408,13 +419,10 @@ const WagesPage = () => {
     };
 
     function getWeekOfYear(date) {
-        const d = new Date(date);
-        d.setHours(0, 0, 0, 0);
-        d.setDate(d.getDate() + 4 - (d.getDay() || 7));
-        const yearStart = new Date(d.getFullYear(), 0, 1);
-        const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-        return `${d.getFullYear()}-W${weekNo.toString().padStart(2, '0')}`;
+        // Obsolete but kept for retro-compatibility
+        return date.toISOString().split('T')[0];
     };
+
 
     const openCorrectionModal = (report) => {
         setCorrectionLabor(report);
@@ -724,10 +732,14 @@ const WagesPage = () => {
 
     const renderReports = () => (
         <div className={styles.card}>
-            <div className={styles.formGrid}>
+            <div className={styles.header} style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', borderRadius: '12px 12px 0 0' }}>
                 <div className={styles.formGroup}>
-                    <label className={styles.label}>Select Payment Week</label>
-                    <input type="week" className={styles.input} style={{ maxWidth: '250px' }} value={reportWeek} onChange={e => setReportWeek(e.target.value)} />
+                    <label className={styles.label}>PERIOD SELECTION</label>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <input type="date" className={styles.input} value={reportStartDate} onChange={e => setReportStartDate(e.target.value)} />
+                        <span className={styles.muted}>to</span>
+                        <input type="date" className={styles.input} value={reportEndDate} onChange={e => setReportEndDate(e.target.value)} />
+                    </div>
                 </div>
             </div>
             <div className={styles.tableContainer}>
@@ -792,38 +804,17 @@ const WagesPage = () => {
     );
 
     const renderSummary = () => {
-        const bySite = {};
-        const bySubcontractor = {};
-        const byLabor = {};
-        const byCategory = {};
-
-        rawReportData.forEach(r => {
-            const wage = parseFloat(r.wages_amount) || 0;
-            const days = (r.attendance !== 'Absent') ? (r.attendance === 'Half Day' ? 0.5 : 1) : 0;
-
-            const siteName = r.sites?.name || 'Unassigned Site';
-            if (!bySite[siteName]) bySite[siteName] = { wage: 0, days: 0 };
-            bySite[siteName].wage += wage;
-            bySite[siteName].days += days;
-
-            const engName = r.subcontractors?.name || 'Unassigned Subcontractor';
-            if (!bySubcontractor[engName]) bySubcontractor[engName] = { wage: 0, days: 0 };
-            bySubcontractor[engName].wage += wage;
-            bySubcontractor[engName].days += days;
-
-            const labName = r.labors?.name || 'Unknown Labor';
-            if (!byLabor[labName]) byLabor[labName] = { wage: 0, days: 0, phone: r.labors?.phone || '-' };
-            byLabor[labName].wage += wage;
-            byLabor[labName].days += days;
-
-            const category = r.wage_category || 'Direct wages';
-            if (!byCategory[category]) byCategory[category] = { wage: 0, days: 0 };
-            byCategory[category].wage += wage;
-            byCategory[category].days += days;
+        const filteredData = rawReportData.filter(r => {
+            const matchesLabor = !searchLaborReport || r.labors?.name?.toLowerCase().includes(searchLaborReport.toLowerCase());
+            const matchesCategory = searchCategoryReport === 'All' || r.wage_category === searchCategoryReport;
+            const matchesSub = searchSubcontractorReport === 'All' || r.subcontractor_id === searchSubcontractorReport;
+            return matchesLabor && matchesCategory && matchesSub;
         });
 
-        const printSummary = (orientation = 'portrait') => {
-            const printContent = document.getElementById('printable-summary');
+        const totalAmount = filteredData.reduce((sum, r) => sum + (parseFloat(r.wages_amount) || 0), 0);
+
+        const printSummary = () => {
+            const printContent = document.getElementById('printable-analytics');
             if (!printContent) return;
 
             const iframe = document.createElement('iframe');
@@ -840,16 +831,15 @@ const WagesPage = () => {
             doc.write(`
                 <html>
                     <head>
-                        <title>Wages Report</title>
+                        <title>Wages Analytics Report</title>
                         <style>
-                            @page { size: ${orientation}; margin: 15mm; }
-                            body { font-family: 'Outfit', sans-serif; padding: 20px; color: #0f172a; }
-                            table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-                            th, td { border: 1px solid #e2e8f0; padding: 12px; font-size: 13px; }
+                            @page { size: landscape; margin: 10mm; }
+                            body { font-family: 'Outfit', sans-serif; padding: 10px; color: #0f172a; }
+                            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                            th, td { border: 1px solid #e2e8f0; padding: 8px; font-size: 11px; }
                             th { background: #f8fafc; text-align: left; font-weight: 700; text-transform: uppercase; color: #64748b; }
                             h2 { text-align: center; margin-bottom: 5px; }
-                            h3 { text-align: center; color: #64748b; margin-bottom: 20px; }
-                            .section-title { font-size: 16px; font-weight: 700; margin: 24px 0 12px 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }
+                            .total-row { font-weight: 800; background: #f1f5f9; }
                         </style>
                     </head>
                     <body>
@@ -865,138 +855,108 @@ const WagesPage = () => {
 
         return (
             <div className={styles.card}>
-                <div className={styles.header}>
-                    <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                <div className={styles.header} style={{ flexDirection: 'column', alignItems: 'stretch', gap: '20px' }}>
+                    <div className={styles.formGrid} style={{ gridTemplateColumns: '1.2fr 1.2fr 1.2fr 2fr', background: 'none', padding: 0 }}>
                         <div className={styles.formGroup}>
-                            <label className={styles.label}>Analysis Period</label>
-                            <input type="week" className={styles.input} value={reportWeek} onChange={e => setReportWeek(e.target.value)} />
+                            <label className={styles.label}>SEARCH LABOR</label>
+                            <div style={{ position: 'relative' }}>
+                                <input 
+                                    type="text" 
+                                    className={styles.input} 
+                                    placeholder="Name..." 
+                                    value={searchLaborReport}
+                                    onChange={e => setSearchLaborReport(e.target.value)}
+                                    style={{ paddingLeft: '35px' }}
+                                />
+                                <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
+                            </div>
                         </div>
-                        <div className={styles.tabs} style={{ margin: 0 }}>
-                            <button onClick={() => setSummaryView('site')} className={`${styles.tab} ${summaryView === 'site' ? styles.activeTab : ''}`}>Site Wise</button>
-                            <button onClick={() => setSummaryView('category')} className={`${styles.tab} ${summaryView === 'category' ? styles.activeTab : ''}`}>Category Wise</button>
-                            <button onClick={() => setSummaryView('eng')} className={`${styles.tab} ${summaryView === 'eng' ? styles.activeTab : ''}`}>Subcontractor Wise</button>
-                            <button onClick={() => setSummaryView('labor')} className={`${styles.tab} ${summaryView === 'labor' ? styles.activeTab : ''}`}>Labor Wise</button>
-                            <button onClick={() => setSummaryView('all')} className={`${styles.tab} ${summaryView === 'all' ? styles.activeTab : ''}`}>View All</button>
+                        <div className={styles.formGroup}>
+                            <label className={styles.label}>CATEGORY FILTER</label>
+                            <select 
+                                className={styles.input} 
+                                value={searchCategoryReport}
+                                onChange={e => setSearchCategoryReport(e.target.value)}
+                            >
+                                <option value="All">All Categories</option>
+                                {['Direct wages', 'NMR wages', 'Snag wages', 'Third party subvendor work', 'weekly payment agst order'].map(cat => (
+                                    <option key={cat} value={cat}>{cat}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className={styles.formGroup}>
+                            <label className={styles.label}>SUBVENDOR FILTER</label>
+                            <select 
+                                className={styles.input} 
+                                value={searchSubcontractorReport}
+                                onChange={e => setSearchSubcontractorReport(e.target.value)}
+                            >
+                                <option value="All">All Subvendors</option>
+                                {subcontractors.map(s => (
+                                    <option key={s.id} value={s.id}>{s.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className={styles.formGroup}>
+                            <label className={styles.label}>DATE RANGE</label>
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                <input type="date" className={styles.input} value={reportStartDate} onChange={e => setReportStartDate(e.target.value)} />
+                                <span className={styles.muted}>to</span>
+                                <input type="date" className={styles.input} value={reportEndDate} onChange={e => setReportEndDate(e.target.value)} />
+                            </div>
                         </div>
                     </div>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                        <Button onClick={() => printSummary('portrait')} variant="outline" size="sm">
-                            <Printer size={16} /> Portrait
-                        </Button>
-                        <Button onClick={() => printSummary('landscape')} variant="outline" size="sm">
-                            <Printer size={16} /> Landscape
+                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                        <Button onClick={printSummary} variant="outline" size="sm">
+                            <Printer size={16} style={{ marginRight: 8 }} /> Print Analytics
                         </Button>
                     </div>
                 </div>
 
-                <div id="printable-summary">
-                    <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-                        <h2 className={styles.strong} style={{ fontSize: '1.5rem', marginBottom: '4px' }}>Innovative Interiors Pvt Ltd</h2>
-                        <h3 className={styles.muted} style={{ fontSize: '1.1rem' }}>Wages {summaryView === 'all' ? 'Analytics' : (summaryView === 'site' ? 'Site Wise' : (summaryView === 'category' ? 'Category Wise' : (summaryView === 'eng' ? 'Subcontractor Wise' : 'Labor Wise')))} Report</h3>
-                        <div className={styles.strong} style={{ color: '#2563eb' }}>Week: {reportWeek}</div>
+                <div id="printable-analytics">
+                    <div className={styles.tableContainer} style={{ marginTop: '20px' }}>
+                        <table className={styles.table}>
+                            <thead>
+                                <tr>
+                                    <th style={{ width: '40px' }}>#</th>
+                                    <th>DATE</th>
+                                    <th>SITE / PROJECT</th>
+                                    <th>LABOR NAME</th>
+                                    <th>CATEGORY</th>
+                                    <th>REMARKS</th>
+                                    <th style={{ textAlign: 'right' }}>ATTN VAL</th>
+                                    <th style={{ textAlign: 'right' }}>WAGES AMOUNT</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filteredData.map((r, i) => (
+                                    <tr key={r.id}>
+                                        <td>{i + 1}</td>
+                                        <td>{new Date(r.work_date).toLocaleDateString('en-GB')}</td>
+                                        <td><span className={styles.strong}>{r.sites?.name || '-'}</span></td>
+                                        <td><span className={styles.strong}>{r.labors?.name || '-'}</span></td>
+                                        <td>
+                                            <span className={styles.badge} style={{ background: '#f1f5f9', color: '#475569', fontSize: '10px' }}>
+                                                {r.wage_category}
+                                            </span>
+                                        </td>
+                                        <td style={{ fontSize: '0.85rem' }}>{r.remarks || '---'}</td>
+                                        <td style={{ textAlign: 'center' }}>{r.attendance_value}</td>
+                                        <td style={{ textAlign: 'right', fontWeight: 600 }}>₹{parseFloat(r.wages_amount).toLocaleString('en-IN')}</td>
+                                    </tr>
+                                ))}
+                                <tr style={{ background: '#f8fafc', fontWeight: 800 }}>
+                                    <td colSpan="7" style={{ textAlign: 'right', textTransform: 'uppercase' }}>Page Total</td>
+                                    <td style={{ textAlign: 'right', color: '#0f172a' }}>₹{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
-
-                    {(summaryView === 'all' || summaryView === 'site') && (
-                        <div style={{ marginBottom: '48px' }}>
-                            <div className={styles.label} style={{ marginBottom: '16px', fontSize: '1rem' }}>Project Site Summary</div>
-                            <table className={styles.table}>
-                                <thead>
-                                    <tr>
-                                        <th>Project Site</th>
-                                        <th style={{ textAlign: 'center' }}>Total Labors</th>
-                                        <th style={{ textAlign: 'right' }}>Total Wages</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {Object.entries(bySite).map(([name, data], i) => (
-                                        <tr key={i}>
-                                            <td className={styles.strong}>{name}</td>
-                                            <td style={{ textAlign: 'center' }}>{data.days}</td>
-                                            <td style={{ textAlign: 'right' }} className={styles.price}>₹{data.wage.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-                    {(summaryView === 'all' || summaryView === 'category') && (
-                        <div style={{ marginBottom: '48px' }}>
-                            <div className={styles.label} style={{ marginBottom: '16px', fontSize: '1rem' }}>Wage Category Summary</div>
-                            <table className={styles.table}>
-                                <thead>
-                                    <tr>
-                                        <th>Category</th>
-                                        <th style={{ textAlign: 'center' }}>Total Labors</th>
-                                        <th style={{ textAlign: 'right' }}>Total Wages</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {Object.entries(byCategory).map(([name, data], i) => (
-                                        <tr key={i}>
-                                            <td className={styles.strong}>{name}</td>
-                                            <td style={{ textAlign: 'center' }}>{data.days}</td>
-                                            <td style={{ textAlign: 'right' }} className={styles.price}>₹{data.wage.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-
-                    {(summaryView === 'all' || summaryView === 'eng') && (
-                        <div style={{ marginBottom: '48px' }}>
-                            <div className={styles.label} style={{ marginBottom: '16px', fontSize: '1rem' }}>Subcontractor Summary</div>
-                            <table className={styles.table}>
-                                <thead>
-                                    <tr>
-                                        <th>Subcontractor Name</th>
-                                        <th style={{ textAlign: 'center' }}>Total Labors</th>
-                                        <th style={{ textAlign: 'right' }}>Total Wages</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {Object.entries(bySubcontractor).map(([name, data], i) => (
-                                        <tr key={i}>
-                                            <td className={styles.strong}>{name}</td>
-                                            <td style={{ textAlign: 'center' }}>{data.days}</td>
-                                            <td style={{ textAlign: 'right' }} className={styles.price}>₹{data.wage.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-
-                    {(summaryView === 'all' || summaryView === 'labor') && (
-                        <div>
-                            <div className={styles.label} style={{ marginBottom: '16px', fontSize: '1rem' }}>Labor Wage Summary</div>
-                            <table className={styles.table}>
-                                <thead>
-                                    <tr>
-                                        <th>Labor Name</th>
-                                        <th style={{ textAlign: 'center' }}>Days Worked</th>
-                                        <th style={{ textAlign: 'right' }}>Total Earnings</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {Object.entries(byLabor).map(([name, data], i) => (
-                                        <tr key={i}>
-                                            <td>
-                                                <div className={styles.strong}>{name}</div>
-                                                <div className={styles.muted} style={{ fontSize: '0.75rem' }}>{data.phone}</div>
-                                            </td>
-                                            <td style={{ textAlign: 'center' }}>{data.days}</td>
-                                            <td style={{ textAlign: 'right' }} className={styles.price}>₹{data.wage.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
                 </div>
             </div>
         );
     };
+
 
     return (
         <div className={styles.container}>
@@ -1044,7 +1004,7 @@ const WagesPage = () => {
                         <div className={styles.modal} style={{ maxWidth: '900px' }}>
                             <div className={styles.modalHeader}>
                                 <h3>Daily Logs Correction: {correctionLabor?.name}</h3>
-                                <p className={styles.muted}>Review and edit daily logs for week {reportWeek}</p>
+                                <p className={styles.muted}>Review and edit daily logs for the selected period</p>
                             </div>
                             <div className={styles.tableContainer} style={{ maxHeight: '400px', overflowY: 'auto' }}>
                                 <table className={styles.table}>
