@@ -138,6 +138,26 @@
     width: 300px;
 }
 
+.filterBar {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.filterGroup {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.filterGroup label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #64748b;
+    white-space: nowrap;
+}
+
 @media (max-width: 640px) {
     .searchBar {
         width: 100%;

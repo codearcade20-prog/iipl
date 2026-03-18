@@ -65,6 +65,20 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [detailId, setDetailId] = useState(null); // specific site or vendor name
 
+    // Filter States for System Records
+    const [dateFilter, setDateFilter] = useState('');
+    const [monthFilter, setMonthFilter] = useState('');
+    const [yearFilter, setYearFilter] = useState('');
+    const [entityFilter, setEntityFilter] = useState('');
+
+    const months = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+    ];
+
+    const currentYear = new Date().getFullYear();
+    const years = Array.from({ length: 5 }, (_, i) => (currentYear - 2 + i).toString()); // Pre-fill around current year
+
     // Form State
     const [editingState, setEditingState] = useState(null);
     const [formData, setFormData] = useState({
@@ -893,14 +907,117 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
     );
 
     const renderAdminPanel = () => {
-        const filtered = rawData.filter(item =>
-            item.site_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            item.vendor_name.toLowerCase().includes(searchQuery.toLowerCase())
-        );
+        const filtered = rawData.filter(item => {
+            const matchesSearch = (item.site_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (item.vendor_name || '').toLowerCase().includes(searchQuery.toLowerCase());
+
+            const itemDate = item.wo_date; // YYYY-MM-DD
+            const matchesDate = !dateFilter || itemDate === dateFilter;
+
+            let matchesMonth = true;
+            if (monthFilter) {
+                if (!itemDate) {
+                    matchesMonth = false;
+                } else {
+                    const monthIndex = months.indexOf(monthFilter) + 1;
+                    const itemMonth = parseInt(itemDate.split('-')[1]);
+                    matchesMonth = itemMonth === monthIndex;
+                }
+            }
+
+            let matchesYear = true;
+            if (yearFilter) {
+                if (!itemDate) {
+                    matchesYear = false;
+                } else {
+                    const itemYear = itemDate.split('-')[0];
+                    matchesYear = itemYear === yearFilter;
+                }
+            }
+
+            let matchesEntity = true;
+            if (entityFilter) {
+                const woNo = (item.wo_no || '').toUpperCase();
+                matchesEntity = woNo.startsWith(entityFilter.toUpperCase() + '/');
+            }
+
+            return matchesSearch && matchesDate && matchesMonth && matchesYear && matchesEntity;
+        }).sort((a, b) => {
+            const woA = a.wo_no || '';
+            const woB = b.wo_no || '';
+            return woA.localeCompare(woB, undefined, { numeric: true, sensitivity: 'base' });
+        });
+
+        const hasActiveFilters = dateFilter || monthFilter || yearFilter || entityFilter;
 
         return (
             <div>
-                <h2 style={{ marginBottom: '1.5rem', fontWeight: 600, fontSize: '1.5rem' }}>System Records</h2>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+                    <h2 style={{ margin: 0, fontWeight: 600, fontSize: '1.5rem' }}>System Records</h2>
+                    <div className={styles.filterBar}>
+                        <div className={styles.filterGroup}>
+                            <label>Date:</label>
+                            <input
+                                type="date"
+                                className={styles.formInput}
+                                style={{ width: '150px', padding: '0.4rem 0.75rem' }}
+                                value={dateFilter}
+                                onChange={(e) => setDateFilter(e.target.value)}
+                            />
+                        </div>
+                        <div className={styles.filterGroup}>
+                            <label>Month:</label>
+                            <select
+                                className={styles.formInput}
+                                style={{ width: '130px', padding: '0.4rem 0.75rem' }}
+                                value={monthFilter}
+                                onChange={(e) => setMonthFilter(e.target.value)}
+                            >
+                                <option value="">All Months</option>
+                                {months.map(m => <option key={m} value={m}>{m}</option>)}
+                            </select>
+                        </div>
+                        <div className={styles.filterGroup}>
+                            <label>Year:</label>
+                            <select
+                                className={styles.formInput}
+                                style={{ width: '110px', padding: '0.4rem 0.75rem' }}
+                                value={yearFilter}
+                                onChange={(e) => setYearFilter(e.target.value)}
+                            >
+                                <option value="">All Years</option>
+                                {years.map(y => <option key={y} value={y}>{y}</option>)}
+                            </select>
+                        </div>
+                        <div className={styles.filterGroup}>
+                            <label>Entity:</label>
+                            <select
+                                className={styles.formInput}
+                                style={{ width: '100px', padding: '0.4rem 0.75rem' }}
+                                value={entityFilter}
+                                onChange={(e) => setEntityFilter(e.target.value)}
+                            >
+                                <option value="">All</option>
+                                <option value="IIPL">IIPL</option>
+                                <option value="IIIPL">IIIPL</option>
+                            </select>
+                        </div>
+                        {hasActiveFilters && (
+                            <Button
+                                variant="secondary"
+                                onClick={() => {
+                                    setDateFilter('');
+                                    setMonthFilter('');
+                                    setYearFilter('');
+                                    setEntityFilter('');
+                                }}
+                                style={{ padding: '0.4rem 1rem' }}
+                            >
+                                Reset
+                            </Button>
+                        )}
+                    </div>
+                </div>
                 <div className={styles.tableContainer}>
                     <table className={styles.adminTable}>
                         <thead>
