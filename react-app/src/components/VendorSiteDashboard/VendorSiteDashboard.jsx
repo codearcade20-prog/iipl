@@ -91,7 +91,8 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
         housekeeping: '',
         retention: '',
         remarks: '',
-        pdfUrl: ''
+        pdfUrl: '',
+        billStatus: 'N/A'
     });
     const [advances, setAdvances] = useState([{ amount: '', date: '', payment_mode: 'M1' }]);
 
@@ -172,6 +173,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                 retention: wo.retention,
                 remarks: wo.remarks,
                 wo_pdf_url: wo.wo_pdf_url,
+                bill_status: wo.bill_status || 'N/A',
                 advance_details: wo.advances // Keep as array, code handles it
             }));
 
@@ -269,7 +271,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
 
     const resetForm = () => {
         setEditingState(null);
-        setFormData({ siteName: '', vendorName: '', woNo: '', woDate: '', woValue: '', billCertifiedValue: '', housekeeping: '', retention: '', remarks: '', pdfUrl: '' });
+        setFormData({ siteName: '', vendorName: '', woNo: '', woDate: '', woValue: '', billCertifiedValue: '', housekeeping: '', retention: '', remarks: '', pdfUrl: '', billStatus: 'N/A' });
         setAdvances([{ amount: '', date: '', payment_mode: 'M1' }]);
     };
 
@@ -308,7 +310,8 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
             housekeeping: entry.housekeeping,
             retention: entry.retention,
             remarks: entry.remarks,
-            pdfUrl: entry.wo_pdf_url
+            pdfUrl: entry.wo_pdf_url,
+            billStatus: entry.bill_status || 'N/A'
         });
 
         const existingAdvances = parseAdvances(entry.advance_details);
@@ -417,7 +420,8 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
             housekeeping: data.housekeeping || 0,
             retention: data.retention || 0,
             remarks: data.remarks,
-            wo_pdf_url: pdfUrl
+            wo_pdf_url: pdfUrl,
+            bill_status: data.billStatus || 'N/A'
         }).select().single();
         if (woErr) throw woErr;
 
@@ -452,7 +456,8 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
             housekeeping: data.housekeeping || 0,
             retention: data.retention || 0,
             remarks: data.remarks,
-            wo_pdf_url: pdfUrl // Update PDF
+            wo_pdf_url: pdfUrl, // Update PDF
+            bill_status: data.billStatus || 'N/A'
         }).eq('id', id);
         if (woUpdateErr) throw woUpdateErr;
 
@@ -504,7 +509,12 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                         <div key={item.id} className={styles.infoCard}>
                             <div className={styles.cardHeader}>
                                 <span>{item.site_name}</span>
-                                <span className={styles.tag}>{item.wo_no}</span>
+                                <div style={{ display: 'flex', gap: '5px' }}>
+                                    {item.bill_status && item.bill_status !== 'N/A' && (
+                                        <span className={styles.tag} style={{ background: '#fef2f2', color: '#b91c1c' }}>{item.bill_status}</span>
+                                    )}
+                                    <span className={styles.tag}>{item.wo_no}</span>
+                                </div>
                             </div>
                             <div className={styles.cardBody}>
                                 <div className={styles.listItem}>
@@ -599,7 +609,12 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                 </div>
                                 <div className={styles.cardBody}>
                                     <div className={styles.listItem}>
-                                        <span className={styles.listItemSub}>Work Order No</span>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                                            <span className={styles.listItemSub}>Work Order No</span>
+                                            {entry.bill_status && entry.bill_status !== 'N/A' && (
+                                                <span className={styles.tag} style={{ background: '#fef2f2', color: '#b91c1c', fontSize: '0.7rem', padding: '2px 6px' }}>{entry.bill_status}</span>
+                                            )}
+                                        </div>
                                         <span className={styles.listItemTitle}>{entry.wo_no || 'N/A'}</span>
                                     </div>
                                     <div className={styles.listItem}>
@@ -671,7 +686,12 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                 </div>
                                 <div className={styles.cardBody}>
                                     <div className={styles.listItem}>
-                                        <span className={styles.listItemSub}>Work Order No</span>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                                            <span className={styles.listItemSub}>Work Order No</span>
+                                            {entry.bill_status && entry.bill_status !== 'N/A' && (
+                                                <span className={styles.tag} style={{ background: '#fef2f2', color: '#b91c1c', fontSize: '0.7rem', padding: '2px 6px' }}>{entry.bill_status}</span>
+                                            )}
+                                        </div>
                                         <span className={styles.listItemTitle}>{entry.wo_no || 'N/A'}</span>
                                     </div>
                                     <div className={styles.listItem}>
@@ -777,6 +797,27 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
                     <div className={styles.formGroup}>
+                        <label className={styles.formLabel}>Bill Status</label>
+                        <select
+                            className={styles.formInput}
+                            value={formData.billStatus}
+                            onChange={e => setFormData({ ...formData, billStatus: e.target.value })}
+                        >
+                            <option value="N/A">N/A</option>
+                            <option value="RAB-1">RAB-1</option>
+                            <option value="RAB-2">RAB-2</option>
+                            <option value="RAB-3">RAB-3</option>
+                            <option value="RAB-4">RAB-4</option>
+                            <option value="RAB-5">RAB-5</option>
+                            <option value="RAB-6">RAB-6</option>
+                            <option value="RAB-7">RAB-7</option>
+                            <option value="RAB-8">RAB-8</option>
+                            <option value="RAB-9">RAB-9</option>
+                            <option value="RAB-10">RAB-10</option>
+                            <option value="FINAL">FINAL</option>
+                        </select>
+                    </div>
+                    <div className={styles.formGroup}>
                         <label className={styles.formLabel}>Bill Certified Value</label>
                         <input
                             type="text"
@@ -798,17 +839,18 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                             placeholder="0"
                         />
                     </div>
-                    <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>Retention</label>
-                        <input
-                            type="text"
-                            inputMode="decimal"
-                            className={styles.formInput}
-                            value={formData.retention}
-                            onChange={e => setFormData({ ...formData, retention: e.target.value })}
-                            placeholder="0"
-                        />
-                    </div>
+                </div>
+
+                <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>Retention</label>
+                    <input
+                        type="text"
+                        inputMode="decimal"
+                        className={styles.formInput}
+                        value={formData.retention}
+                        onChange={e => setFormData({ ...formData, retention: e.target.value })}
+                        placeholder="0"
+                    />
                 </div>
 
                 <div className={styles.formGroup}>
@@ -1041,7 +1083,12 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                         <td>{item.site_name}</td>
                                         <td>{item.vendor_name}</td>
                                         <td>
-                                            <div style={{ fontWeight: 600, color: '#1e293b' }}>{item.wo_no || '-'}</div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <div style={{ fontWeight: 600, color: '#1e293b' }}>{item.wo_no || '-'}</div>
+                                                {item.bill_status && item.bill_status !== 'N/A' && (
+                                                    <span className={styles.tag} style={{ background: '#fef2f2', color: '#b91c1c', fontSize: '0.65rem', padding: '2px 6px' }}>{item.bill_status}</span>
+                                                )}
+                                            </div>
                                             <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{formatDate(item.wo_date)}</div>
                                         </td>
                                         <td>{formatCurrency(item.wo_value)}</td>
@@ -1180,7 +1227,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                     <tr style={{ backgroundColor: '#4f46e5', color: 'white' }}>
                                         <th style={{ padding: '6px', border: '1px solid #000' }}>SNO</th>
                                         <th style={{ padding: '6px', border: '1px solid #000', textAlign: 'left' }}>PROJECT NAME</th>
-                                        <th style={{ padding: '6px', border: '1px solid #000' }}>WORK ORDER NO</th>
+                                        <th style={{ padding: '6px', border: '1px solid #000' }}>WO NO / STATUS</th>
                                         <th style={{ padding: '6px', border: '1px solid #000' }}>ORDER DATE</th>
                                         <th style={{ padding: '6px', border: '1px solid #000', textAlign: 'right' }}>ORDER VALUE</th>
                                         <th style={{ padding: '6px', border: '1px solid #000', textAlign: 'right' }}>BILL CERTIFIED</th>
@@ -1237,7 +1284,12 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                                         <tr key={entry.id} style={{ backgroundColor: eIdx % 2 === 0 ? '#fef9c3' : '#fff' }}>
                                                             <td style={{ border: '1px solid #000', textAlign: 'center' }}>{eIdx + 1}</td>
                                                             <td style={{ border: '1px solid #000', fontWeight: 500 }}>{entry.site_name.toUpperCase()}</td>
-                                                            <td style={{ border: '1px solid #000', textAlign: 'center' }}>{entry.wo_no || '-'}</td>
+                                                            <td style={{ border: '1px solid #000', textAlign: 'center' }}>
+                                                                <div>{entry.wo_no || '-'}</div>
+                                                                {entry.bill_status && entry.bill_status !== 'N/A' && (
+                                                                    <div style={{ fontSize: '0.6rem', color: '#b91c1c', fontWeight: 'bold' }}>{entry.bill_status}</div>
+                                                                )}
+                                                            </td>
                                                             <td style={{ border: '1px solid #000', textAlign: 'center' }}>{formatDate(entry.wo_date)}</td>
                                                             <td style={{ border: '1px solid #000', textAlign: 'right' }}>{orderVal ? Math.round(orderVal).toLocaleString() : '-'}</td>
                                                             <td style={{ border: '1px solid #000', textAlign: 'right', fontWeight: 600 }}>{certVal ? Math.round(certVal).toLocaleString() : '-'}</td>
@@ -1349,8 +1401,15 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                                 ))}
                                             </tr>
                                             <tr>
-                                                <td style={{ fontWeight: 500 }}>WORK ORDER NO</td>
-                                                {siteVendors.map((v, i) => <td key={i}>{v.wo_no || '-'}</td>)}
+                                                <td style={{ fontWeight: 500 }}>WO NO / STATUS</td>
+                                                {siteVendors.map((v, i) => (
+                                                    <td key={i}>
+                                                        <div>{v.wo_no || '-'}</div>
+                                                        {v.bill_status && v.bill_status !== 'N/A' && (
+                                                            <div style={{ fontSize: '0.7rem', color: '#b91c1c', fontWeight: 'bold' }}>{v.bill_status}</div>
+                                                        )}
+                                                    </td>
+                                                ))}
                                             </tr>
                                             <tr>
                                                 <td style={{ fontWeight: 500 }}>WORK ORDER DATE</td>
@@ -1499,9 +1558,12 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                     <div style={{ padding: '1.25rem 1.5rem', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                         <div>
                                             <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1e293b', marginBottom: '0.25rem' }}>{entry.vendor_name}</h3>
-                                            <div style={{ color: '#64748b', fontSize: '0.9rem' }}>
+                                            <div style={{ color: '#64748b', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                                 <span style={{ fontWeight: 500 }}>WO No:</span> {entry.wo_no || 'N/A'}
-                                                <span style={{ margin: '0 0.5rem', color: '#cbd5e1' }}>|</span>
+                                                {entry.bill_status && entry.bill_status !== 'N/A' && (
+                                                    <span className={styles.tag} style={{ background: '#fef2f2', color: '#b91c1c', fontSize: '0.7rem', padding: '2px 6px' }}>{entry.bill_status}</span>
+                                                )}
+                                                <span style={{ margin: '0', color: '#cbd5e1' }}>|</span>
                                                 <span style={{ fontWeight: 500 }}>Date:</span> {formatDate(entry.wo_date)}
                                             </div>
                                         </div>
@@ -2227,7 +2289,12 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span style={{ color: '#64748b' }}>Bill Certified Value:</span>
+                            <span style={{ color: '#64748b' }}>
+                                Bill Certified Value: 
+                                {entry.bill_status && (
+                                    <span style={{ color: '#b91c1c', fontWeight: 700, marginLeft: '8px' }}>({entry.bill_status})</span>
+                                )}
+                            </span>
                             <span style={{ fontWeight: 600 }}>{formatCurrency(billCertified)}</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', color: '#dc2626' }}>
