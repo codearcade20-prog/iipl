@@ -26,7 +26,8 @@ import {
     ChevronDown,
     Table as TableIcon,
     Settings,
-    Home
+    Home,
+    ExternalLink
 } from 'lucide-react';
 import { useMessage } from '../../context/MessageContext';
 import { formatDate } from '../../utils';
@@ -37,18 +38,43 @@ const SafePdfBtn = ({ url }) => {
     if (!url || url.length < 10 || url.includes('null') || url.includes('undefined')) {
         return null;
     }
-
     return (
-        <a
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.pdfBtn}
-            title="View PDF"
-        >
-            <FileText size={14} /> PDF
+        <a href={url} target="_blank" rel="noopener noreferrer" className={styles.pdfBtn} title="View Work Order PDF">
+            <FileText size={16} />
         </a>
     );
+};
+
+// Reusable Status Badge Component with Safe Link
+const StatusBadge = ({ status, url, extraStyles = {} }) => {
+    if (!status || status === 'N/A') return null;
+
+    // Basic validation to hide empty or corrupted URL strings
+    const isUrlValid = url && url.length > 8 && (url.startsWith('http') || url.startsWith('https'));
+
+    const badge = (
+        <span 
+            className={styles.tag} 
+            style={{ 
+                background: '#fef2f2', 
+                color: '#b91c1c', 
+                cursor: isUrlValid ? 'pointer' : 'default',
+                ...extraStyles 
+            }}
+        >
+            {status}
+        </span>
+    );
+
+    if (isUrlValid) {
+        return (
+            <a href={url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+                {badge}
+            </a>
+        );
+    }
+
+    return badge;
 };
 
 
@@ -92,7 +118,8 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
         retention: '',
         remarks: '',
         pdfUrl: '',
-        billStatus: 'N/A'
+        billStatus: 'N/A',
+        woStatusUrl: ''
     });
     const [advances, setAdvances] = useState([{ amount: '', date: '', payment_mode: 'M1' }]);
 
@@ -143,8 +170,21 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
         loadInitialData();
     }, [location.search]);
 
-    const fetchData = async () => {
-        setLoading(true);
+    // Auto-refresh every 30 seconds for Project Overview
+    useEffect(() => {
+        let intervalId;
+        if (readOnly && currentView === 'overview') {
+            intervalId = setInterval(() => {
+                fetchData(true); // Silent refresh to avoid scroll reset
+            }, 30000); // 30 seconds
+        }
+        return () => {
+            if (intervalId) clearInterval(intervalId);
+        };
+    }, [readOnly, currentView]);
+
+    const fetchData = async (isSilent = false) => {
+        if (!isSilent) setLoading(true);
         try {
             // Corrected Query matching script.js
             const { data, error } = await vendorSupabase
@@ -174,8 +214,16 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                 remarks: wo.remarks,
                 wo_pdf_url: wo.wo_pdf_url,
                 bill_status: wo.bill_status || 'N/A',
+                wo_status_url: wo.wo_status_url || '',
                 advance_details: wo.advances // Keep as array, code handles it
             }));
+
+            // Client-side Numerical Sorting by wo_no
+            flattened.sort((a, b) => {
+                const valA = a.wo_no || '';
+                const valB = b.wo_no || '';
+                return valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' });
+            });
 
             setRawData(flattened);
 
@@ -188,7 +236,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
         } catch (error) {
             console.error('Error fetching data:', error);
         } finally {
-            setLoading(false);
+            if (!isSilent) setLoading(false);
         }
     };
 
@@ -271,7 +319,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
 
     const resetForm = () => {
         setEditingState(null);
-        setFormData({ siteName: '', vendorName: '', woNo: '', woDate: '', woValue: '', billCertifiedValue: '', housekeeping: '', retention: '', remarks: '', pdfUrl: '', billStatus: 'N/A' });
+        setFormData({ siteName: '', vendorName: '', woNo: '', woDate: '', woValue: '', billCertifiedValue: '', housekeeping: '', retention: '', remarks: '', pdfUrl: '', billStatus: 'N/A', woStatusUrl: '' });
         setAdvances([{ amount: '', date: '', payment_mode: 'M1' }]);
     };
 
@@ -311,7 +359,8 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
             retention: entry.retention,
             remarks: entry.remarks,
             pdfUrl: entry.wo_pdf_url,
-            billStatus: entry.bill_status || 'N/A'
+            billStatus: entry.bill_status || 'N/A',
+            woStatusUrl: entry.wo_status_url || ''
         });
 
         const existingAdvances = parseAdvances(entry.advance_details);
@@ -421,7 +470,8 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
             retention: data.retention || 0,
             remarks: data.remarks,
             wo_pdf_url: pdfUrl,
-            bill_status: data.billStatus || 'N/A'
+            bill_status: data.billStatus || 'N/A',
+            wo_status_url: data.woStatusUrl
         }).select().single();
         if (woErr) throw woErr;
 
@@ -457,7 +507,8 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
             retention: data.retention || 0,
             remarks: data.remarks,
             wo_pdf_url: pdfUrl, // Update PDF
-            bill_status: data.billStatus || 'N/A'
+            bill_status: data.billStatus || 'N/A',
+            wo_status_url: data.woStatusUrl
         }).eq('id', id);
         if (woUpdateErr) throw woUpdateErr;
 
@@ -510,9 +561,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                             <div className={styles.cardHeader}>
                                 <span>{item.site_name}</span>
                                 <div style={{ display: 'flex', gap: '5px' }}>
-                                    {item.bill_status && item.bill_status !== 'N/A' && (
-                                        <span className={styles.tag} style={{ background: '#fef2f2', color: '#b91c1c' }}>{item.bill_status}</span>
-                                    )}
+                                    <StatusBadge status={item.bill_status} url={item.wo_status_url} />
                                     <span className={styles.tag}>{item.wo_no}</span>
                                 </div>
                             </div>
@@ -611,9 +660,9 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                     <div className={styles.listItem}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                                             <span className={styles.listItemSub}>Work Order No</span>
-                                            {entry.bill_status && entry.bill_status !== 'N/A' && (
-                                                <span className={styles.tag} style={{ background: '#fef2f2', color: '#b91c1c', fontSize: '0.7rem', padding: '2px 6px' }}>{entry.bill_status}</span>
-                                            )}
+                                            <StatusBadge status={entry.bill_status} url={entry.wo_status_url} extraStyles={{ fontSize: '0.7rem', padding: '2px 6px' }} />
+
+
                                         </div>
                                         <span className={styles.listItemTitle}>{entry.wo_no || 'N/A'}</span>
                                     </div>
@@ -688,9 +737,9 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                     <div className={styles.listItem}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                                             <span className={styles.listItemSub}>Work Order No</span>
-                                            {entry.bill_status && entry.bill_status !== 'N/A' && (
-                                                <span className={styles.tag} style={{ background: '#fef2f2', color: '#b91c1c', fontSize: '0.7rem', padding: '2px 6px' }}>{entry.bill_status}</span>
-                                            )}
+                                            <StatusBadge status={entry.bill_status} url={entry.wo_status_url} extraStyles={{ fontSize: '0.7rem', padding: '2px 6px' }} />
+
+
                                         </div>
                                         <span className={styles.listItemTitle}>{entry.wo_no || 'N/A'}</span>
                                     </div>
@@ -881,6 +930,26 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                         </div>
                     )}
                 </div>
+
+                {formData.billStatus !== 'N/A' && (
+                    <div className={styles.formGroup}>
+                        <label className={styles.formLabel}>Work Order Status Link ({formData.billStatus})</label>
+                        <input
+                            type="url"
+                            className={styles.formInput}
+                            value={formData.woStatusUrl}
+                            onChange={e => setFormData({ ...formData, woStatusUrl: e.target.value })}
+                            placeholder="https://..."
+                        />
+                        {formData.woStatusUrl && (
+                            <div style={{ marginTop: '0.5rem', fontSize: '0.8rem' }}>
+                                <a href={formData.woStatusUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#4f46e5', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <ExternalLink size={14} /> View Status Link
+                                </a>
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 <div className={styles.formGroup}>
                     <label className={styles.formLabel}>Advance Payments</label>
@@ -1085,9 +1154,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                         <td>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                 <div style={{ fontWeight: 600, color: '#1e293b' }}>{item.wo_no || '-'}</div>
-                                                {item.bill_status && item.bill_status !== 'N/A' && (
-                                                    <span className={styles.tag} style={{ background: '#fef2f2', color: '#b91c1c', fontSize: '0.65rem', padding: '2px 6px' }}>{item.bill_status}</span>
-                                                )}
+                                                <StatusBadge status={item.bill_status} url={item.wo_status_url} extraStyles={{ fontSize: '0.65rem', padding: '2px 6px' }} />
                                             </div>
                                             <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{formatDate(item.wo_date)}</div>
                                         </td>
@@ -1286,9 +1353,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                                             <td style={{ border: '1px solid #000', fontWeight: 500 }}>{entry.site_name.toUpperCase()}</td>
                                                             <td style={{ border: '1px solid #000', textAlign: 'center' }}>
                                                                 <div>{entry.wo_no || '-'}</div>
-                                                                {entry.bill_status && entry.bill_status !== 'N/A' && (
-                                                                    <div style={{ fontSize: '0.6rem', color: '#b91c1c', fontWeight: 'bold' }}>{entry.bill_status}</div>
-                                                                )}
+                                                                <StatusBadge status={entry.bill_status} url={entry.wo_status_url} extraStyles={{ fontSize: '0.6rem', border: 'none' }} />
                                                             </td>
                                                             <td style={{ border: '1px solid #000', textAlign: 'center' }}>{formatDate(entry.wo_date)}</td>
                                                             <td style={{ border: '1px solid #000', textAlign: 'right' }}>{orderVal ? Math.round(orderVal).toLocaleString() : '-'}</td>
@@ -1405,9 +1470,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                                 {siteVendors.map((v, i) => (
                                                     <td key={i}>
                                                         <div>{v.wo_no || '-'}</div>
-                                                        {v.bill_status && v.bill_status !== 'N/A' && (
-                                                            <div style={{ fontSize: '0.7rem', color: '#b91c1c', fontWeight: 'bold' }}>{v.bill_status}</div>
-                                                        )}
+                                                        <StatusBadge status={v.bill_status} url={v.wo_status_url} extraStyles={{ fontSize: '0.7rem', border: 'none' }} />
                                                     </td>
                                                 ))}
                                             </tr>
@@ -1560,9 +1623,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                             <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1e293b', marginBottom: '0.25rem' }}>{entry.vendor_name}</h3>
                                             <div style={{ color: '#64748b', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                                 <span style={{ fontWeight: 500 }}>WO No:</span> {entry.wo_no || 'N/A'}
-                                                {entry.bill_status && entry.bill_status !== 'N/A' && (
-                                                    <span className={styles.tag} style={{ background: '#fef2f2', color: '#b91c1c', fontSize: '0.7rem', padding: '2px 6px' }}>{entry.bill_status}</span>
-                                                )}
+                                                <StatusBadge status={entry.bill_status} url={entry.wo_status_url} extraStyles={{ fontSize: '0.7rem', padding: '2px 6px' }} />
                                                 <span style={{ margin: '0', color: '#cbd5e1' }}>|</span>
                                                 <span style={{ fontWeight: 500 }}>Date:</span> {formatDate(entry.wo_date)}
                                             </div>
@@ -2123,7 +2184,10 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                 <div key={entry.id} className={styles.infoCard} style={{ cursor: 'default' }}>
                                     <div className={styles.cardHeader}>
                                         <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                            <span style={{ fontSize: '1rem', fontWeight: 700 }}>{entry.wo_no || 'N/A'}</span>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <span style={{ fontSize: '1rem', fontWeight: 700 }}>{entry.wo_no || 'N/A'}</span>
+                                                <StatusBadge status={entry.bill_status} url={entry.wo_status_url} extraStyles={{ fontSize: '0.65rem', padding: '2px 6px' }} />
+                                            </div>
                                             <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 500 }}>{entry.site_name}</span>
                                         </div>
                                         <SafePdfBtn url={entry.wo_pdf_url} />
@@ -2291,9 +2355,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                             <span style={{ color: '#64748b' }}>
                                 Bill Certified Value: 
-                                {entry.bill_status && (
-                                    <span style={{ color: '#b91c1c', fontWeight: 700, marginLeft: '8px' }}>({entry.bill_status})</span>
-                                )}
+                                <StatusBadge status={entry.bill_status} url={entry.wo_status_url} extraStyles={{ display: 'inline-block', marginLeft: '8px', border: 'none', background: 'none' }} />
                             </span>
                             <span style={{ fontWeight: 600 }}>{formatCurrency(billCertified)}</span>
                         </div>

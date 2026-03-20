@@ -364,6 +364,16 @@
     color: white;
 }
 
+.tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
 .detailHeader {
     display: flex;
     align-items: center;
