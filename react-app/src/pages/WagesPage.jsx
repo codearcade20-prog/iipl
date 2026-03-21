@@ -887,7 +887,7 @@ const WagesPage = () => {
             const matchesCategory = searchCategoryReport === 'All' || r.wage_category === searchCategoryReport;
             const matchesSub = searchSubcontractorReport === 'All' || r.subcontractor_id === searchSubcontractorReport;
             return matchesLabor && matchesCategory && matchesSub;
-        });
+        }).sort((a, b) => new Date(a.work_date) - new Date(b.work_date));
 
         const totalAmount = filteredData.reduce((sum, r) => sum + (parseFloat(r.wages_amount) || 0), 0);
 
