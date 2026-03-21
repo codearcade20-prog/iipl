@@ -13,6 +13,7 @@ import {
     Shield,
     FileText,
     Menu,
+    ArrowRight,
     Search,
     ArrowLeft,
     File,
@@ -301,6 +302,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
 
     // View Navigation
     const handleSwitchView = (view, id = null) => {
+        if (readOnly && (view === 'add_entry' || view === 'admin_panel')) return;
         setCurrentView(view);
         if (id) setDetailId(id);
         setSidebarOpen(false);
@@ -327,6 +329,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
 
     // 1. Delete
     const handleDelete = async (id) => {
+        if (readOnly) return;
         if (!await confirm('Are you sure you want to PERMANENTLY delete this entry?')) return;
         setLoading(true);
         try {
@@ -345,6 +348,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
 
     // 2. Edit Setup
     const handleEditSetup = (id) => {
+        if (readOnly) return;
         const entry = rawData.find(d => d.id === id);
         if (!entry) return;
 
@@ -373,6 +377,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
     // 3. Submit (Create/Update)
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (readOnly) return;
 
         // Unique Work Order Check
         if (formData.woNo) {
@@ -553,6 +558,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                         </div>
                     </div>
                 </div>
+
 
                 <h2 className={styles.subtitle} style={{ marginBottom: '1rem', fontWeight: 600, fontSize: '1.2rem' }}>Recent Entries</h2>
                 <div className={styles.gridContainer}>
@@ -1191,6 +1197,13 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
         if (statementMode === 'menu') {
             return (
                 <div style={{ maxWidth: '900px', margin: '0 auto', textAlign: 'center', paddingTop: '2rem' }}>
+                    {readOnly && (
+                        <div style={{ textAlign: 'left', marginBottom: '1.5rem' }}>
+                            <Button variant="secondary" onClick={() => handleSwitchView('overview')}>
+                                <ArrowLeft size={16} /> Back to Overview
+                            </Button>
+                        </div>
+                    )}
                     <h2 style={{ marginBottom: '2rem', fontSize: '1.5rem', fontWeight: 600 }}>Select Report Type</h2>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
                         <div
@@ -2426,6 +2439,12 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                     >
                         <Search size={18} /> WO Search
                     </button>
+                    <button
+                        className={`${styles.navItem} ${currentView === 'statements' ? styles.navItemActive : ''}`}
+                        onClick={() => handleSwitchView('statements')}
+                    >
+                        <FileText size={18} /> Statement Reports
+                    </button>
                     {!readOnly && (
                         <>
                             <button
@@ -2433,12 +2452,6 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                 onClick={() => handleSwitchView('add_entry')}
                             >
                                 <PlusCircle size={18} /> {editingState ? 'Edit Entry' : 'New WO Entry'}
-                            </button>
-                            <button
-                                className={`${styles.navItem} ${currentView === 'statements' ? styles.navItemActive : ''}`}
-                                onClick={() => handleSwitchView('statements')}
-                            >
-                                <FileText size={18} /> Statement Reports
                             </button>
                             <button
                                 className={`${styles.navItem} ${currentView === 'admin_panel' ? styles.navItemActive : ''}`}
