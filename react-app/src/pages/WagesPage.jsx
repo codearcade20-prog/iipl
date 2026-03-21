@@ -26,7 +26,7 @@ import styles from './WagesPage.module.css';
 const TimePicker = ({ value, onChange, className }) => {
     // Expected value format: "HH:mm" or empty string
     const [h24, m] = (value || "00:00").split(':').map(val => val || '00');
-    
+
     const hour24 = parseInt(h24, 10);
     const period = hour24 >= 12 ? 'PM' : 'AM';
     let hour12 = hour24 % 12;
@@ -36,7 +36,7 @@ const TimePicker = ({ value, onChange, className }) => {
         let h24_new = parseInt(h12, 10);
         if (p === 'PM' && h24_new < 12) h24_new += 12;
         if (p === 'AM' && h24_new === 12) h24_new = 0;
-        
+
         const formattedH24 = h24_new.toString().padStart(2, '0');
         const formattedMin = min.toString().padStart(2, '0');
         onChange(`${formattedH24}:${formattedMin}`);
@@ -44,10 +44,10 @@ const TimePicker = ({ value, onChange, className }) => {
 
     return (
         <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-            <select 
-                className={className} 
+            <select
+                className={className}
                 style={{ width: '60px', padding: '8px 4px', textAlign: 'center' }}
-                value={hour12} 
+                value={hour12}
                 onChange={(e) => handleTimeChange(e.target.value, m, period)}
             >
                 {Array.from({ length: 12 }, (_, i) => i + 1).map(h => (
@@ -55,20 +55,20 @@ const TimePicker = ({ value, onChange, className }) => {
                 ))}
             </select>
             <span style={{ fontWeight: 'bold' }}>:</span>
-            <select 
-                className={className} 
+            <select
+                className={className}
                 style={{ width: '60px', padding: '8px 4px', textAlign: 'center' }}
-                value={m} 
+                value={m}
                 onChange={(e) => handleTimeChange(hour12, e.target.value, period)}
             >
                 {Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0')).map(min => (
                     <option key={min} value={min}>{min}</option>
                 ))}
             </select>
-            <select 
-                className={className} 
+            <select
+                className={className}
                 style={{ width: '65px', padding: '8px 4px', textAlign: 'center' }}
-                value={period} 
+                value={period}
                 onChange={(e) => handleTimeChange(hour12, m, e.target.value)}
             >
                 <option value="AM">AM</option>
@@ -214,7 +214,7 @@ const WagesPage = () => {
                 if (rec.time_in && rec.time_out) {
                     completed.add(rec.labor_id);
                 }
-                
+
                 // Only populate the entry for the current selected site AND category
                 if (rec.site_id == selectedSite && rec.wage_category === selectedCategory) {
                     lookup[rec.labor_id] = {
@@ -530,6 +530,19 @@ const WagesPage = () => {
             fetchWeeklyReport();
         } catch (error) { alert(error.message); }
         finally { setIsSavingCorrection(false); }
+    };
+
+    const deleteCorrectionRecord = async (recordId) => {
+        if (!await confirm("Are you sure you want to delete this specific daily log?")) return;
+        setLoading(true);
+        try {
+            const { error } = await supabase.from('labor_attendance_wages').delete().eq('id', recordId);
+            if (error) throw error;
+            toast('Daily log deleted.');
+            setCorrectionRecords(prev => prev.filter(r => r.id !== recordId));
+            fetchWeeklyReport();
+        } catch (error) { alert(error.message); }
+        finally { setLoading(false); }
     };
 
     // --- RENDERERS ---
@@ -925,10 +938,10 @@ const WagesPage = () => {
                         <div className={styles.formGroup}>
                             <label className={styles.label}>SEARCH LABOR</label>
                             <div style={{ position: 'relative' }}>
-                                <input 
-                                    type="text" 
-                                    className={styles.input} 
-                                    placeholder="Name..." 
+                                <input
+                                    type="text"
+                                    className={styles.input}
+                                    placeholder="Name..."
                                     value={searchLaborReport}
                                     onChange={e => setSearchLaborReport(e.target.value)}
                                     style={{ paddingLeft: '35px' }}
@@ -938,8 +951,8 @@ const WagesPage = () => {
                         </div>
                         <div className={styles.formGroup}>
                             <label className={styles.label}>CATEGORY FILTER</label>
-                            <select 
-                                className={styles.input} 
+                            <select
+                                className={styles.input}
                                 value={searchCategoryReport}
                                 onChange={e => setSearchCategoryReport(e.target.value)}
                             >
@@ -951,8 +964,8 @@ const WagesPage = () => {
                         </div>
                         <div className={styles.formGroup}>
                             <label className={styles.label}>SUBVENDOR FILTER</label>
-                            <select 
-                                className={styles.input} 
+                            <select
+                                className={styles.input}
                                 value={searchSubcontractorReport}
                                 onChange={e => setSearchSubcontractorReport(e.target.value)}
                             >
@@ -1084,6 +1097,7 @@ const WagesPage = () => {
                                             <th>Hours (In - Out)</th>
                                             <th>Wages (₹)</th>
                                             <th>Remarks</th>
+                                            <th style={{ textAlign: 'right' }}>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -1109,6 +1123,15 @@ const WagesPage = () => {
                                                 </td>
                                                 <td>
                                                     <input type="text" className={styles.input} style={{ width: '100%' }} value={r.new_remarks} onChange={e => handleCorrectionChange(idx, 'new_remarks', e.target.value)} />
+                                                </td>
+                                                <td style={{ textAlign: 'right' }}>
+                                                    <button 
+                                                        onClick={() => deleteCorrectionRecord(r.id)} 
+                                                        className={`${styles.attnBtn} ${styles.btnA}`} 
+                                                        title="Delete Day Log"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
                                                 </td>
                                             </tr>
                                         ))}
