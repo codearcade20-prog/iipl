@@ -142,52 +142,40 @@ const WagesPage = () => {
     const [correctionRecords, setCorrectionRecords] = useState([]);
     const [isSavingCorrection, setIsSavingCorrection] = useState(false);
 
-    useEffect(() => {
-        const loadInitialData = async () => {
-            setIsInitialLoad(true);
-            try {
-                const [sitesRes, engRes, laborsRes] = await Promise.all([
-                    supabase.from('sites').select('id, name').order('name'),
-                    supabase.from('subcontractors').select('id, name, phone, status').order('name'),
-                    supabase.from('labors').select('*, subcontractors(name)').order('name')
-                ]);
-
-                if (sitesRes.error) throw sitesRes.error;
-
-                const siteData = sitesRes.data || [];
-                setSites(siteData);
-                setSubcontractors(engRes.data || []);
-                setLabors(laborsRes.data || []);
-
-                // Auto-select first site and fetch its attendance IMMEDIATELY to avoid sequential loaders
-                if (siteData.length > 0) {
-                    const firstSiteId = siteData[0].id;
-                    setSelectedSite(firstSiteId);
-                }
-            } catch (error) {
-                console.error('Initial Load Error:', error);
-                alert('Connection unstable. Please refresh or check your internet.');
-            } finally {
-                setIsInitialLoad(false);
-            }
-        };
-
-        loadInitialData();
-    }, []);
-
-    const fetchInitialData = async () => {
-        // Shared fetcher for smaller updates (e.g. after CRUD)
+    const fetchInitialData = async (isSilent = false) => {
+        if (!isSilent) setLoading(true);
         try {
-            const [sitesRes, engRes, laborsRes] = await Promise.all([
-                supabase.from('sites').select('*').order('name'),
-                supabase.from('subcontractors').select('*').order('name'),
+            const [sitesRes, subRes, laborsRes] = await Promise.all([
+                supabase.from('sites').select('id, name').order('name'),
+                supabase.from('subcontractors').select('id, name, phone, status').order('name'),
                 supabase.from('labors').select('*, subcontractors(name)').order('name')
             ]);
-            setSites(sitesRes.data || []);
-            setSubcontractors(engRes.data || []);
+
+            if (sitesRes.error) throw sitesRes.error;
+            if (subRes.error) throw subRes.error;
+            if (laborsRes.error) throw laborsRes.error;
+
+            const siteData = sitesRes.data || [];
+            setSites(siteData);
+            setSubcontractors(subRes.data || []);
             setLabors(laborsRes.data || []);
-        } catch (e) { console.error(e); }
+
+            // Auto-select first site if none selected
+            if (siteData.length > 0 && !selectedSite) {
+                setSelectedSite(siteData[0].id);
+            }
+        } catch (error) {
+            console.error('Fetch Initial Data Error:', error);
+            alert('Error loading data. Please check your connection.');
+        } finally {
+            if (!isSilent) setLoading(false);
+            setIsInitialLoad(false);
+        }
     };
+
+    useEffect(() => {
+        fetchInitialData();
+    }, []);
 
     // --- ATTENDANCE LOGIC ---
 
@@ -283,7 +271,7 @@ const WagesPage = () => {
 
                 // Auto-calculate wages based on attendance value
                 const dailyRate = labors.find(l => l.id === laborId)?.daily_rate || 0;
-                updated.wages = (updated.attn_val * dailyRate).toFixed(2);
+                updated.wages = parseFloat((updated.attn_val * dailyRate).toFixed(2));
             }
 
             return { ...prev, [laborId]: updated };
@@ -360,7 +348,7 @@ const WagesPage = () => {
             else await supabase.from('labors').insert([payload]);
 
             setLaborModalOpen(false);
-            fetchInitialData();
+            fetchInitialData(true);
             toast('Labor saved!');
         } catch (error) { alert(error.message); }
         finally { setLoading(false); }
@@ -388,7 +376,7 @@ const WagesPage = () => {
             if (editingSub) await supabase.from('subcontractors').update(payload).eq('id', editingSub);
             else await supabase.from('subcontractors').insert([payload]);
             setSubModalOpen(false);
-            fetchInitialData();
+            fetchInitialData(true);
             toast('Subcontractor saved!');
         } catch (error) { alert(error.message); }
         finally { setLoading(false); }
@@ -396,13 +384,26 @@ const WagesPage = () => {
 
     const deleteItem = async (table, id) => {
         if (!await confirm(`Delete this ${table.slice(0, -1).replace('_', ' ')}?`)) return;
+
+        // Check for associated labors before deleting subcontractor
+        if (table === 'subcontractors') {
+            const hasLabors = labors.some(l => l.subcontractor_id === id);
+            if (hasLabors) {
+                return alert('Cannot delete this subcontractor because they have registered labors. Please re-assign or delete associated labors first.');
+            }
+        }
+
         setLoading(true);
         try {
-            await supabase.from(table).delete().eq('id', id);
-            fetchInitialData();
+            const { error } = await supabase.from(table).delete().eq('id', id);
+            if (error) throw error;
+            fetchInitialData(true);
             toast('Deleted.');
-        } catch (error) { alert(error.message); }
-        finally { setLoading(false); }
+        } catch (error) {
+            alert(error.message);
+        } finally {
+            setLoading(false);
+        }
     };
 
     // --- REPORTS ---
@@ -505,7 +506,7 @@ const WagesPage = () => {
                 // Get daily rate of this labor
                 const laborObj = labors.find(l => l.id === updated[idx].labor_id);
                 const dailyRate = parseFloat(laborObj?.daily_rate) || 0;
-                updated[idx].new_wages = (updated[idx].new_attn_val * dailyRate).toFixed(2);
+                updated[idx].new_wages = parseFloat((updated[idx].new_attn_val * dailyRate).toFixed(2));
             }
             return updated;
         });
@@ -524,12 +525,16 @@ const WagesPage = () => {
                     wage_category: r.new_category
                 }).eq('id', r.id)
             );
-            await Promise.all(updates);
+            const results = await Promise.all(updates);
+            if (results.some(r => r.error)) throw new Error('Some corrections failed to save.');
             toast('Corrections saved!');
             setCorrectionModalOpen(false);
             fetchWeeklyReport();
-        } catch (error) { alert(error.message); }
-        finally { setIsSavingCorrection(false); }
+        } catch (error) {
+            alert(error.message);
+        } finally {
+            setIsSavingCorrection(false);
+        }
     };
 
     const deleteCorrectionRecord = async (recordId) => {
