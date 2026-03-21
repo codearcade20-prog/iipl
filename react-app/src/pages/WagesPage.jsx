@@ -857,6 +857,16 @@ const WagesPage = () => {
             </div>
         </div>
     );
+    // Format Time to 12h (AM/PM)
+    const formatTime12h = (time24) => {
+        if (!time24) return '---';
+        const [h24, m] = time24.split(':');
+        const hour24 = parseInt(h24, 10);
+        const period = hour24 >= 12 ? 'PM' : 'AM';
+        let hour12 = hour24 % 12;
+        if (hour12 === 0) hour12 = 12;
+        return `${hour12.toString().padStart(2, '0')}:${m.substring(0, 2)} ${period}`;
+    };
 
     const renderSummary = () => {
         const filteredData = rawReportData.filter(r => {
@@ -978,6 +988,8 @@ const WagesPage = () => {
                                     <th>SITE / PROJECT</th>
                                     <th>LABOR NAME</th>
                                     <th>CATEGORY</th>
+                                    <th>TIME IN</th>
+                                    <th>TIME OUT</th>
                                     <th>REMARKS</th>
                                     <th style={{ textAlign: 'right' }}>ATTN VAL</th>
                                     <th style={{ textAlign: 'right' }}>WAGES AMOUNT</th>
@@ -995,13 +1007,15 @@ const WagesPage = () => {
                                                 {r.wage_category}
                                             </span>
                                         </td>
+                                        <td style={{ fontWeight: 600, color: '#2563eb' }}>{formatTime12h(r.time_in)}</td>
+                                        <td style={{ fontWeight: 600, color: '#2563eb' }}>{formatTime12h(r.time_out)}</td>
                                         <td style={{ fontSize: '0.85rem' }}>{r.remarks || '---'}</td>
                                         <td style={{ textAlign: 'center' }}>{r.attendance_value}</td>
                                         <td style={{ textAlign: 'right', fontWeight: 600 }}>₹{parseFloat(r.wages_amount).toLocaleString('en-IN')}</td>
                                     </tr>
                                 ))}
                                 <tr style={{ background: '#f8fafc', fontWeight: 800 }}>
-                                    <td colSpan="7" style={{ textAlign: 'right', textTransform: 'uppercase' }}>Page Total</td>
+                                    <td colSpan="9" style={{ textAlign: 'right', textTransform: 'uppercase' }}>Page Total</td>
                                     <td style={{ textAlign: 'right', color: '#0f172a' }}>₹{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                                 </tr>
                             </tbody>
