@@ -163,7 +163,7 @@ const SalarySlip = () => {
                                 </tr>
                                 <tr>
                                     <td>Other Earnings</td>
-                                    <td className={styles.amountCol}>{(payroll.increment + payroll.arrears + (payroll.other_earnings || 0) + (payroll.allowance_increase || 0)).toFixed(2)}</td>
+                                    <td className={styles.amountCol}>{(payroll.increment + payroll.arrears + (payroll.other_earnings || 0) + (payroll.allowance_increase || 0) + (payroll.child_edu || 0) + (payroll.child_hostel || 0)).toFixed(2)}</td>
                                     <td>
                                         Other Deductions / LWF
                                         {showLop ? ' / LOP' : ''}

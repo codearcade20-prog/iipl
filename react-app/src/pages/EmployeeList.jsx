@@ -207,8 +207,9 @@ const EmployeeList = () => {
             const esi = parseFloat(attendance.esi) || 0;
             const lwf = parseFloat(attendance.lwf) || 0;
 
-            // LOP Calculation: (Basic / WorkingDays) * LOP Days
-            const perDayWage = basic_da / workingDays;
+            // LOP Calculation: (Fixed Monthly Gross / WorkingDays) * LOP Days
+            const fixedGross = basic_da + hra + conveyance + med_reimb + special_allowance + child_edu + child_hostel;
+            const perDayWage = fixedGross / workingDays;
             const lop_amount = perDayWage * lopDays;
 
             // Manual Adjustments/Deductions
