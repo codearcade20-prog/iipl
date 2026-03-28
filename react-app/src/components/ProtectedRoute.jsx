@@ -14,8 +14,12 @@ const ProtectedRoute = ({ children, module }) => {
         return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
-    if (module && !hasPermission(module)) {
-        return <Navigate to="/" replace />;
+    if (module) {
+        const modules = Array.isArray(module) ? module : [module];
+        const canAccess = modules.some(m => hasPermission(m));
+        if (!canAccess) {
+            return <Navigate to="/" replace />;
+        }
     }
 
     return children;

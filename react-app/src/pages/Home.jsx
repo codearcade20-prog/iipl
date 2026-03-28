@@ -130,14 +130,14 @@ const Home = () => {
                         <p className={styles.cardText}>Financial management, generalized ledger, and profit & loss reporting.</p>
                     </Link>
                 )}
-                {hasPermission('admin') && (
+                {hasPermission('project_entry') && (
                     <Link to="/project-status/entry" className={styles.navCard}>
                         <div className={styles.icon}>🏗️</div>
                         <h3 className={styles.cardTitle}>Project Entry</h3>
                         <p className={styles.cardText}>Create and manage new interior projects, assign coordinators, designers, and site engineers.</p>
                     </Link>
                 )}
-                {hasPermission('admin') && (
+                {hasPermission('project_status') && (
                     <Link to="/project-status/update" className={styles.navCard}>
                         <div className={styles.icon}>📊</div>
                         <h3 className={styles.cardTitle}>Project Status Update</h3>

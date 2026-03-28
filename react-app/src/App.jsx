@@ -82,11 +82,11 @@ function App() {
               <Route path="view/:id" element={<PettyCashDetail />} />
               <Route path="edit/:id" element={<PettyCashEntry />} />
             </Route>
-            <Route path="/project-status" element={<ProtectedRoute module="admin"><ProjectStatusLayout /></ProtectedRoute>}>
-              <Route index element={<ProjectEntry />} />
-              <Route path="entry" element={<ProjectEntry />} />
-              <Route path="update" element={<ProjectStatusUpdate />} />
-              <Route path="personnel/:role" element={<ProjectPersonnel />} />
+            <Route path="/project-status" element={<ProjectStatusLayout />}>
+              <Route index element={<ProtectedRoute module="project_entry"><ProjectEntry /></ProtectedRoute>} />
+              <Route path="entry" element={<ProtectedRoute module="project_entry"><ProjectEntry /></ProtectedRoute>} />
+              <Route path="update" element={<ProtectedRoute module="project_status"><ProjectStatusUpdate /></ProtectedRoute>} />
+              <Route path="personnel/:role" element={<ProtectedRoute module="project_entry"><ProjectPersonnel /></ProtectedRoute>} />
             </Route>
           </Routes>
 
