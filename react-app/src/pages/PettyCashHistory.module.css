@@ -114,6 +114,8 @@
     font-size: 0.9rem;
     color: #1e293b;
     background: #f8fafc;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .clearBtn {

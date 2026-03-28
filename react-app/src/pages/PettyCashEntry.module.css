@@ -429,9 +429,17 @@
     .mainFields {
         grid-template-columns: 1fr;
     }
+    .mainFields > * {
+        grid-column: 1 / -1 !important;
+    }
 
     .itemRow {
         flex-direction: column;
+        align-items: stretch;
+    }
+
+    .removeBtn {
+        align-self: flex-end;
     }
 
     .formFooter {
