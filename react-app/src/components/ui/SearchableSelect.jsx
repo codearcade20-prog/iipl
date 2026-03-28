@@ -7,10 +7,7 @@ const SearchableSelect = ({ options, value, onChange, placeholder, className = '
     const [searchTerm, setSearchTerm] = useState('');
     const wrapperRef = useRef(null);
 
-    // Reset search when opening
-    useEffect(() => {
-        if (isOpen) setSearchTerm('');
-    }, [isOpen]);
+
 
     // Close on click outside
     useEffect(() => {
@@ -33,7 +30,10 @@ const SearchableSelect = ({ options, value, onChange, placeholder, className = '
         <div className={`${styles.searchableSelectWrapper} ${className}`} ref={wrapperRef}>
             <div
                 className={styles.searchableSelectHeader}
-                onClick={() => setIsOpen(!isOpen)}
+                onClick={() => {
+                    if (!isOpen) setSearchTerm('');
+                    setIsOpen(!isOpen);
+                }}
                 style={{ borderColor: isOpen ? '#4f46e5' : '#e2e8f0' }}
             >
                 <div className={value ? styles.selectedValue : styles.placeholder}>

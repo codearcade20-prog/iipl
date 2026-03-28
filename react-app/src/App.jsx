@@ -31,6 +31,12 @@ import PettyCashPersonEntry from './pages/PettyCashPersonEntry';
 import PettyCashPersonList from './pages/PettyCashPersonList';
 import PettyCashMasterSheet from './pages/PettyCashMasterSheet';
 import MDDashboard from './pages/MDDashboard';
+import MDLayout from './pages/MDLayout';
+import ProjectStatusDashboard from './pages/ProjectStatusDashboard';
+import ProjectStatusLayout from './pages/ProjectStatusLayout';
+import ProjectEntry from './pages/ProjectEntry';
+import ProjectStatusUpdate from './pages/ProjectStatusUpdate';
+import ProjectPersonnel from './pages/ProjectPersonnel';
 import { MessageProvider } from './context/MessageContext';
 
 function App() {
@@ -58,9 +64,13 @@ function App() {
             <Route path="/payroll-history" element={<ProtectedRoute module="hr"><PayrollHistory /></ProtectedRoute>} />
             <Route path="/salary-slip/:id" element={<ProtectedRoute module="hr"><SalarySlip /></ProtectedRoute>} />
             <Route path="/wages" element={<ProtectedRoute module="wages"><WagesPage /></ProtectedRoute>} />
-            <Route path="/md-dashboard" element={<ProtectedRoute module="md"><MDDashboard /></ProtectedRoute>} />
-            <Route path="/md-dashboard/history" element={<ProtectedRoute module="md"><PettyCashHistory /></ProtectedRoute>} />
-            <Route path="/md-dashboard/view/:id" element={<ProtectedRoute module="md"><PettyCashDetail /></ProtectedRoute>} />
+            <Route path="/md" element={<ProtectedRoute module="md"><MDLayout /></ProtectedRoute>}>
+              <Route index element={<MDDashboard />} />
+              <Route path="petty-cash" element={<MDDashboard />} />
+              <Route path="project-dashboard" element={<ProjectStatusDashboard />} />
+              <Route path="history" element={<PettyCashHistory />} />
+              <Route path="view/:id" element={<PettyCashDetail />} />
+            </Route>
             <Route path="/accounts" element={<ProtectedRoute module="accounts"><AccountsDashboard /></ProtectedRoute>} />
             <Route path="/accounts/petty-cash" element={<ProtectedRoute module="accounts"><PettyCashLayout /></ProtectedRoute>}>
               <Route index element={<PettyCashDashboard />} />
@@ -71,6 +81,12 @@ function App() {
               <Route path="persons/new" element={<PettyCashPersonEntry />} />
               <Route path="view/:id" element={<PettyCashDetail />} />
               <Route path="edit/:id" element={<PettyCashEntry />} />
+            </Route>
+            <Route path="/project-status" element={<ProtectedRoute module="admin"><ProjectStatusLayout /></ProtectedRoute>}>
+              <Route index element={<ProjectEntry />} />
+              <Route path="entry" element={<ProjectEntry />} />
+              <Route path="update" element={<ProjectStatusUpdate />} />
+              <Route path="personnel/:role" element={<ProjectPersonnel />} />
             </Route>
           </Routes>
 

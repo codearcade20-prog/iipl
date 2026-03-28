@@ -1,0 +1,186 @@
+﻿
+> react-app@0.0.0 lint
+> eslint .
+
+
+C:\Users\User\Downloads\iipl-qs-main\iipl-qs-main\react-app\src\components\PrintModal.jsx
+  3:10  error  'useMessage' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+C:\Users\User\Downloads\iipl-qs-main\iipl-qs-main\react-app\src\components\TemplateModal.jsx
+  20:8  warning  React Hook useEffect has a missing dependency: 'fetchVendorDetails'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\User\Downloads\iipl-qs-main\iipl-qs-main\react-app\src\components\VendorSiteDashboard\VendorSiteDashboard.jsx
+    87:29  error  'prompt' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u             no-unused-vars
+   275:22  error  'e' is defined but never used                                                                      no-unused-vars
+   275:25  error  Empty block statement                                                                              no-empty
+   298:18  error  'e' is defined but never used                                                                      no-unused-vars
+  1611:21  error  'grandTotalWoValue' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+C:\Users\User\Downloads\iipl-qs-main\iipl-qs-main\react-app\src\components\ui\MessageOverlay.jsx
+  9:9  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+   7 |
+   8 |     useEffect(() => {
+>  9 |         setIsClosing(false);
+     |         ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  10 |         setInputValue(message.defaultValue || '');
+  11 |     }, [message]);
+  12 |  react-hooks/set-state-in-effect
+
+C:\Users\User\Downloads\iipl-qs-main\iipl-qs-main\react-app\src\components\ui\SearchableSelect.jsx
+  12:21  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  10 |     // Reset search when opening
+  11 |     useEffect(() => {
+> 12 |         if (isOpen) setSearchTerm('');
+     |                     ^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  13 |     }, [isOpen]);
+  14 |
+  15 |     // Close on click outside  react-hooks/set-state-in-effect
+
+C:\Users\User\Downloads\iipl-qs-main\iipl-qs-main\react-app\src\context\AuthContext.jsx
+  12:13  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  10 |         const savedUser = localStorage.getItem('app_user');
+  11 |         if (savedUser) {
+> 12 |             setUser(JSON.parse(savedUser));
+     |             ^^^^^^^ Avoid calling setState() directly within an effect
+  13 |         }
+  14 |         setLoading(false);
+  15 |     }, []);  react-hooks/set-state-in-effect
+  40:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                react-refresh/only-export-components
+
+C:\Users\User\Downloads\iipl-qs-main\iipl-qs-main\react-app\src\context\MessageContext.jsx
+  6:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\User\Downloads\iipl-qs-main\iipl-qs-main\react-app\src\pages\AdminDashboard.jsx
+   11:10  error    'formatDate' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                                   no-unused-vars
+   32:5   warning  Unused eslint-disable directive (no problems were reported)
+   42:5   warning  Unused eslint-disable directive (no problems were reported)
+  175:8   warning  React Hook useEffect has missing dependencies: 'fetchSites' and 'fetchVendors'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\User\Downloads\iipl-qs-main\iipl-qs-main\react-app\src\pages\ApprovedPayments.jsx
+  22:8  warning  React Hook useEffect has a missing dependency: 'fetchApprovedHistory'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\User\Downloads\iipl-qs-main\iipl-qs-main\react-app\src\pages\BillGenerator.jsx
+    9:10  error    'numberToWords' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                             no-unused-vars
+   15:20  error    'toast' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                            no-unused-vars
+   98:8   warning  React Hook useEffect has a missing dependency: 'fetchVendors'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  277:11  error    'formattedDate' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                    no-unused-vars
+
+C:\Users\User\Downloads\iipl-qs-main\iipl-qs-main\react-app\src\pages\EmployeeList.jsx
+  55:12  error    'editMode' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                           no-unused-vars
+  56:12  error    'showMore' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                           no-unused-vars
+  60:8   warning  React Hook useEffect has a missing dependency: 'fetchEmployees'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\User\Downloads\iipl-qs-main\iipl-qs-main\react-app\src\pages\EmployeeRegistration.jsx
+  1:27  error  'useEffect' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+C:\Users\User\Downloads\iipl-qs-main\iipl-qs-main\react-app\src\pages\GeneralManager.jsx
+  26:8  warning  React Hook useEffect has a missing dependency: 'fetchHistory'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\User\Downloads\iipl-qs-main\iipl-qs-main\react-app\src\pages\InvoiceGenerator.jsx
+    9:25  error    'formatDate' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                no-unused-vars
+   14:12  error    'sites' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                            no-unused-vars
+   15:12  error    'filteredWOs' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                      no-unused-vars
+   53:8   warning  React Hook useEffect has a missing dependency: 'fetchVendors'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  138:11  error    'handleSiteChange' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                 no-unused-vars
+  174:11  error    'handleWOChange' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                   no-unused-vars
+
+C:\Users\User\Downloads\iipl-qs-main\iipl-qs-main\react-app\src\pages\MDDashboard.jsx
+  41:8  warning  React Hook useEffect has a missing dependency: 'fetchData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\User\Downloads\iipl-qs-main\iipl-qs-main\react-app\src\pages\MDLayout.jsx
+  8:11  error  'navigate' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+C:\Users\User\Downloads\iipl-qs-main\iipl-qs-main\react-app\src\pages\PaymentRequest.jsx
+   8:25  error    'formatDate' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                no-unused-vars
+  55:8   warning  React Hook useEffect has a missing dependency: 'fetchVendors'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\User\Downloads\iipl-qs-main\iipl-qs-main\react-app\src\pages\PayrollHistory.jsx
+  27:8  warning  React Hook useEffect has a missing dependency: 'fetchPayrolls'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\User\Downloads\iipl-qs-main\iipl-qs-main\react-app\src\pages\PayrollPage.jsx
+   14:12  error    'selectedEmployee' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                       no-unused-vars
+   25:8   warning  React Hook useEffect has a missing dependency: 'loadPayrollForEdit'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  239:17  error    'department' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                             no-unused-vars
+  239:29  error    'designation' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                            no-unused-vars
+  239:42  error    'pan_no' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                 no-unused-vars
+  239:50  error    'bank_name' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                              no-unused-vars
+  239:61  error    'account_no' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                             no-unused-vars
+  288:11  error    'handleEdit' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                             no-unused-vars
+  325:11  error    'handleDelete' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                           no-unused-vars
+
+C:\Users\User\Downloads\iipl-qs-main\iipl-qs-main\react-app\src\pages\PettyCashDetail.jsx
+  24:8   warning  React Hook useEffect has a missing dependency: 'fetchData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  73:18  error    'error' is defined but never used                                                                             no-unused-vars
+
+C:\Users\User\Downloads\iipl-qs-main\iipl-qs-main\react-app\src\pages\PettyCashEntry.jsx
+  13:20  error    'confirm' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                              no-unused-vars
+  30:8   warning  React Hook useEffect has a missing dependency: 'fetchInitialData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\User\Downloads\iipl-qs-main\iipl-qs-main\react-app\src\pages\PettyCashHistory.jsx
+    5:10  error    'useMessage' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                no-unused-vars
+   31:8   warning  React Hook useEffect has a missing dependency: 'fetchEntries'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+   87:13  error    'toast' is not defined                                                                                           no-undef
+  124:13  error    'toast' is not defined                                                                                           no-undef
+
+C:\Users\User\Downloads\iipl-qs-main\iipl-qs-main\react-app\src\pages\PettyCashLayout.jsx
+  1:17  error  'useState' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+C:\Users\User\Downloads\iipl-qs-main\iipl-qs-main\react-app\src\pages\PettyCashMasterSheet.jsx
+    9:13  error    'alert' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                            no-unused-vars
+   55:12  error    'printOrientation' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                 no-unused-vars
+   55:30  error    'setPrintOrientation' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u              no-unused-vars
+   59:8   warning  React Hook useEffect has a missing dependency: 'fetchData'. Either include it or remove the dependency array     react-hooks/exhaustive-deps
+   63:8   warning  React Hook useEffect has a missing dependency: 'applyFilters'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  139:18  error    'error' is defined but never used                                                                                no-unused-vars
+
+C:\Users\User\Downloads\iipl-qs-main\iipl-qs-main\react-app\src\pages\ProjectEntry.jsx
+  31:8  warning  React Hook useEffect has a missing dependency: 'fetchProjects'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\User\Downloads\iipl-qs-main\iipl-qs-main\react-app\src\pages\ProjectPersonnel.jsx
+  36:8  warning  React Hook useEffect has missing dependencies: 'fetchPersonnel' and 'roleInfo.dbRole'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\User\Downloads\iipl-qs-main\iipl-qs-main\react-app\src\pages\ProjectStatusDashboard.jsx
+  352:103  error  'i' is defined but never used  no-unused-vars
+
+C:\Users\User\Downloads\iipl-qs-main\iipl-qs-main\react-app\src\pages\ProjectStatusUpdate.jsx
+  35:8  warning  React Hook useEffect has a missing dependency: 'fetchInitialData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  48:8  warning  React Hook useEffect has a missing dependency: 'form'. Either include it or remove the dependency array              react-hooks/exhaustive-deps
+
+C:\Users\User\Downloads\iipl-qs-main\iipl-qs-main\react-app\src\pages\WagesPage.jsx
+    1:38  error    'useMemo' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                        no-unused-vars
+   83:13  error    'user' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                  no-unused-vars
+  132:12  error    'summaryView' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                           no-unused-vars
+  132:25  error    'setSummaryView' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                        no-unused-vars
+  178:8   warning  React Hook useEffect has a missing dependency: 'fetchInitialData'. Either include it or remove the dependency array   react-hooks/exhaustive-deps
+  232:8   warning  React Hook useEffect has a missing dependency: 'fetchAttendance'. Either include it or remove the dependency array    react-hooks/exhaustive-deps
+  443:8   warning  React Hook useEffect has a missing dependency: 'fetchWeeklyReport'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  477:14  error    'getWeekOfYear' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                  no-unused-vars
+
+C:\Users\User\Downloads\iipl-qs-main\iipl-qs-main\react-app\src\utils.js
+  33:17  warning  Unused eslint-disable directive (no problems were reported from 'no-new-func')
+  37:18  error    'e' is defined but never used                                                   no-unused-vars
+
+Γ£û 76 problems (50 errors, 26 warnings)
+  0 errors and 3 warnings potentially fixable with the `--fix` option.
+

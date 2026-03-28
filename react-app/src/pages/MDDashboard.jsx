@@ -200,9 +200,6 @@ const MDDashboard = () => {
         <div className={styles.container}>
             <header className={styles.header}>
                 <div className={styles.headerTitle}>
-                    <button className={styles.backBtn} onClick={() => navigate('/')}>
-                        <ArrowLeft size={18} />
-                    </button>
                     <div>
                         <h1>Petty Cash Approval</h1>
                         <p>Review and approve pending petty cash requests</p>
@@ -211,7 +208,7 @@ const MDDashboard = () => {
                 <div className={styles.headerActions}>
                     <button 
                         className={styles.historyBtn}
-                        onClick={() => navigate('/md-dashboard/history')}
+                        onClick={() => navigate('/md/history')}
                         title="View Update History"
                     >
                         <History size={18} />
@@ -364,36 +361,38 @@ const MDDashboard = () => {
                                         </div>
                                     </div>
 
-                                    <table className={styles.itemTable}>
-                                        <thead>
-                                            <tr>
-                                                <th>Category</th>
-                                                <th>Remarks / Description</th>
-                                                <th align="right">Amount (₹)</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {detailItems.map(item => (
-                                                <tr key={item.id}>
-                                                    <td>{item.category}</td>
-                                                    <td className={styles.remarksCell}>{item.remarks || '---'}</td>
-                                                    <td align="right">{parseFloat(item.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                    <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', margin: '0 -1.25rem' }}>
+                                        <table className={styles.itemTable} style={{ margin: '0', minWidth: '400px' }}>
+                                            <thead>
+                                                <tr>
+                                                    <th>Category</th>
+                                                    <th>Remarks / Description</th>
+                                                    <th align="right">Amount (₹)</th>
                                                 </tr>
-                                            ))}
-                                        </tbody>
-                                        <tfoot>
-                                            <tr>
-                                                <td colSpan="2" align="right">RECORDED TOTAL</td>
-                                                <td align="right">₹{parseFloat(selectedEntry.total_amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                                            </tr>
-                                            {selectedEntry.approved_amount && selectedEntry.approved_amount !== selectedEntry.total_amount && (
-                                                <tr className={styles.approvedRow}>
-                                                    <td colSpan="2" align="right">MD APPROVED AMOUNT</td>
-                                                    <td align="right">₹{parseFloat(selectedEntry.approved_amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                            </thead>
+                                            <tbody>
+                                                {detailItems.map(item => (
+                                                    <tr key={item.id}>
+                                                        <td>{item.category}</td>
+                                                        <td className={styles.remarksCell}>{item.remarks || '---'}</td>
+                                                        <td align="right">{parseFloat(item.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                            <tfoot>
+                                                <tr>
+                                                    <td colSpan="2" align="right">RECORDED TOTAL</td>
+                                                    <td align="right">₹{parseFloat(selectedEntry.total_amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                                                 </tr>
-                                            )}
-                                        </tfoot>
-                                    </table>
+                                                {selectedEntry.approved_amount && selectedEntry.approved_amount !== selectedEntry.total_amount && (
+                                                    <tr className={styles.approvedRow}>
+                                                        <td colSpan="2" align="right">MD APPROVED AMOUNT</td>
+                                                        <td align="right">₹{parseFloat(selectedEntry.approved_amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                                    </tr>
+                                                )}
+                                            </tfoot>
+                                        </table>
+                                    </div>
 
                                     {selectedEntry.md_remarks && (
                                         <div className={styles.mdNote}>

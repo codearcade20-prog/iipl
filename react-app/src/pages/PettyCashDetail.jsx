@@ -13,7 +13,7 @@ const PettyCashDetail = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { confirm } = useMessage();
-    const isMD = location.pathname.startsWith('/md-dashboard');
+    const isMD = location.pathname.startsWith('/md');
     const [entry, setEntry] = useState(null);
     const [person, setPerson] = useState(null);
     const [items, setItems] = useState([]);
@@ -140,7 +140,7 @@ const PettyCashDetail = () => {
         <div className={styles.container}>
             <div className={styles.noPrint}>
                 <div className={styles.headerInfo}>
-                    <button className={styles.backBtn} onClick={() => navigate(isMD ? '/md-dashboard/history' : '/accounts/petty-cash/history')}>
+                    <button className={styles.backBtn} onClick={() => navigate(isMD ? '/md/history' : '/accounts/petty-cash/history')}>
                         <ArrowLeft size={18} />
                     </button>
                     <div>

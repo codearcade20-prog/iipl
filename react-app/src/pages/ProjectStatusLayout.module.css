@@ -69,7 +69,7 @@
     border-top: 1px solid #f1f5f9;
 }
 
-.backToAccounts {
+.backToHome {
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -81,7 +81,7 @@
     transition: color 0.2s;
 }
 
-.backToAccounts:hover {
+.backToHome:hover {
     color: #1e293b;
 }
 
@@ -105,18 +105,27 @@
 }
 
 .mobileNavLink {
-    flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 3px;
-    padding: 0.35rem 0.25rem;
+    padding: 0.35rem 0.5rem;
     border-radius: 10px;
     text-decoration: none;
     color: #94a3b8;
     font-size: 0.65rem;
     font-weight: 600;
     transition: all 0.2s;
+}
+
+.mobileModuleInfo {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    padding-left: 0.5rem;
+    color: #1e293b;
+    font-size: 0.9rem;
+    font-weight: 700;
 }
 
 .mobileNavLink.active {
@@ -160,4 +169,3 @@
         padding-bottom: 0 !important;
     }
 }
-

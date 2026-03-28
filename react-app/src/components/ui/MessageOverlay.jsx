@@ -2,13 +2,15 @@ import React, { useState, useEffect } from 'react';
 import styles from './MessageOverlay.module.css';
 
 const MessageOverlay = ({ message, type, onResolve, onReject }) => {
-    const [inputValue, setInputValue] = useState(message.defaultValue || '');
+    const [inputValue, setInputValue] = useState(message?.defaultValue || '');
     const [isClosing, setIsClosing] = useState(false);
+    const [prevMessage, setPrevMessage] = useState(null);
 
-    useEffect(() => {
+    if (message !== prevMessage) {
+        setPrevMessage(message);
         setIsClosing(false);
-        setInputValue(message.defaultValue || '');
-    }, [message]);
+        setInputValue(message?.defaultValue || '');
+    }
 
     const handleClose = (value) => {
         setIsClosing(true);

@@ -86,7 +86,7 @@ const Home = () => {
                 )}
 
                 {(hasPermission('md') || hasPermission('admin')) && (
-                    <Link to="/md-dashboard" className={styles.navCard}>
+                    <Link to="/md" className={styles.navCard}>
                         <div className={styles.icon}>👔</div>
                         <h3 className={styles.cardTitle}>Managing Director</h3>
                         <p className={styles.cardText}>Review and approve petty cash payments with digital signatures and amount adjustment.</p>
@@ -128,6 +128,20 @@ const Home = () => {
                         <div className={styles.icon}>🏦</div>
                         <h3 className={styles.cardTitle}>Accounts</h3>
                         <p className={styles.cardText}>Financial management, generalized ledger, and profit & loss reporting.</p>
+                    </Link>
+                )}
+                {hasPermission('admin') && (
+                    <Link to="/project-status/entry" className={styles.navCard}>
+                        <div className={styles.icon}>🏗️</div>
+                        <h3 className={styles.cardTitle}>Project Entry</h3>
+                        <p className={styles.cardText}>Create and manage new interior projects, assign coordinators, designers, and site engineers.</p>
+                    </Link>
+                )}
+                {hasPermission('admin') && (
+                    <Link to="/project-status/update" className={styles.navCard}>
+                        <div className={styles.icon}>📊</div>
+                        <h3 className={styles.cardTitle}>Project Status Update</h3>
+                        <p className={styles.cardText}>Track project progress, completion percentages, and log daily status updates.</p>
                     </Link>
                 )}
             </div>

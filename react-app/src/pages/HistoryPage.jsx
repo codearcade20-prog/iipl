@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
-import { LoadingOverlay } from '../components/ui';
+import { LoadingOverlay, Pagination } from '../components/ui';
 import styles from './HistoryPage.module.css';
 import TemplateModal from '../components/TemplateModal';
 import { useMessage } from '../context/MessageContext';
@@ -17,11 +17,18 @@ const HistoryPage = () => {
     const [dateSearch, setDateSearch] = useState('');
     const [projectSearch, setProjectSearch] = useState('');
     const [viewItem, setViewItem] = useState(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const ROWS_PER_PAGE = 10;
     const { alert, confirm, prompt, toast } = useMessage();
 
     useEffect(() => {
         fetchHistory();
     }, []);
+
+    // Reset pagination when any filter changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [statusFilter, vendorSearch, dateSearch, projectSearch]);
 
     const fetchHistory = async () => {
         setLoading(true);
@@ -146,6 +153,12 @@ const HistoryPage = () => {
         return true;
     });
 
+    const totalPages = Math.ceil(filteredHistory.length / ROWS_PER_PAGE);
+    const paginatedHistory = filteredHistory.slice(
+        (currentPage - 1) * ROWS_PER_PAGE,
+        currentPage * ROWS_PER_PAGE
+    );
+
     return (
         <div className={styles.container}>
             {loading && <LoadingOverlay message="Fetching records..." />}
@@ -231,7 +244,7 @@ const HistoryPage = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredHistory.map(item => (
+                            {paginatedHistory.map(item => (
                                 <tr key={item.id}>
                                     <td>{formatDate(item.date)}</td>
                                     <td>
@@ -343,6 +356,12 @@ const HistoryPage = () => {
                         </tbody>
                     </table>
                 </div>
+
+                <Pagination 
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={setCurrentPage}
+                />
             </div>
             {viewItem && (
                 <TemplateModal

@@ -9,7 +9,8 @@ import styles from './PettyCashHistory.module.css';
 const PettyCashHistory = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const isMD = location.pathname.startsWith('/md-dashboard');
+    const { toast, alert, confirm, prompt } = useMessage();
+    const isMD = location.pathname.startsWith('/md');
     const [entries, setEntries] = useState([]);
     const [loading, setLoading] = useState(true);
     const [sites, setSites] = useState([]);
@@ -142,7 +143,7 @@ const PettyCashHistory = () => {
                 <div className={styles.headerInfo}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                         {isMD && (
-                            <button className={styles.backBtn} onClick={() => navigate('/md-dashboard')}>
+                            <button className={styles.backBtn} onClick={() => navigate('/md')}>
                                 <ArrowLeft size={18} />
                             </button>
                         )}
@@ -258,7 +259,7 @@ const PettyCashHistory = () => {
                                     <td className={styles.actions}>
                                         <button
                                             className={styles.viewBtn}
-                                            onClick={() => navigate(isMD ? `/md-dashboard/view/${entry.id}` : `/accounts/petty-cash/view/${entry.id}`)}
+                                            onClick={() => navigate(isMD ? `/md/view/${entry.id}` : `/accounts/petty-cash/view/${entry.id}`)}
                                             title="View Detail"
                                         >
                                             <Eye size={16} />

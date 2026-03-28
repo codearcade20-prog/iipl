@@ -25,7 +25,9 @@
 }
 
 .logo {
-    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .brandText {
@@ -69,7 +71,7 @@
     border-top: 1px solid #f1f5f9;
 }
 
-.backToAccounts {
+.backToHome {
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -81,7 +83,7 @@
     transition: color 0.2s;
 }
 
-.backToAccounts:hover {
+.backToHome:hover {
     color: #1e293b;
 }
 
@@ -90,7 +92,6 @@
     overflow-y: auto;
 }
 
-/* Mobile Bottom Navigation Bar */
 .mobileNav {
     display: none;
     position: fixed;
@@ -135,7 +136,7 @@
     }
 
     .content {
-        padding-bottom: 70px; /* space for mobile bottom nav */
+        padding-bottom: 70px;
     }
 
     .mobileNav {
@@ -146,10 +147,7 @@
 
 
 @media print {
-    .sidebar {
-        display: none !important;
-    }
-    .mobileNav {
+    .sidebar, .mobileNav {
         display: none !important;
     }
     .wrapper {
@@ -160,4 +158,3 @@
         padding-bottom: 0 !important;
     }
 }
-

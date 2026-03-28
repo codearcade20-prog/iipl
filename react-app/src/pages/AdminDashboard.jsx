@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
-import { Input, LoadingOverlay } from '../components/ui';
+import { Input, LoadingOverlay, Pagination } from '../components/ui';
 import { Shield } from 'lucide-react';
 import styles from './AdminDashboard.module.css';
 import TemplateModal from '../components/TemplateModal';
@@ -24,6 +24,8 @@ const AdminDashboard = () => {
 
     // Navigation State
     const [currentView, setCurrentView] = useState('history');
+    const [currentPage, setCurrentPage] = useState(1);
+    const ROWS_PER_PAGE = 10;
 
     // --- VENDORS STATE ---
     const [vendors, setVendors] = useState([]);
@@ -171,6 +173,10 @@ const AdminDashboard = () => {
             else fetchHistory();
         }
     }, [isAuthenticated, currentView]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [currentView, statusFilter, vendorSearch, dateSearch, projectSearch, siteSearch]);
 
     // --- VENDOR ACTIONS ---
     const fetchVendors = async () => {
@@ -868,6 +874,23 @@ const AdminDashboard = () => {
         );
     }, [sites, siteSearch]);
 
+    const totalPagesHistory = Math.ceil(filteredHistory.length / ROWS_PER_PAGE);
+    const paginatedHistory = filteredHistory.slice((currentPage - 1) * ROWS_PER_PAGE, currentPage * ROWS_PER_PAGE);
+
+    const totalPagesClearance = Math.ceil(clearanceList.length / ROWS_PER_PAGE);
+    const paginatedClearance = clearanceList.slice((currentPage - 1) * ROWS_PER_PAGE, currentPage * ROWS_PER_PAGE);
+
+    const totalPagesVendors = Math.ceil(filteredVendors.length / ROWS_PER_PAGE);
+    const paginatedVendors = filteredVendors.slice((currentPage - 1) * ROWS_PER_PAGE, currentPage * ROWS_PER_PAGE);
+
+    const totalPagesSites = Math.ceil(filteredSites.length / ROWS_PER_PAGE);
+    const paginatedSites = filteredSites.slice((currentPage - 1) * ROWS_PER_PAGE, currentPage * ROWS_PER_PAGE);
+
+    const totalPagesUsers = Math.ceil(appUsers.length / ROWS_PER_PAGE);
+    const paginatedUsers = appUsers.slice((currentPage - 1) * ROWS_PER_PAGE, currentPage * ROWS_PER_PAGE);
+
+    const totalPagesBin = Math.ceil(binItems.length / ROWS_PER_PAGE);
+    const paginatedBin = binItems.slice((currentPage - 1) * ROWS_PER_PAGE, currentPage * ROWS_PER_PAGE);
 
     if (!isAuthenticated) {
         return (
@@ -1062,7 +1085,7 @@ const AdminDashboard = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {filteredHistory.map(item => (
+                                    {paginatedHistory.map(item => (
                                         <tr key={item.id}>
                                             <td>{item.date}</td>
                                             <td>
@@ -1195,6 +1218,11 @@ const AdminDashboard = () => {
                                 )}
                             </table>
                         </div>
+                        <Pagination 
+                            currentPage={currentPage} 
+                            totalPages={totalPagesHistory} 
+                            onPageChange={setCurrentPage} 
+                        />
                     </div>
                 )}
 
@@ -1246,7 +1274,7 @@ const AdminDashboard = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {clearanceList.map(item => (
+                                    {paginatedClearance.map(item => (
                                         <tr key={item.id}>
                                             <td style={{ fontWeight: 600 }}>{item.paid_date || item.date}</td>
                                             <td style={{ textTransform: 'uppercase', fontSize: '0.8rem' }}>{item.type?.replace('_', ' ')}</td>
@@ -1311,6 +1339,11 @@ const AdminDashboard = () => {
                                 )}
                             </table>
                         </div>
+                        <Pagination 
+                            currentPage={currentPage} 
+                            totalPages={totalPagesClearance} 
+                            onPageChange={setCurrentPage} 
+                        />
                     </div>
                 )}
 
@@ -1342,7 +1375,7 @@ const AdminDashboard = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {filteredVendors.map(v => (
+                                    {paginatedVendors.map(v => (
                                         <tr key={v.id}>
                                             <td style={{ fontWeight: 500 }}>{v.vendor_name}</td>
                                             <td>
@@ -1363,6 +1396,11 @@ const AdminDashboard = () => {
                                 </tbody>
                             </table>
                         </div>
+                        <Pagination 
+                            currentPage={currentPage} 
+                            totalPages={totalPagesVendors} 
+                            onPageChange={setCurrentPage} 
+                        />
                     </div>
                 )}
 
@@ -1385,7 +1423,7 @@ const AdminDashboard = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {binItems.map(bin => {
+                                    {paginatedBin.map(bin => {
                                         // Safe access to data
                                         const original = bin.data || {};
                                         return (
@@ -1424,6 +1462,11 @@ const AdminDashboard = () => {
                                 </tbody>
                             </table>
                         </div>
+                        <Pagination 
+                            currentPage={currentPage} 
+                            totalPages={totalPagesBin} 
+                            onPageChange={setCurrentPage} 
+                        />
                     </div>
                 )}
 
@@ -1445,7 +1488,7 @@ const AdminDashboard = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {appUsers.map(u => (
+                                    {paginatedUsers.map(u => (
                                         <tr key={u.id}>
                                             <td style={{ fontWeight: 600 }}>{u.username}</td>
                                             <td>
@@ -1470,6 +1513,11 @@ const AdminDashboard = () => {
                                 </tbody>
                             </table>
                         </div>
+                        <Pagination 
+                            currentPage={currentPage} 
+                            totalPages={totalPagesUsers} 
+                            onPageChange={setCurrentPage} 
+                        />
                     </div>
                 )}
 
@@ -1500,7 +1548,7 @@ const AdminDashboard = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {filteredSites.map(s => (
+                                    {paginatedSites.map(s => (
                                         <tr key={s.id}>
                                             <td style={{ fontWeight: 600 }}>{s.name}</td>
                                             <td>{s.location || '-'}</td>
@@ -1526,6 +1574,11 @@ const AdminDashboard = () => {
                                 </tbody>
                             </table>
                         </div>
+                        <Pagination 
+                            currentPage={currentPage} 
+                            totalPages={totalPagesSites} 
+                            onPageChange={setCurrentPage} 
+                        />
                     </div>
                 )}
 
@@ -2007,34 +2060,60 @@ const AdminDashboard = () => {
                                         <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: '#475569', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                             <Shield size={16} /> Module Permissions
                                         </h4>
-                                        <div className={styles.permissionGrid}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                                             {[
-                                                { id: 'invoice', label: 'Invoice Generator' },
-                                                { id: 'payment', label: 'Payment Request' },
-                                                { id: 'history', label: 'Payment History' },
-                                                { id: 'workorders', label: 'Work Orders' },
-                                                { id: 'admin', label: 'Admin Control' },
-                                                { id: 'vendor', label: 'Vendor Dashboard' },
-                                                { id: 'overview', label: 'Project Overview' },
-                                                { id: 'bill', label: 'Bill Preparation' },
-                                                { id: 'gm', label: 'General Manager' },
-                                                { id: 'md', label: 'Managing Director' },
-                                                { id: 'approved_payments', label: 'Approved Payments' },
-                                                { id: 'hr', label: 'HR Module' },
-                                                { id: 'wages', label: 'Wages Module' },
-                                                { id: 'accounts', label: 'Accounts (Petty Cash)' }
-                                            ].map(mod => (
-                                                <div
-                                                    key={mod.id}
-                                                    className={`${styles.permissionCard} ${userForm.permissions.includes(mod.id) ? styles.active : ''}`}
-                                                    onClick={() => togglePermission(mod.id)}
-                                                >
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={userForm.permissions.includes(mod.id)}
-                                                        onChange={(e) => { e.stopPropagation(); togglePermission(mod.id); }}
-                                                    />
-                                                    <span>{mod.label}</span>
+                                                {
+                                                    group: "Projects & Operations",
+                                                    features: [
+                                                        { id: 'project_entry', label: 'Project Entry' },
+                                                        { id: 'project_status', label: 'Project Status' },
+                                                        { id: 'overview', label: 'Project Overview' },
+                                                        { id: 'workorders', label: 'Work Orders' }
+                                                    ]
+                                                },
+                                                {
+                                                    group: "Finance & Accounts",
+                                                    features: [
+                                                        { id: 'invoice', label: 'Invoice Generator' },
+                                                        { id: 'payment', label: 'Payment Request' },
+                                                        { id: 'history', label: 'Payment History' },
+                                                        { id: 'bill', label: 'Bill Preparation' },
+                                                        { id: 'accounts', label: 'Petty Cash' },
+                                                        { id: 'vendor', label: 'Vendor Dashboard' }
+                                                    ]
+                                                },
+                                                {
+                                                    group: "HR & Management",
+                                                    features: [
+                                                        { id: 'hr', label: 'HR Module' },
+                                                        { id: 'wages', label: 'Wages Module' },
+                                                        { id: 'gm', label: 'General Manager' },
+                                                        { id: 'md', label: 'Managing Director' },
+                                                        { id: 'approved_payments', label: 'MD Approved Payments' },
+                                                        { id: 'admin', label: 'Admin Access' }
+                                                    ]
+                                                }
+                                            ].map(group => (
+                                                <div key={group.group}>
+                                                    <h5 style={{ fontSize: '0.8rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.05em' }}>
+                                                        {group.group}
+                                                    </h5>
+                                                    <div className={styles.permissionGrid}>
+                                                        {group.features.map(mod => (
+                                                            <div
+                                                                key={mod.id}
+                                                                className={`${styles.permissionCard} ${userForm.permissions.includes(mod.id) ? styles.active : ''}`}
+                                                                onClick={() => togglePermission(mod.id)}
+                                                            >
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={userForm.permissions.includes(mod.id)}
+                                                                    onChange={(e) => { e.stopPropagation(); togglePermission(mod.id); }}
+                                                                />
+                                                                <span>{mod.label}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
                                                 </div>
                                             ))}
                                         </div>
