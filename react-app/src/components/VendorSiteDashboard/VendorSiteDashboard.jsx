@@ -90,6 +90,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
     const [rawData, setRawData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
+    const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
     const [detailId, setDetailId] = useState(null); // specific site or vendor name
 
     // Filter States for System Records
@@ -183,6 +184,14 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
             if (intervalId) clearInterval(intervalId);
         };
     }, [readOnly, currentView]);
+    
+    // Search Debouncing
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearchQuery(searchQuery);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
 
     const fetchData = async (isSilent = false) => {
         if (!isSilent) setLoading(true);
@@ -279,6 +288,94 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
         });
         return Object.values(vendorMap);
     }, [rawData]);
+
+    // Memoized Filtered Results
+    const filteredAdminData = useMemo(() => {
+        return rawData.filter(item => {
+            const matchesSearch = (item.site_name || '').toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+                (item.vendor_name || '').toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+                (item.wo_no || '').toLowerCase().includes(debouncedSearchQuery.toLowerCase());
+
+            const itemDate = item.wo_date; // YYYY-MM-DD
+            const matchesDate = !dateFilter || itemDate === dateFilter;
+
+            let matchesMonth = true;
+            if (monthFilter) {
+                if (!itemDate) {
+                    matchesMonth = false;
+                } else {
+                    const monthIndex = months.indexOf(monthFilter) + 1;
+                    const itemMonth = parseInt(itemDate.split('-')[1]);
+                    matchesMonth = itemMonth === monthIndex;
+                }
+            }
+
+            let matchesYear = true;
+            if (yearFilter) {
+                if (!itemDate) {
+                    matchesYear = false;
+                } else {
+                    const itemYear = itemDate.split('-')[0];
+                    matchesYear = itemYear === yearFilter;
+                }
+            }
+
+            let matchesEntity = true;
+            if (entityFilter) {
+                const woNo = (item.wo_no || '').toUpperCase();
+                matchesEntity = woNo.startsWith(entityFilter.toUpperCase() + '/');
+            }
+
+            return matchesSearch && matchesDate && matchesMonth && matchesYear && matchesEntity;
+        }).sort((a, b) => {
+            const woA = a.wo_no || '';
+            const woB = b.wo_no || '';
+            return woA.localeCompare(woB, undefined, { numeric: true, sensitivity: 'base' });
+        });
+    }, [rawData, debouncedSearchQuery, dateFilter, monthFilter, yearFilter, entityFilter, months]);
+
+    const filteredSites = useMemo(() => {
+        return sites.filter(s => 
+            s.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) || 
+            s.entries.some(e => (e.wo_no || '').toLowerCase().includes(debouncedSearchQuery.toLowerCase()))
+        );
+    }, [sites, debouncedSearchQuery]);
+
+    const filteredVendors = useMemo(() => {
+        return vendors.filter(v => 
+            v.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) || 
+            v.entries.some(e => (e.wo_no || '').toLowerCase().includes(debouncedSearchQuery.toLowerCase()))
+        );
+    }, [vendors, debouncedSearchQuery]);
+
+    const filteredTrackerVendors = useMemo(() => {
+        const vendorGroups = {};
+        rawData.forEach(item => {
+            const vName = item.vendor_name || 'UNKNOWN VENDOR';
+            if (!vendorGroups[vName]) vendorGroups[vName] = [];
+            vendorGroups[vName].push(item);
+        });
+
+        return Object.keys(vendorGroups)
+            .filter(v => 
+                v.toLowerCase().includes((debouncedSearchQuery || '').toLowerCase()) ||
+                vendorGroups[v].some(e => (e.wo_no || '').toLowerCase().includes((debouncedSearchQuery || '').toLowerCase()))
+            )
+            .sort().reduce((acc, v) => {
+                acc[v] = vendorGroups[v];
+                return acc;
+            }, {});
+    }, [rawData, debouncedSearchQuery]);
+
+    const filteredMasterReportData = useMemo(() => {
+        return sites.filter(site =>
+            site.name.toLowerCase().includes((debouncedSearchQuery || '').toLowerCase()) ||
+            site.entries.some(e => 
+                e.vendor_name.toLowerCase().includes((debouncedSearchQuery || '').toLowerCase()) ||
+                (e.wo_no || '').toLowerCase().includes((debouncedSearchQuery || '').toLowerCase())
+            )
+        );
+    }, [sites, debouncedSearchQuery]);
 
     // Format Currency
     const formatCurrency = (amount) => {
@@ -593,7 +690,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
 
     const renderSites = () => (
         <div className={styles.gridContainer}>
-            {sites.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase())).map(site => (
+            {filteredSites.map(site => (
                 <div key={site.name} className={styles.infoCard} onClick={() => handleSwitchView('site_detail', site.name)}>
                     <div className={styles.cardHeader}>
                         <Building2 size={20} />
@@ -618,7 +715,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
 
     const renderVendors = () => (
         <div className={styles.gridContainer}>
-            {vendors.filter(v => v.name.toLowerCase().includes(searchQuery.toLowerCase())).map(vendor => (
+            {filteredVendors.map(vendor => (
                 <div key={vendor.name} className={styles.infoCard} onClick={() => handleSwitchView('vendor_detail', vendor.name)}>
                     <div className={styles.cardHeader}>
                         <Users size={20} />
@@ -653,7 +750,10 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                     </Button>
                 </div>
                 <div className={styles.gridContainer}>
-                    {site.entries.map(entry => {
+                    {site.entries.filter(e => 
+                        e.vendor_name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) || 
+                        (e.wo_no || '').toLowerCase().includes(debouncedSearchQuery.toLowerCase())
+                    ).map(entry => {
                         const allAdvs = parseAdvances(entry.advance_details);
                         const totalAdv = allAdvs.reduce((a, b) => a + (parseFloat(b.amount) || 0), 0);
                         return (
@@ -730,7 +830,10 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                     </Button>
                 </div>
                 <div className={styles.gridContainer}>
-                    {vendor.entries.map(entry => {
+                    {vendor.entries.filter(e => 
+                        e.site_name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) || 
+                        (e.wo_no || '').toLowerCase().includes(debouncedSearchQuery.toLowerCase())
+                    ).map(entry => {
                         const allAdvs = parseAdvances(entry.advance_details);
                         const totalAdv = allAdvs.reduce((a, b) => a + (parseFloat(b.amount) || 0), 0);
                         return (
@@ -1024,47 +1127,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
     );
 
     const renderAdminPanel = () => {
-        const filtered = rawData.filter(item => {
-            const matchesSearch = (item.site_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-                (item.vendor_name || '').toLowerCase().includes(searchQuery.toLowerCase());
-
-            const itemDate = item.wo_date; // YYYY-MM-DD
-            const matchesDate = !dateFilter || itemDate === dateFilter;
-
-            let matchesMonth = true;
-            if (monthFilter) {
-                if (!itemDate) {
-                    matchesMonth = false;
-                } else {
-                    const monthIndex = months.indexOf(monthFilter) + 1;
-                    const itemMonth = parseInt(itemDate.split('-')[1]);
-                    matchesMonth = itemMonth === monthIndex;
-                }
-            }
-
-            let matchesYear = true;
-            if (yearFilter) {
-                if (!itemDate) {
-                    matchesYear = false;
-                } else {
-                    const itemYear = itemDate.split('-')[0];
-                    matchesYear = itemYear === yearFilter;
-                }
-            }
-
-            let matchesEntity = true;
-            if (entityFilter) {
-                const woNo = (item.wo_no || '').toUpperCase();
-                matchesEntity = woNo.startsWith(entityFilter.toUpperCase() + '/');
-            }
-
-            return matchesSearch && matchesDate && matchesMonth && matchesYear && matchesEntity;
-        }).sort((a, b) => {
-            const woA = a.wo_no || '';
-            const woB = b.wo_no || '';
-            return woA.localeCompare(woB, undefined, { numeric: true, sensitivity: 'base' });
-        });
-
+        const filtered = filteredAdminData;
         const hasActiveFilters = dateFilter || monthFilter || yearFilter || entityFilter;
 
         return (
@@ -1259,16 +1322,8 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
         }
 
         if (statementMode === 'tracker') {
-            const vendorGroups = {};
-            rawData.forEach(item => {
-                const vName = item.vendor_name || 'UNKNOWN VENDOR';
-                if (!vendorGroups[vName]) vendorGroups[vName] = [];
-                vendorGroups[vName].push(item);
-            });
-
-            const sortedVendors = Object.keys(vendorGroups)
-                .filter(v => v.toLowerCase().includes((searchQuery || '').toLowerCase()))
-                .sort();
+            const vendorGroups = filteredTrackerVendors;
+            const sortedVendors = Object.keys(vendorGroups);
 
             return (
                 <div className={styles.statementContainer}>
@@ -1411,11 +1466,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
         }
 
         if (statementMode === 'master') {
-            // Group data by Site for the Master Report
-            const reportData = sites.filter(site =>
-                site.name.toLowerCase().includes((searchQuery || '').toLowerCase()) ||
-                site.entries.some(e => e.vendor_name.toLowerCase().includes((searchQuery || '').toLowerCase()))
-            );
+            const reportData = filteredMasterReportData;
 
             return (
                 <div className={styles.statementContainer}>
@@ -2164,8 +2215,8 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
     };
 
     const renderWOSearch = () => {
-        const filtered = searchQuery.trim() === '' ? [] : rawData.filter(item =>
-            (item.wo_no || '').toLowerCase().includes(searchQuery.toLowerCase())
+        const filtered = debouncedSearchQuery.trim() === '' ? [] : rawData.filter(item =>
+            (item.wo_no || '').toLowerCase().includes(debouncedSearchQuery.toLowerCase())
         );
 
         return (
@@ -2493,7 +2544,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                             <Search size={16} />
                             <input
                                 type="text"
-                                placeholder="Search site or vendor name"
+                                placeholder="Search site, vendor or WO number"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
