@@ -278,19 +278,19 @@ const ProjectStatusDashboard = () => {
                         <tbody>
                             {filteredProjects.map(project => (
                                 <tr key={project.id} className={styles.tableRow}>
-                                    <td>
+                                    <td data-label="Project Details">
                                         <div className={styles.projectNameCell}>
                                             <span className={styles.pName}>{project.name}</span>
                                             <span className={styles.pCoordinator}><User size={12} /> {project.coordinator || 'Unassigned'}</span>
                                         </div>
                                     </td>
-                                    <td>
+                                    <td data-label="Schedule">
                                         <div className={styles.pDates}>
                                             <span>Starts: {new Date(project.start_date).toLocaleDateString()}</span>
                                             <span>Ends: {new Date(project.end_date).toLocaleDateString()}</span>
                                         </div>
                                     </td>
-                                    <td>
+                                    <td data-label="Progress">
                                         <div className={styles.progressCell}>
                                             <div className={styles.progressBarBg}>
                                                 <div 
@@ -305,7 +305,7 @@ const ProjectStatusDashboard = () => {
                                             <span className={styles.progressText}>{project.currentProgress}%</span>
                                         </div>
                                     </td>
-                                    <td>
+                                    <td data-label="Performance">
                                         <div className={styles.predictionCell}>
                                             <div className={styles.speedBadge}>
                                                 <TrendingUp size={12} /> {project.speed}% / day
@@ -320,7 +320,7 @@ const ProjectStatusDashboard = () => {
                                             )}
                                         </div>
                                     </td>
-                                    <td>
+                                    <td data-label="Status">
                                         <span className={`${styles.statusBadge} ${styles[project.status.toLowerCase().replace(' ', '')]}`}>
                                             {project.status === 'On Track' && <CheckCircle2 size={12} />}
                                             {project.status}

@@ -2,6 +2,7 @@
     padding: 2rem;
     max-width: 1200px;
     margin: 0 auto;
+    box-sizing: border-box;
 }
 
 .header {
@@ -341,19 +342,24 @@
         padding: 0.75rem;
         width: 100%;
         overflow-x: hidden;
+        box-sizing: border-box;
     }
     .formCard {
         padding: 1rem;
         border-radius: 12px;
+        width: 100%;
+        box-sizing: border-box;
     }
     .formGrid {
         grid-template-columns: 1fr;
+        width: 100%;
     }
     .formGrid > div {
         grid-column: 1 / -1 !important;
     }
     .subGrid {
         grid-template-columns: 1fr;
+        width: 100%;
     }
     .userStamp {
         flex-direction: column;
@@ -367,10 +373,16 @@
     }
     .section {
         padding: 1rem;
+        margin-left: -0.5rem;
+        margin-right: -0.5rem;
+        width: auto;
+        box-sizing: border-box;
     }
     .nestedGroup {
         padding: 0.75rem;
-        margin-left: 0.5rem;
+        margin-left: 0;
+        margin-right: 0;
+        border-radius: 8px;
     }
     .breakdownGrid {
         grid-template-columns: 1fr;
