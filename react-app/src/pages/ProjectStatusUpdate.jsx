@@ -15,15 +15,22 @@ const ProjectStatusUpdate = () => {
     const [form, setForm] = useState({
         project_id: '',
         completion_percentage: '',
+        planning_kickstart: '',
         site_measurement: '',
         site_marking: '',
-        finishes_list: '',
-        mrf_status: '',
+        sample_moodboard: '',
         shop_drawing: '',
+        finishes_list: '',
+        shop_drawing_final: '',
+        mrf_status: '',
         production: '',
         material_delivery: '',
         site_installation: '',
         site_work: '',
+        civil_work: '',
+        false_ceiling: '',
+        carpentry_work: '',
+        painting: '',
         remarks: '',
         file_url: ''
     });
@@ -34,21 +41,41 @@ const ProjectStatusUpdate = () => {
         fetchInitialData();
     }, []);
 
+    // Consolidated Auto-calculation for all progress metrics
     useEffect(() => {
-        const fields = [
-            'site_measurement', 'site_marking', 'finishes_list', 
-            'mrf_status', 'shop_drawing', 'production', 
-            'material_delivery', 'site_installation', 'site_work'
+        // 1. Calculate Site Work Overall (Average of 4 sub-fields)
+        const subFields = ['civil_work', 'false_ceiling', 'carpentry_work', 'painting'];
+        const subValues = subFields.map(f => parseFloat(form[f]) || 0);
+        const siteWorkAvg = subValues.reduce((a, b) => a + b, 0) / subFields.length;
+        
+        // 2. Prepare all 12 main status fields for Overall Completion
+        const mainFields = [
+            'planning_kickstart', 'site_measurement', 'site_marking', 
+            'sample_moodboard', 'shop_drawing', 'finishes_list', 
+            'shop_drawing_final', 'mrf_status', 'production', 
+            'material_delivery', 'site_installation'
         ];
         
-        const sum = fields.reduce((acc, field) => acc + (parseFloat(form[field]) || 0), 0);
-        const average = (sum / fields.length).toFixed(2);
+        // Sum the first 11 fields
+        const mainSum = mainFields.reduce((acc, field) => acc + (parseFloat(form[field]) || 0), 0);
         
-        setForm(prev => ({ ...prev, completion_percentage: average }));
+        // Add the newly calculated siteWorkAvg manually as the 12th field
+        const totalSum = mainSum + siteWorkAvg;
+        const totalAvg = totalSum / 12;
+
+        // 3. Update form state once with both calculated values
+        setForm(prev => ({ 
+            ...prev, 
+            site_work: siteWorkAvg.toFixed(2),
+            completion_percentage: totalAvg.toFixed(2)
+        }));
     }, [
-        form.site_measurement, form.site_marking, form.finishes_list,
-        form.mrf_status, form.shop_drawing, form.production,
-        form.material_delivery, form.site_installation, form.site_work
+        // Dependencies: all 11 main fields + 4 site sub-fields
+        form.planning_kickstart, form.site_measurement, form.site_marking,
+        form.sample_moodboard, form.shop_drawing, form.finishes_list,
+        form.shop_drawing_final, form.mrf_status, form.production,
+        form.material_delivery, form.site_installation,
+        form.civil_work, form.false_ceiling, form.carpentry_work, form.painting
     ]);
 
     const fetchInitialData = async () => {
@@ -85,9 +112,11 @@ const ProjectStatusUpdate = () => {
         }
 
         const percentageFields = [
-            'site_measurement', 'site_marking', 'finishes_list', 
-            'mrf_status', 'shop_drawing', 'production', 
-            'material_delivery', 'site_installation', 'site_work'
+            'planning_kickstart', 'site_measurement', 'site_marking', 
+            'sample_moodboard', 'shop_drawing', 'finishes_list', 
+            'shop_drawing_final', 'mrf_status', 'production', 
+            'material_delivery', 'site_installation', 'site_work',
+            'civil_work', 'false_ceiling', 'carpentry_work', 'painting'
         ];
 
         for (const field of percentageFields) {
@@ -106,15 +135,22 @@ const ProjectStatusUpdate = () => {
                     project_id: form.project_id,
                     status_date: currentDate,
                     completion_percentage: parseFloat(form.completion_percentage),
+                    planning_kickstart: parseFloat(form.planning_kickstart) || 0,
                     site_measurement: parseFloat(form.site_measurement) || 0,
                     site_marking: parseFloat(form.site_marking) || 0,
-                    finishes_list: parseFloat(form.finishes_list) || 0,
-                    mrf_status: parseFloat(form.mrf_status) || 0,
+                    sample_moodboard: parseFloat(form.sample_moodboard) || 0,
                     shop_drawing: parseFloat(form.shop_drawing) || 0,
+                    finishes_list: parseFloat(form.finishes_list) || 0,
+                    shop_drawing_final: parseFloat(form.shop_drawing_final) || 0,
+                    mrf_status: parseFloat(form.mrf_status) || 0,
                     production: parseFloat(form.production) || 0,
                     material_delivery: parseFloat(form.material_delivery) || 0,
                     site_installation: parseFloat(form.site_installation) || 0,
                     site_work: parseFloat(form.site_work) || 0,
+                    civil_work: parseFloat(form.civil_work) || 0,
+                    false_ceiling: parseFloat(form.false_ceiling) || 0,
+                    carpentry_work: parseFloat(form.carpentry_work) || 0,
+                    painting: parseFloat(form.painting) || 0,
                     remarks: form.remarks,
                     file_url: form.file_url,
                     username: user?.username || 'System',
@@ -127,15 +163,22 @@ const ProjectStatusUpdate = () => {
             setForm({
                 project_id: '',
                 completion_percentage: '',
+                planning_kickstart: '',
                 site_measurement: '',
                 site_marking: '',
-                finishes_list: '',
-                mrf_status: '',
+                sample_moodboard: '',
                 shop_drawing: '',
+                finishes_list: '',
+                shop_drawing_final: '',
+                mrf_status: '',
                 production: '',
                 material_delivery: '',
                 site_installation: '',
                 site_work: '',
+                civil_work: '',
+                false_ceiling: '',
+                carpentry_work: '',
+                painting: '',
                 remarks: '',
                 file_url: ''
             });
@@ -204,60 +247,158 @@ const ProjectStatusUpdate = () => {
                         />
                     </div>
 
-                    <div className={styles.fieldGroup}>
-                        <label className={styles.label}><Percent size={14} /> Site Measurement (%)</label>
-                        <input type="number" className={styles.input} value={form.site_measurement} onChange={(e) => handlePercentageChange('site_measurement', e.target.value)} placeholder="0-100" min="0" max="100" />
+                    <div className={styles.section} style={{ gridColumn: 'span 2' }}>
+                        <div className={styles.sectionHeader}><Percent size={18} color="#3b82f6" /> 1. Initial Stages & Planning</div>
+                        <div className={styles.subGrid}>
+                            <div className={styles.fieldGroup}>
+                                <label className={styles.label}>
+                                    <span className={styles.labelLong}>Planning & Kick Start (%)</span>
+                                    <span className={styles.labelShort}>Planning (%)</span>
+                                </label>
+                                <input type="number" className={styles.input} value={form.planning_kickstart} onChange={(e) => handlePercentageChange('planning_kickstart', e.target.value)} placeholder="0-100" min="0" max="100" />
+                            </div>
+                            <div className={styles.fieldGroup}>
+                                <label className={styles.label}>
+                                    <span className={styles.labelLong}>Site Measurement (%)</span>
+                                    <span className={styles.labelShort}>Measurement (%)</span>
+                                </label>
+                                <input type="number" className={styles.input} value={form.site_measurement} onChange={(e) => handlePercentageChange('site_measurement', e.target.value)} placeholder="0-100" min="0" max="100" />
+                            </div>
+                            <div className={styles.fieldGroup}>
+                                <label className={styles.label}>
+                                    <span className={styles.labelLong}>Site Marking (%)</span>
+                                    <span className={styles.labelShort}>Marking (%)</span>
+                                </label>
+                                <input type="number" className={styles.input} value={form.site_marking} onChange={(e) => handlePercentageChange('site_marking', e.target.value)} placeholder="0-100" min="0" max="100" />
+                            </div>
+                            <div className={styles.fieldGroup}>
+                                <label className={styles.label}>
+                                    <span className={styles.labelLong}>Sample Arr. (Moodboard) (%)</span>
+                                    <span className={styles.labelShort}>Moodboard (%)</span>
+                                </label>
+                                <input type="number" className={styles.input} value={form.sample_moodboard} onChange={(e) => handlePercentageChange('sample_moodboard', e.target.value)} placeholder="0-100" min="0" max="100" />
+                            </div>
+                        </div>
                     </div>
 
-                    <div className={styles.fieldGroup}>
-                        <label className={styles.label}><Percent size={14} /> Site Marking Status (%)</label>
-                        <input type="number" className={styles.input} value={form.site_marking} onChange={(e) => handlePercentageChange('site_marking', e.target.value)} placeholder="0-100" min="0" max="100" />
+                    <div className={styles.section} style={{ gridColumn: 'span 2' }}>
+                        <div className={styles.sectionHeader}><Percent size={18} color="#10b981" /> 2. Technical & Procurement</div>
+                        <div className={styles.subGrid}>
+                            <div className={styles.fieldGroup}>
+                                <label className={styles.label}>
+                                    <span className={styles.labelLong}>Shop Drawing (Initial) (%)</span>
+                                    <span className={styles.labelShort}>Shop Drw (I) (%)</span>
+                                </label>
+                                <input type="number" className={styles.input} value={form.shop_drawing} onChange={(e) => handlePercentageChange('shop_drawing', e.target.value)} placeholder="0-100" min="0" max="100" />
+                            </div>
+                            <div className={styles.fieldGroup}>
+                                <label className={styles.label}>
+                                    <span className={styles.labelLong}>Shop Drawing (Final) (%)</span>
+                                    <span className={styles.labelShort}>Shop Drw (F) (%)</span>
+                                </label>
+                                <input type="number" className={styles.input} value={form.shop_drawing_final} onChange={(e) => handlePercentageChange('shop_drawing_final', e.target.value)} placeholder="0-100" min="0" max="100" />
+                            </div>
+                            <div className={styles.fieldGroup}>
+                                <label className={styles.label}>
+                                    <span className={styles.labelLong}>Finishes List (%)</span>
+                                    <span className={styles.labelShort}>Finishes (%)</span>
+                                </label>
+                                <input type="number" className={styles.input} value={form.finishes_list} onChange={(e) => handlePercentageChange('finishes_list', e.target.value)} placeholder="0-100" min="0" max="100" />
+                            </div>
+                            <div className={styles.fieldGroup}>
+                                <label className={styles.label}>
+                                    <span className={styles.labelLong}>MRF Status (%)</span>
+                                    <span className={styles.labelShort}>MRF (%)</span>
+                                </label>
+                                <input type="number" className={styles.input} value={form.mrf_status} onChange={(e) => handlePercentageChange('mrf_status', e.target.value)} placeholder="0-100" min="0" max="100" />
+                            </div>
+                        </div>
                     </div>
 
-                    <div className={styles.fieldGroup}>
-                        <label className={styles.label}><Percent size={14} /> Finishes List Status (%)</label>
-                        <input type="number" className={styles.input} value={form.finishes_list} onChange={(e) => handlePercentageChange('finishes_list', e.target.value)} placeholder="0-100" min="0" max="100" />
+                    <div className={styles.section} style={{ gridColumn: 'span 2' }}>
+                        <div className={styles.sectionHeader}><Percent size={18} color="#f59e0b" /> 3. Production & Execution</div>
+                        <div className={styles.subGrid}>
+                            <div className={styles.fieldGroup}>
+                                <label className={styles.label}>
+                                    <span className={styles.labelLong}>Production (%)</span>
+                                    <span className={styles.labelShort}>Production (%)</span>
+                                </label>
+                                <input type="number" className={styles.input} value={form.production} onChange={(e) => handlePercentageChange('production', e.target.value)} placeholder="0-100" min="0" max="100" />
+                            </div>
+                            <div className={styles.fieldGroup}>
+                                <label className={styles.label}>
+                                    <span className={styles.labelLong}>Material Delivery (%)</span>
+                                    <span className={styles.labelShort}>Delivery (%)</span>
+                                </label>
+                                <input type="number" className={styles.input} value={form.material_delivery} onChange={(e) => handlePercentageChange('material_delivery', e.target.value)} placeholder="0-100" min="0" max="100" />
+                            </div>
+                            <div className={styles.fieldGroup}>
+                                <label className={styles.label}>
+                                    <span className={styles.labelLong}>Site Installation (%)</span>
+                                    <span className={styles.labelShort}>Installation (%)</span>
+                                </label>
+                                <input type="number" className={styles.input} value={form.site_installation} onChange={(e) => handlePercentageChange('site_installation', e.target.value)} placeholder="0-100" min="0" max="100" />
+                            </div>
+                            
+                            <div className={styles.nestedGroup}>
+                                <div className={styles.nestedHeader}>Site Work Status Breakdown</div>
+                                <div className={styles.fieldGroup} style={{ marginBottom: '1.5rem' }}>
+                                    <label className={styles.label}>
+                                        <span className={styles.labelLong}>Site Work Overall (%)</span>
+                                        <span className={styles.labelShort}>Site Work (%)</span>
+                                    </label>
+                                    <input type="number" className={`${styles.input} ${styles.readOnlyHighlight}`} value={form.site_work} readOnly placeholder="Auto-calculated" />
+                                </div>
+                                <div className={styles.subGrid}>
+                                    <div className={styles.fieldGroup}>
+                                        <label className={styles.label}>
+                                            <span className={styles.labelLong}>Civil Work (%)</span>
+                                            <span className={styles.labelShort}>Civil (%)</span>
+                                        </label>
+                                        <input type="number" className={styles.input} value={form.civil_work} onChange={(e) => handlePercentageChange('civil_work', e.target.value)} placeholder="0-100" min="0" max="100" />
+                                    </div>
+                                    <div className={styles.fieldGroup}>
+                                        <label className={styles.label}>
+                                            <span className={styles.labelLong}>False Ceiling (%)</span>
+                                            <span className={styles.labelShort}>Ceiling (%)</span>
+                                        </label>
+                                        <input type="number" className={styles.input} value={form.false_ceiling} onChange={(e) => handlePercentageChange('false_ceiling', e.target.value)} placeholder="0-100" min="0" max="100" />
+                                    </div>
+                                    <div className={styles.fieldGroup}>
+                                        <label className={styles.label}>
+                                            <span className={styles.labelLong}>Carpentry Work (%)</span>
+                                            <span className={styles.labelShort}>Carpentry (%)</span>
+                                        </label>
+                                        <input type="number" className={styles.input} value={form.carpentry_work} onChange={(e) => handlePercentageChange('carpentry_work', e.target.value)} placeholder="0-100" min="0" max="100" />
+                                    </div>
+                                    <div className={styles.fieldGroup}>
+                                        <label className={styles.label}>
+                                            <span className={styles.labelLong}>Painting (%)</span>
+                                            <span className={styles.labelShort}>Painting (%)</span>
+                                        </label>
+                                        <input type="number" className={styles.input} value={form.painting} onChange={(e) => handlePercentageChange('painting', e.target.value)} placeholder="0-100" min="0" max="100" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <div className={styles.fieldGroup}>
-                        <label className={styles.label}><Percent size={14} /> MRF Status (%)</label>
-                        <input type="number" className={styles.input} value={form.mrf_status} onChange={(e) => handlePercentageChange('mrf_status', e.target.value)} placeholder="0-100" min="0" max="100" />
-                    </div>
-
-                    <div className={styles.fieldGroup}>
-                        <label className={styles.label}><Percent size={14} /> Shop Drawing (%)</label>
-                        <input type="number" className={styles.input} value={form.shop_drawing} onChange={(e) => handlePercentageChange('shop_drawing', e.target.value)} placeholder="0-100" min="0" max="100" />
-                    </div>
-
-                    <div className={styles.fieldGroup}>
-                        <label className={styles.label}><Percent size={14} /> Production (%)</label>
-                        <input type="number" className={styles.input} value={form.production} onChange={(e) => handlePercentageChange('production', e.target.value)} placeholder="0-100" min="0" max="100" />
-                    </div>
-
-                    <div className={styles.fieldGroup}>
-                        <label className={styles.label}><Percent size={14} /> Material Delivery (%)</label>
-                        <input type="number" className={styles.input} value={form.material_delivery} onChange={(e) => handlePercentageChange('material_delivery', e.target.value)} placeholder="0-100" min="0" max="100" />
-                    </div>
-
-                    <div className={styles.fieldGroup}>
-                        <label className={styles.label}><Percent size={14} /> Site Installation (%)</label>
-                        <input type="number" className={styles.input} value={form.site_installation} onChange={(e) => handlePercentageChange('site_installation', e.target.value)} placeholder="0-100" min="0" max="100" />
-                    </div>
-
-                    <div className={styles.fieldGroup}>
-                        <label className={styles.label}><Percent size={14} /> Site Work (%)</label>
-                        <input type="number" className={styles.input} value={form.site_work} onChange={(e) => handlePercentageChange('site_work', e.target.value)} placeholder="0-100" min="0" max="100" />
-                    </div>
-
-                    <div className={styles.fieldGroup}>
-                        <label className={styles.label}><Percent size={14} /> Overall Work Completion (%)</label>
-                        <input 
-                            type="number" 
-                            className={styles.input} 
-                            value={form.completion_percentage} 
-                            readOnly
-                            placeholder="Auto-calculated"
-                        />
+                    <div className={styles.section} style={{ gridColumn: 'span 2', background: '#eff6ff' }}>
+                        <div className={styles.fieldGroup}>
+                            <label className={styles.label} style={{ fontSize: '1.1rem', fontWeight: 800, color: '#1e40af' }}>
+                                <Percent size={18} /> 
+                                <span className={styles.labelLong}>Overall Project Completion (%)</span>
+                                <span className={styles.labelShort}>Overall (%)</span>
+                            </label>
+                            <input 
+                                type="number" 
+                                className={`${styles.input} ${styles.readOnlyHighlight}`} 
+                                style={{ fontSize: '1.25rem', height: '4rem' }}
+                                value={form.completion_percentage} 
+                                readOnly
+                                placeholder="Auto-calculated"
+                            />
+                        </div>
                     </div>
 
                     <div className={styles.fieldGroup}>
@@ -315,15 +456,22 @@ const ProjectStatusUpdate = () => {
                             </div>
                             <div className={styles.updateBody}>
                                 <div className={styles.breakdownGrid}>
+                                    <div className={styles.breakdownItem}><span>Planning & Kick Start:</span> <strong>{update.planning_kickstart}%</strong></div>
                                     <div className={styles.breakdownItem}><span>Site Measurement:</span> <strong>{update.site_measurement}%</strong></div>
                                     <div className={styles.breakdownItem}><span>Site Marking:</span> <strong>{update.site_marking}%</strong></div>
+                                    <div className={styles.breakdownItem}><span>Sample Moodboard:</span> <strong>{update.sample_moodboard}%</strong></div>
+                                    <div className={styles.breakdownItem}><span>Shop Drawing (Initial):</span> <strong>{update.shop_drawing}%</strong></div>
                                     <div className={styles.breakdownItem}><span>Finishes List:</span> <strong>{update.finishes_list}%</strong></div>
+                                    <div className={styles.breakdownItem}><span>Shop Drawing (Final):</span> <strong>{update.shop_drawing_final}%</strong></div>
                                     <div className={styles.breakdownItem}><span>MRF Status:</span> <strong>{update.mrf_status}%</strong></div>
-                                    <div className={styles.breakdownItem}><span>Shop Drawing:</span> <strong>{update.shop_drawing}%</strong></div>
                                     <div className={styles.breakdownItem}><span>Production:</span> <strong>{update.production}%</strong></div>
                                     <div className={styles.breakdownItem}><span>Material Delivery:</span> <strong>{update.material_delivery}%</strong></div>
                                     <div className={styles.breakdownItem}><span>Site Installation:</span> <strong>{update.site_installation}%</strong></div>
-                                    <div className={styles.breakdownItem}><span>Site Work:</span> <strong>{update.site_work}%</strong></div>
+                                    <div className={styles.breakdownItem}><span>Site Work (Overall):</span> <strong>{update.site_work}%</strong></div>
+                                    <div className={styles.breakdownItem}><span>- Civil Work:</span> <strong>{update.civil_work}%</strong></div>
+                                    <div className={styles.breakdownItem}><span>- False Ceiling:</span> <strong>{update.false_ceiling}%</strong></div>
+                                    <div className={styles.breakdownItem}><span>- Carpentry Work:</span> <strong>{update.carpentry_work}%</strong></div>
+                                    <div className={styles.breakdownItem}><span>- Painting:</span> <strong>{update.painting}%</strong></div>
                                 </div>
                                 <p className={styles.remarks}>{update.remarks || 'No remarks provided'}</p>
                                 {update.file_url && (

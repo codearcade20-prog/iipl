@@ -32,7 +32,58 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 1.5rem;
-    margin-bottom: 1.5rem;
+}
+
+.section {
+    grid-column: span 2;
+    background: #fdfdfd;
+    border: 1px solid #f1f5f9;
+    padding: 1.5rem;
+    border-radius: 12px;
+    margin-top: 1rem;
+}
+
+.sectionHeader {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #334155;
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border-bottom: 1px solid #f1f5f9;
+    padding-bottom: 0.75rem;
+}
+
+.subGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.nestedGroup {
+    grid-column: span 2;
+    background: #f8fafc;
+    border-left: 4px solid #3b82f6;
+    padding: 1.25rem;
+    border-radius: 0 8px 8px 0;
+    margin-top: 0.5rem;
+}
+
+.nestedHeader {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #64748b;
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.readOnlyHighlight {
+    background: #eff6ff !important;
+    border-color: #bfdbfe !important;
+    font-weight: 700 !important;
+    color: #1e40af !important;
 }
 
 .fieldGroup {
@@ -48,6 +99,17 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.labelLong {
+    display: inline;
+}
+
+.labelShort {
+    display: none;
 }
 
 .input, .select, .textarea {
@@ -276,10 +338,13 @@
 
 @media (max-width: 640px) {
     .container {
-        padding: 1rem;
+        padding: 0.75rem;
+        width: 100%;
+        overflow-x: hidden;
     }
     .formCard {
-        padding: 1.25rem;
+        padding: 1rem;
+        border-radius: 12px;
     }
     .formGrid {
         grid-template-columns: 1fr;
@@ -287,8 +352,28 @@
     .formGrid > div {
         grid-column: 1 / -1 !important;
     }
+    .subGrid {
+        grid-template-columns: 1fr;
+    }
     .userStamp {
         flex-direction: column;
         gap: 0.5rem;
+    }
+    .labelLong {
+        display: none;
+    }
+    .labelShort {
+        display: inline;
+    }
+    .section {
+        padding: 1rem;
+    }
+    .nestedGroup {
+        padding: 0.75rem;
+        margin-left: 0.5rem;
+    }
+    .breakdownGrid {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
     }
 }

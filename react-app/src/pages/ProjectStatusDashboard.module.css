@@ -577,22 +577,153 @@
 }
 
 @media (max-width: 1024px) {
-    .modalGrid {
-        grid-template-columns: 1fr;
-    }
+    .modalContent { width: 95%; height: 95vh; }
+    .modalGrid { grid-template-columns: 1fr; }
+    .sidebarDetails { order: -1; }
 }
 
 @media (max-width: 768px) {
-    .container { padding: 1rem; }
-    .header { flex-direction: column; gap: 1rem; }
+    .header { flex-direction: column; gap: 1rem; align-items: flex-start; }
     .statsGrid { grid-template-columns: 1fr 1fr; }
-    .table td:nth-child(2), .table td:nth-child(4), .table th:nth-child(2), .table th:nth-child(4) {
-        display: none;
-    }
+    .controlsBar { flex-direction: column; align-items: stretch; }
+    .tableRow td:nth-child(2), .tableRow td:nth-child(4) { display: none; }
+    .breakdownGrid { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 480px) {
+    .container { padding: 0.75rem; width: 100%; overflow-x: hidden; }
+    .statsGrid { grid-template-columns: 1fr; }
+    .title { font-size: 1.5rem; }
+    .modalHeader { padding: 1rem; }
+    .modalContent { padding: 0.75rem; border-radius: 0; width: 100%; height: 100%; }
+    .historyCard { padding: 0.75rem; }
+    .breakdownGrid { grid-template-columns: 1fr; }
+    .popoverOverlay { width: 90vw; left: 5%; bottom: 10px; position: fixed; }
 }
 
 @media print {
     .container { padding: 0; background: white; }
     .controlsBar, .headerActions, .detailsBtn { display: none !important; }
     .tableCard { box-shadow: none; border: 1px solid #eee; }
+}
+
+/* Popover/Overlay styles */
+.labelLong {
+    display: inline;
+}
+
+.labelShort {
+    display: none;
+}
+
+@media (max-width: 640px) {
+    .labelLong {
+        display: none;
+    }
+    .labelShort {
+        display: inline;
+    }
+}
+
+.popoverContainer {
+    position: relative;
+    cursor: pointer;
+    display: inline-block;
+}
+
+.popoverOverlay {
+    position: absolute;
+    z-index: 100;
+    bottom: 0;
+    left: 0;
+    width: 240px;
+    background: white;
+    border-radius: 16px;
+    padding: 1.25rem;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    border: 1px solid #f1f5f9;
+    animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    pointer-events: auto;
+}
+
+@keyframes popIn {
+    from { opacity: 0; transform: scale(0.9) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.popoverTitle {
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 0.75rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid #f1f5f9;
+    padding-bottom: 0.5rem;
+}
+
+.popoverItem {
+    margin-bottom: 0.75rem;
+}
+
+.popoverItem:last-child {
+    margin-bottom: 0;
+}
+
+.popoverLabel {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: #64748b;
+    margin-bottom: 0.35rem;
+    font-weight: 600;
+}
+
+.popoverValue {
+    color: #1e293b;
+    font-weight: 800;
+}
+
+.pMiniBar {
+    height: 4px;
+    background: #f1f5f9;
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.pMiniFill {
+    height: 100%;
+    background: #3b82f6;
+    border-radius: 2px;
+    transition: width 0.4s ease-out;
+}
+
+.popoverClose {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 4px;
+}
+
+.popoverClose:hover {
+    color: #ef4444;
+    background: #fef2f2;
+}
+
+.breakdownItemClickable {
+    transition: all 0.2s;
+    border: 1px solid transparent;
+    padding: 0.5rem;
+    margin: -0.5rem;
+    border-radius: 8px;
+}
+
+.breakdownItemClickable:hover {
+    background: #eff6ff;
+    border-color: #bfdbfe;
 }

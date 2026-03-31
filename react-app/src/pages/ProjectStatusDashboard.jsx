@@ -29,6 +29,7 @@ const ProjectStatusDashboard = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedProject, setSelectedProject] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [activePopover, setActivePopover] = useState(null); // Track which update's site work detail is open
 
     useEffect(() => {
         fetchDashboardData();
@@ -63,23 +64,28 @@ const ProjectStatusDashboard = () => {
             const latestUpdate = projectUpdates[projectUpdates.length - 1];
             const firstUpdate = projectUpdates[0];
             
+            // 1. Calculate Current Progress from the most recent update
             const currentProgress = latestUpdate ? parseFloat(latestUpdate.completion_percentage) : 0;
             
-            // Calculate Speed (% per day)
+            // 2. Calculate Work Velocity (Average % progress gained per day)
+            // Logic: Total progress gain / Total days elapsed
             let speed = 0;
             if (projectUpdates.length > 1) {
+                // Calculation across multiple updates
                 const daysDiff = (new Date(latestUpdate.status_date) - new Date(firstUpdate.status_date)) / (1000 * 60 * 60 * 24);
                 if (daysDiff > 0) {
                     speed = (currentProgress - parseFloat(firstUpdate.completion_percentage)) / daysDiff;
                 }
             } else if (latestUpdate && project.start_date) {
+                // If only one update exists, calculate speed since project start
                 const daysSinceStart = (new Date(latestUpdate.status_date) - new Date(project.start_date)) / (1000 * 60 * 60 * 24);
                 if (daysSinceStart > 0) {
                     speed = currentProgress / daysSinceStart;
                 }
             }
 
-            // Expected Completion Date
+            // 3. Project Expected Completion Date
+            // Logic: Current Date + (Remaining Work / Daily Speed)
             let expectedDate = null;
             if (speed > 0 && currentProgress < 100) {
                 const remainingProgress = 100 - currentProgress;
@@ -361,15 +367,100 @@ const ProjectStatusDashboard = () => {
                                                 <div className={styles.hProgressBar}><div style={{ width: `${h.completion_percentage}%` }}></div></div>
                                             </div>
                                             <div className={styles.breakdownGrid}>
-                                                <div className={styles.breakdownItem}><span>Site Measurement:</span> <strong>{h.site_measurement}%</strong></div>
-                                                <div className={styles.breakdownItem}><span>Site Marking:</span> <strong>{h.site_marking}%</strong></div>
-                                                <div className={styles.breakdownItem}><span>Finishes List:</span> <strong>{h.finishes_list}%</strong></div>
-                                                <div className={styles.breakdownItem}><span>MRF Status:</span> <strong>{h.mrf_status}%</strong></div>
-                                                <div className={styles.breakdownItem}><span>Shop Drawing:</span> <strong>{h.shop_drawing}%</strong></div>
-                                                <div className={styles.breakdownItem}><span>Production:</span> <strong>{h.production}%</strong></div>
-                                                <div className={styles.breakdownItem}><span>Material Delivery:</span> <strong>{h.material_delivery}%</strong></div>
-                                                <div className={styles.breakdownItem}><span>Site Installation:</span> <strong>{h.site_installation}%</strong></div>
-                                                <div className={styles.breakdownItem}><span>Site Work:</span> <strong>{h.site_work}%</strong></div>
+                                                <div className={styles.breakdownItem}>
+                                                    <span className={styles.labelLong}>Planning & Kick Start:</span>
+                                                    <span className={styles.labelShort}>Planning:</span>
+                                                    <strong>{h.planning_kickstart}%</strong>
+                                                </div>
+                                                <div className={styles.breakdownItem}>
+                                                    <span className={styles.labelLong}>Site Measurement:</span>
+                                                    <span className={styles.labelShort}>Measurement:</span>
+                                                    <strong>{h.site_measurement}%</strong>
+                                                </div>
+                                                <div className={styles.breakdownItem}>
+                                                    <span className={styles.labelLong}>Site Marking:</span>
+                                                    <span className={styles.labelShort}>Marking:</span>
+                                                    <strong>{h.site_marking}%</strong>
+                                                </div>
+                                                <div className={styles.breakdownItem}>
+                                                    <span className={styles.labelLong}>Sample Moodboard:</span>
+                                                    <span className={styles.labelShort}>Moodboard:</span>
+                                                    <strong>{h.sample_moodboard}%</strong>
+                                                </div>
+                                                <div className={styles.breakdownItem}>
+                                                    <span className={styles.labelLong}>Shop Drawing (Initial):</span>
+                                                    <span className={styles.labelShort}>Shop Drw (I):</span>
+                                                    <strong>{h.shop_drawing}%</strong>
+                                                </div>
+                                                <div className={styles.breakdownItem}>
+                                                    <span className={styles.labelLong}>Finishes List:</span>
+                                                    <span className={styles.labelShort}>Finishes:</span>
+                                                    <strong>{h.finishes_list}%</strong>
+                                                </div>
+                                                <div className={styles.breakdownItem}>
+                                                    <span className={styles.labelLong}>Shop Drawing (Final):</span>
+                                                    <span className={styles.labelShort}>Shop Drw (F):</span>
+                                                    <strong>{h.shop_drawing_final}%</strong>
+                                                </div>
+                                                <div className={styles.breakdownItem}>
+                                                    <span className={styles.labelLong}>MRF Status:</span>
+                                                    <span className={styles.labelShort}>MRF Status:</span>
+                                                    <strong>{h.mrf_status}%</strong>
+                                                </div>
+                                                <div className={styles.breakdownItem}>
+                                                    <span className={styles.labelLong}>Production:</span>
+                                                    <span className={styles.labelShort}>Production:</span>
+                                                    <strong>{h.production}%</strong>
+                                                </div>
+                                                <div className={styles.breakdownItem}>
+                                                    <span className={styles.labelLong}>Material Delivery:</span>
+                                                    <span className={styles.labelShort}>Delivery:</span>
+                                                    <strong>{h.material_delivery}%</strong>
+                                                </div>
+                                                <div className={styles.breakdownItem}>
+                                                    <span className={styles.labelLong}>Site Installation:</span>
+                                                    <span className={styles.labelShort}>Installation:</span>
+                                                    <strong>{h.site_installation}%</strong>
+                                                </div>
+                                                <div 
+                                                    className={`${styles.breakdownItem} ${styles.popoverContainer} ${styles.breakdownItemClickable}`}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setActivePopover(activePopover === h.id ? null : h.id);
+                                                    }}
+                                                >
+                                                    <span className={styles.labelLong}>Site Work (Overall):</span>
+                                                    <span className={styles.labelShort}>Site Work:</span>
+                                                    <strong style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                        {h.site_work}% <ChevronRight size={14} style={{ transform: activePopover === h.id ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
+                                                    </strong>
+
+                                                    {activePopover === h.id && (
+                                                        <div className={styles.popoverOverlay} onClick={e => e.stopPropagation()}>
+                                                            <div className={styles.popoverTitle}>
+                                                                <span>Site Breakdown</span>
+                                                                <button className={styles.popoverClose} onClick={() => setActivePopover(null)}><X size={14} /></button>
+                                                            </div>
+                                                            {[
+                                                                { label: 'Civil Work', short: 'Civil', value: h.civil_work },
+                                                                { label: 'False Ceiling', short: 'Ceiling', value: h.false_ceiling },
+                                                                { label: 'Carpentry', short: 'Carpentry', value: h.carpentry_work },
+                                                                { label: 'Painting', short: 'Painting', value: h.painting }
+                                                            ].map((item, idx) => (
+                                                                <div key={idx} className={styles.popoverItem}>
+                                                                    <div className={styles.popoverLabel}>
+                                                                        <span className={styles.labelLong}>{item.label}</span>
+                                                                        <span className={styles.labelShort}>{item.short}</span>
+                                                                        <span className={styles.popoverValue}>{item.value}%</span>
+                                                                    </div>
+                                                                    <div className={styles.pMiniBar}>
+                                                                        <div className={styles.pMiniFill} style={{ width: `${item.value}%` }}></div>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                             <p className={styles.hRemarks}>{h.remarks}</p>
                                             {h.file_url && (
