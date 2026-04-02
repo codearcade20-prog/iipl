@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Plus, Trash2, Calendar, MapPin, CheckCircle, Briefcase, Pencil, User } from 'lucide-react';
+import { Plus, Trash2, Calendar, MapPin, CheckCircle, Briefcase, Pencil, User, Hash } from 'lucide-react';
 import { useMessage } from '../context/MessageContext';
 import { useAuth } from '../context/AuthContext';
 import LoadingScreen from '../components/LoadingScreen';
@@ -16,6 +16,7 @@ const ProjectEntry = () => {
     const [editId, setEditId] = useState(null);
     const [form, setForm] = useState({
         name: '',
+        code: '',
         location: '',
         coordinator: '',
         designer: '',
@@ -69,6 +70,7 @@ const ProjectEntry = () => {
                     .from('projects')
                     .update({
                         name: form.name,
+                        code: form.code,
                         location: form.location,
                         coordinator: form.coordinator,
                         designer: form.designer,
@@ -86,6 +88,7 @@ const ProjectEntry = () => {
                     .from('projects')
                     .insert([{
                         name: form.name,
+                        code: form.code,
                         location: form.location,
                         coordinator: form.coordinator,
                         designer: form.designer,
@@ -113,6 +116,7 @@ const ProjectEntry = () => {
         setEditId(project.id);
         setForm({
             name: project.name,
+            code: project.code || '',
             location: project.location || '',
             coordinator: project.coordinator || '',
             designer: project.designer || '',
@@ -146,6 +150,7 @@ const ProjectEntry = () => {
     const resetForm = () => {
         setForm({
             name: '',
+            code: '',
             location: '',
             coordinator: '',
             designer: '',
@@ -169,7 +174,7 @@ const ProjectEntry = () => {
 
             <form className={styles.formCard} onSubmit={handleSubmit}>
                 <div className={styles.formGrid}>
-                    <div className={styles.fieldGroup} style={{ gridColumn: 'span 2' }}>
+                    <div className={styles.fieldGroup}>
                         <label className={styles.label}><Briefcase size={14} /> Project Name</label>
                         <input 
                             type="text" 
@@ -178,6 +183,17 @@ const ProjectEntry = () => {
                             onChange={(e) => setForm({...form, name: e.target.value})} 
                             placeholder="Enter project name"
                             required 
+                        />
+                    </div>
+
+                    <div className={styles.fieldGroup}>
+                        <label className={styles.label}><Hash size={14} /> Project Code</label>
+                        <input 
+                            type="text" 
+                            className={styles.input} 
+                            value={form.code} 
+                            onChange={(e) => setForm({...form, code: e.target.value})} 
+                            placeholder="Enter project code"
                         />
                     </div>
 
@@ -284,7 +300,10 @@ const ProjectEntry = () => {
                     {projects.length > 0 ? projects.map(project => (
                         <div key={project.id} className={styles.projectCard}>
                             <div className={styles.cardHeader}>
-                                <h3 className={styles.projectName}>{project.name}</h3>
+                                <div>
+                                    <h3 className={styles.projectName}>{project.name}</h3>
+                                    <span className={styles.projectCodeBadge}>{project.code || 'NO CODE'}</span>
+                                </div>
                                 <div className={styles.cardActions}>
                                     <button className={styles.actionBtn} onClick={() => handleEdit(project)} title="Edit">
                                         <Pencil size={16} />
