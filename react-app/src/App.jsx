@@ -37,6 +37,8 @@ import ProjectStatusLayout from './pages/ProjectStatusLayout';
 import ProjectEntry from './pages/ProjectEntry';
 import ProjectStatusUpdate from './pages/ProjectStatusUpdate';
 import ProjectPersonnel from './pages/ProjectPersonnel';
+import SubVendorChecklist from './pages/SubVendorChecklist';
+import SubVendorChecklistHistory from './pages/SubVendorChecklistHistory';
 import { MessageProvider } from './context/MessageContext';
 
 function App() {
@@ -88,6 +90,8 @@ function App() {
               <Route path="update" element={<ProtectedRoute module="project_status"><ProjectStatusUpdate /></ProtectedRoute>} />
               <Route path="personnel/:role" element={<ProtectedRoute module="project_entry"><ProjectPersonnel /></ProtectedRoute>} />
             </Route>
+            <Route path="/sub-vendor-checklist" element={<ProtectedRoute><SubVendorChecklist /></ProtectedRoute>} />
+            <Route path="/sub-vendor-checklist/history" element={<ProtectedRoute><SubVendorChecklistHistory /></ProtectedRoute>} />
           </Routes>
 
         </Router>

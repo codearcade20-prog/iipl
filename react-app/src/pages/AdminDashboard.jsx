@@ -34,7 +34,8 @@ const AdminDashboard = () => {
     const [vendorModalOpen, setVendorModalOpen] = useState(false);
     const [editingVendorId, setEditingVendorId] = useState(null);
     const [vendorForm, setVendorForm] = useState({
-        name: '', holderName: '', pan: '', phone: '', address: '', acc: '', bank: '', ifsc: '', vendorType: 'both'
+        name: '', holderName: '', pan: '', phone: '', address: '', acc: '', bank: '', ifsc: '', vendorType: 'both',
+        vendorCompany: '', aadhaar: '', gst: '', bankBranch: ''
     });
 
     // --- HISTORY STATE ---
@@ -195,11 +196,18 @@ const AdminDashboard = () => {
             setVendorForm({
                 name: v.vendor_name, holderName: v.account_holder, pan: v.pan_no, phone: v.phone,
                 address: v.address, acc: v.account_number, bank: v.bank_name, ifsc: v.ifsc_code,
-                vendorType: v.vendor_type || 'both'
+                vendorType: v.vendor_type || 'both',
+                vendorCompany: v.vendor_company || '',
+                aadhaar: v.aadhaar_no || '',
+                gst: v.gst_no || '',
+                bankBranch: v.bank_branch || ''
             });
         } else {
             setEditingVendorId(null);
-            setVendorForm({ name: '', holderName: '', pan: '', phone: '', address: '', acc: '', bank: '', ifsc: '', vendorType: 'both' });
+            setVendorForm({
+                name: '', holderName: '', pan: '', phone: '', address: '', acc: '', bank: '', ifsc: '', vendorType: 'both',
+                vendorCompany: '', aadhaar: '', gst: '', bankBranch: ''
+            });
         }
         setVendorModalOpen(true);
     };
@@ -209,7 +217,11 @@ const AdminDashboard = () => {
             vendor_name: vendorForm.name, account_holder: vendorForm.holderName, pan_no: vendorForm.pan,
             phone: vendorForm.phone, address: vendorForm.address, account_number: vendorForm.acc,
             bank_name: vendorForm.bank, ifsc_code: vendorForm.ifsc.toUpperCase(),
-            vendor_type: vendorForm.vendorType
+            vendor_type: vendorForm.vendorType,
+            vendor_company: vendorForm.vendorCompany,
+            aadhaar_no: vendorForm.aadhaar,
+            gst_no: vendorForm.gst,
+            bank_branch: vendorForm.bankBranch
         };
         setSaving(true);
         try {
@@ -1800,6 +1812,7 @@ const AdminDashboard = () => {
                             <h3 className={styles.modalTitle}>{editingVendorId ? 'Edit Vendor' : 'Add Vendor'}</h3>
                             <div className="flex flex-col gap-3">
                                 <Input placeholder="Vendor Name" value={vendorForm.name} onChange={e => setVendorForm({ ...vendorForm, name: e.target.value })} />
+                                <Input placeholder="Vendor Company Name" value={vendorForm.vendorCompany} onChange={e => setVendorForm({ ...vendorForm, vendorCompany: e.target.value })} />
                                 <Input placeholder="Account Holder Name" value={vendorForm.holderName} onChange={e => setVendorForm({ ...vendorForm, holderName: e.target.value })} />
                                 <div style={{ marginBottom: '12px' }}>
                                     <label style={{ display: 'block', marginBottom: '6px', fontWeight: 500, fontSize: '0.9rem' }}>Vendor Type</label>
@@ -1816,14 +1829,19 @@ const AdminDashboard = () => {
                                 </div>
                                 <div className={styles.formGrid}>
                                     <Input placeholder="PAN Number" value={vendorForm.pan} onChange={e => setVendorForm({ ...vendorForm, pan: e.target.value })} />
+                                    <Input placeholder="GST Number" value={vendorForm.gst} onChange={e => setVendorForm({ ...vendorForm, gst: e.target.value })} />
+                                </div>
+                                <div className={styles.formGrid}>
+                                    <Input placeholder="Aadhaar Number" value={vendorForm.aadhaar} onChange={e => setVendorForm({ ...vendorForm, aadhaar: e.target.value })} />
                                     <Input placeholder="Phone Number" value={vendorForm.phone} onChange={e => setVendorForm({ ...vendorForm, phone: e.target.value })} />
                                 </div>
                                 <Input placeholder="Address" multiline={true} rows={3} value={vendorForm.address} onChange={e => setVendorForm({ ...vendorForm, address: e.target.value })} />
                                 <Input placeholder="Account Number" value={vendorForm.acc} onChange={e => setVendorForm({ ...vendorForm, acc: e.target.value })} />
                                 <div className={styles.formGrid}>
                                     <Input placeholder="Bank Name" value={vendorForm.bank} onChange={e => setVendorForm({ ...vendorForm, bank: e.target.value })} />
-                                    <Input placeholder="IFSC Code" value={vendorForm.ifsc} onChange={e => setVendorForm({ ...vendorForm, ifsc: e.target.value })} />
+                                    <Input placeholder="Bank Branch" value={vendorForm.bankBranch} onChange={e => setVendorForm({ ...vendorForm, bankBranch: e.target.value })} />
                                 </div>
+                                <Input placeholder="IFSC Code" value={vendorForm.ifsc} onChange={e => setVendorForm({ ...vendorForm, ifsc: e.target.value })} />
                             </div>
                             <div className={styles.modalActions}>
                                 <Button variant="secondary" onClick={() => setVendorModalOpen(false)}>Cancel</Button>

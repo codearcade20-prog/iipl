@@ -15,7 +15,7 @@ const PettyCashHistory = () => {
     const [loading, setLoading] = useState(true);
     const [sites, setSites] = useState([]);
     const [filters, setFilters] = useState({
-        startDate: '',
+        startDate: '', 
         endDate: '',
         month: '',
         site: '',
