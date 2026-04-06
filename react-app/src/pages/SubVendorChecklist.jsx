@@ -293,7 +293,7 @@ const SubVendorChecklist = () => {
                         <button className={`${styles.actionBtn} ${styles.saveBtn}`} onClick={handleSubmit} disabled={loading}>
                             {loading ? <Loader2 className={`${styles.loadingSpinner} animate-spin`} size={18} /> : <Save size={18} />} SAVE
                         </button>
-                        <button className={styles.backBtn} onClick={() => navigate(-1)}>
+                        <button className={styles.backBtn} onClick={() => navigate('/')}>
                             <ArrowLeft size={18} /> BACK
                         </button>
                     </div>
