@@ -552,7 +552,19 @@ const InvoiceGenerator = () => {
                 <Input label="Bank Name" value={formData.bank} onChange={e => setFormData({ ...formData, bank: e.target.value })} />
 
                 <div style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <Button onClick={handlePrint}>Print Invoice</Button>
+                    <Button 
+                        onClick={handlePrint} 
+                        disabled={!isSaved}
+                        style={{ 
+                            background: isSaved ? '' : '#f1f5f9', 
+                            color: isSaved ? '' : '#94a3b8',
+                            cursor: isSaved ? 'pointer' : 'not-allowed',
+                            opacity: isSaved ? 1 : 0.7
+                        }}
+                        title={isSaved ? "Print Invoice" : "Please save to history before printing"}
+                    >
+                        Print Invoice
+                    </Button>
                     <div className={styles.row}>
                         <Button style={{ background: '#28a745', color: 'white', flex: 1 }} onClick={exportToExcel}>Save Excel</Button>
                         <Button style={{ background: '#0070c0', color: 'white', flex: 1 }} onClick={saveToHistory}>Save to History</Button>

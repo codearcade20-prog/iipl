@@ -476,7 +476,21 @@ const PaymentRequest = () => {
                 </div>
 
                 <div className={styles.buttonGroup}>
-                    <Button variant="secondary" style={{ flex: 1 }} onClick={handlePrint}>Print Request</Button>
+                    <Button 
+                        variant="secondary" 
+                        style={{ 
+                            flex: 1,
+                            background: isSaved ? '' : '#f1f5f9', 
+                            color: isSaved ? '' : '#94a3b8',
+                            cursor: isSaved ? 'pointer' : 'not-allowed',
+                            opacity: isSaved ? 1 : 0.7
+                        }} 
+                        onClick={handlePrint}
+                        disabled={!isSaved}
+                        title={isSaved ? "Print Request" : "Please save record before printing"}
+                    >
+                        Print Request
+                    </Button>
                     <Button style={{ flex: 1 }} onClick={saveToHistory}>Save Record</Button>
                 </div>
             </div>
