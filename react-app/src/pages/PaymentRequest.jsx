@@ -372,11 +372,8 @@ const PaymentRequest = () => {
                       <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                         {formData.invoiceNo && (
                             <button 
+                                disabled={!isSaved}
                                 onClick={() => {
-                                    if (!isSaved) {
-                                        alert("Please save the data first then take a printout");
-                                        return;
-                                    }
                                     window.open(`#/vendor-dashboard?wo=${formData.invoiceNo}&direct=true&from=payment`, '_blank')
                                 }}
                                 style={{ 
@@ -384,17 +381,16 @@ const PaymentRequest = () => {
                                     alignItems: 'center', 
                                     justifyContent: 'center',
                                     padding: '8px',
-                                    background: '#fee2e2', 
-                                    border: '1px solid #ef4444', 
-                                    color: '#b91c1c',
+                                    background: isSaved ? '#fee2e2' : '#f1f5f9', 
+                                    border: `1px solid ${isSaved ? '#ef4444' : '#cbd5e1'}`, 
+                                    color: isSaved ? '#b91c1c' : '#94a3b8',
                                     borderRadius: '8px',
-                                    cursor: 'pointer',
+                                    cursor: isSaved ? 'pointer' : 'not-allowed',
                                     transition: 'all 0.2s',
-                                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                    boxShadow: isSaved ? '0 2px 4px rgba(0,0,0,0.1)' : 'none',
+                                    opacity: isSaved ? 1 : 0.6
                                 }}
-                                title="Print Work Order Report"
-                                onMouseOver={e => { e.currentTarget.style.background = '#fecaca'; e.currentTarget.style.transform = 'scale(1.05)'; }}
-                                onMouseOut={e => { e.currentTarget.style.background = '#fee2e2'; e.currentTarget.style.transform = 'scale(1)'; }}
+                                title={isSaved ? "Print Work Order Report" : "Please save before printing"}
                             >
                                 <Printer size={20} strokeWidth={2.5} />
                             </button>
