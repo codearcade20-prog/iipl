@@ -254,6 +254,16 @@ const SubVendorChecklist = () => {
         try {
             const checklistData = {
                 ...form,
+                material_budget: parseFloat(form.material_budget) || 0,
+                labour_budget: parseFloat(form.labour_budget) || 0,
+                final_material_amount: parseFloat(form.final_material_amount) || 0,
+                final_labour_amount: parseFloat(form.final_labour_amount) || 0,
+                total_budget: parseFloat(form.total_budget) || 0,
+                total_value: parseFloat(form.total_value) || 0,
+                payment_terms: {
+                    ...form.payment_terms,
+                    advance_pct: form.payment_terms.advance_pct === "" ? 0 : parseFloat(form.payment_terms.advance_pct) || 0
+                },
                 updated_at: new Date().toISOString()
             };
 
