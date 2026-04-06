@@ -384,6 +384,7 @@ const InvoiceGenerator = () => {
 
         setHistoryModalOpen(false);
         setShowWoDate(!!item.wo_date);
+        setIsSaved(true);
     };
 
     const deleteHistoryItem = async (id, e) => {

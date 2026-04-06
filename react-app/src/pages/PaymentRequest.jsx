@@ -330,6 +330,7 @@ const PaymentRequest = () => {
             woValue: item.wo_value || '',
             billStatus: item.bill_status || ''
         });
+        setIsSaved(true);
         setHistoryModalOpen(false);
     };
 
