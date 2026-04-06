@@ -53,8 +53,10 @@ const SubVendorChecklistHistory = () => {
                 .eq('id', id);
 
             if (error) throw error;
+            
+            // Instant update: reflect the change quickly without a full refresh
+            setChecklists(prev => prev.filter(item => item.id !== id));
             toast.success('Record deleted successfully');
-            fetchHistory();
         } catch (err) {
             console.error('Error deleting record:', err);
             toast.error('Failed to delete record');
