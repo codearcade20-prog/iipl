@@ -144,11 +144,13 @@ const Home = () => {
                         <p className={styles.cardText}>Track project progress, completion percentages, and log daily status updates.</p>
                     </Link>
                 )}
-                <Link to="/sub-vendor-checklist" className={styles.navCard}>
-                    <div className={styles.icon}>📋</div>
-                    <h3 className={styles.cardTitle}>Sub Vendor Checklist</h3>
-                    <p className={styles.cardText}>Create and manage detailed sub-vendor agreements and project checklists.</p>
-                </Link>
+                {hasPermission('sub_vendor_checklist') && (
+                    <Link to="/sub-vendor-checklist" className={styles.navCard}>
+                        <div className={styles.icon}>📋</div>
+                        <h3 className={styles.cardTitle}>Sub Vendor Checklist</h3>
+                        <p className={styles.cardText}>Create and manage detailed sub-vendor agreements and project checklists.</p>
+                    </Link>
+                )}
             </div>
 
             <footer className={styles.footer}>
