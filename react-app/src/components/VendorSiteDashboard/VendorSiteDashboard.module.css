@@ -932,6 +932,9 @@
 
 @media print {
     .directPrintWrapper {
+        display: block !important;
+        opacity: 1 !important;
+        visibility: visible !important;
         padding: 0 !important;
         margin: 0 !important;
     }

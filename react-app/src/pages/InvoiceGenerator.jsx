@@ -177,6 +177,7 @@ const InvoiceGenerator = () => {
     };
 
     const handleWOChange = (e) => {
+        setIsSaved(false);
         const val = e.target.value;
         setFormData(prev => ({ ...prev, woNumber: val }));
 
@@ -424,26 +425,27 @@ const InvoiceGenerator = () => {
                 <div className={styles.header}>
                     <h2 className={styles.title}>Invoice Data Entry</h2>
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                        {isSaved && formData.woNumber && filteredWOs.some(wo => wo.wo_no === formData.woNumber) && (
+                        {isSaved && formData.woNumber && (
                             <button 
-                                onClick={() => window.open(`#/vendor-dashboard?wo=${formData.woNumber}&direct=true`, '_blank')}
+                                onClick={() => window.open(`#/vendor-dashboard?wo=${formData.woNumber}&direct=true&from=invoice`, '_blank')}
                                 style={{ 
                                     display: 'flex', 
                                     alignItems: 'center', 
                                     justifyContent: 'center',
                                     padding: '8px',
-                                    background: '#fef2f2', 
-                                    border: '1px solid #fecaca', 
+                                    background: '#fee2e2', 
+                                    border: '1px solid #ef4444', 
                                     color: '#b91c1c',
                                     borderRadius: '8px',
                                     cursor: 'pointer',
-                                    transition: 'all 0.2s'
+                                    transition: 'all 0.2s',
+                                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                                 }}
-                                title="Print Work Order Receipt"
-                                onMouseOver={e => e.currentTarget.style.background = '#fee2e2'}
-                                onMouseOut={e => e.currentTarget.style.background = '#fef2f2'}
+                                title="Print Work Order Report"
+                                onMouseOver={e => { e.currentTarget.style.background = '#fecaca'; e.currentTarget.style.transform = 'scale(1.05)'; }}
+                                onMouseOut={e => { e.currentTarget.style.background = '#fee2e2'; e.currentTarget.style.transform = 'scale(1)'; }}
                             >
-                                <Printer size={20} />
+                                <Printer size={20} strokeWidth={2.5} />
                             </button>
                         )}
                         <Button variant="secondary" onClick={openHistoryModal} style={{ padding: '8px 12px' }}>History</Button>
@@ -477,10 +479,12 @@ const InvoiceGenerator = () => {
                     <Input type="date" label="Date" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
                 </div>
                 <div style={{ marginTop: '12px' }}>
-                    <Input
-                        label="Work Order No"
+                    <label className={styles.label}>Work Order No</label>
+                    <select
+                        className={styles.select}
                         value={formData.woNumber || ''}
                         onChange={e => {
+                            setIsSaved(false);
                             const val = e.target.value;
                             setFormData(prev => ({ ...prev, woNumber: val }));
 
@@ -491,7 +495,13 @@ const InvoiceGenerator = () => {
                                 setItems(newItems);
                             }
                         }}
-                    />
+                        style={{ width: '100%', padding: '10px' }}
+                    >
+                        <option value="">Select Work Order</option>
+                        {filteredWOs.map((wo, i) => (
+                            <option key={i} value={wo.wo_no}>{wo.wo_no}</option>
+                        ))}
+                    </select>
                 </div>
                 <div style={{ marginTop: '16px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <input

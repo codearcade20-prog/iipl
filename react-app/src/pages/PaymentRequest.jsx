@@ -369,26 +369,27 @@ const PaymentRequest = () => {
                 <div className={styles.formHeader}>
                     <h2 className={styles.title}>Payment Request</h2>
                       <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                        {isSaved && formData.invoiceNo && filteredWOs.some(wo => wo.wo_no === formData.invoiceNo) && (
+                        {isSaved && formData.invoiceNo && (
                             <button 
-                                onClick={() => window.open(`#/vendor-dashboard?wo=${formData.invoiceNo}&direct=true`, '_blank')}
+                                onClick={() => window.open(`#/vendor-dashboard?wo=${formData.invoiceNo}&direct=true&from=payment`, '_blank')}
                                 style={{ 
                                     display: 'flex', 
                                     alignItems: 'center', 
                                     justifyContent: 'center',
                                     padding: '8px',
-                                    background: '#fef2f2', 
-                                    border: '1px solid #fecaca', 
+                                    background: '#fee2e2', 
+                                    border: '1px solid #ef4444', 
                                     color: '#b91c1c',
                                     borderRadius: '8px',
                                     cursor: 'pointer',
-                                    transition: 'all 0.2s'
+                                    transition: 'all 0.2s',
+                                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                                 }}
-                                title="Print Work Order Receipt"
-                                onMouseOver={e => e.currentTarget.style.background = '#fee2e2'}
-                                onMouseOut={e => e.currentTarget.style.background = '#fef2f2'}
+                                title="Print Work Order Report"
+                                onMouseOver={e => { e.currentTarget.style.background = '#fecaca'; e.currentTarget.style.transform = 'scale(1.05)'; }}
+                                onMouseOut={e => { e.currentTarget.style.background = '#fee2e2'; e.currentTarget.style.transform = 'scale(1)'; }}
                             >
-                                <Printer size={20} />
+                                <Printer size={20} strokeWidth={2.5} />
                             </button>
                         )}
                         <Button variant="secondary" onClick={openHistoryModal} style={{ padding: '8px 12px' }}>History</Button>

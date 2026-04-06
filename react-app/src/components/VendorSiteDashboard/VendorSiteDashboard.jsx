@@ -261,25 +261,8 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                     setSelectedStatementWO(foundWO);
                     if (params.get('print') === 'true' || isDirectPrint) {
                         setPrintOrientation('portrait');
-                        if (isDirectPrint) {
-                            // Longer delay to ensure full render
-                            setTimeout(() => {
-                                if (document.getElementById('receipt-ready-indicator')) {
-                                    window.print();
-                                    window.onafterprint = () => {
-                                        window.close();
-                                    };
-                                } else {
-                                    // Fallback if not found yet
-                                    setTimeout(() => {
-                                        window.print();
-                                        window.onafterprint = () => window.close();
-                                    }, 1000);
-                                }
-                            }, 1200);
-                        } else {
-                            setShowPrintModal(true);
-                        }
+                        // Always show modal for direct/print param to avoid blank pages and give orientation choice
+                        setTimeout(() => setShowPrintModal(true), 1500); 
                     }
                 }
             } else if (siteParam) {
@@ -293,6 +276,16 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
 
         loadInitialData();
     }, [location.search]);
+
+    // Dedicated Auto-Print Handler - Removed in favor of interactive modal to prevent blank pages
+    /*
+    useEffect(() => {
+        const isDirect = new URLSearchParams(location.search).get('direct') === 'true';
+        if (isDirect && selectedStatementWO) {
+            // ...
+        }
+    }, [selectedStatementWO, location.search]);
+    */
 
     // Derived Data
     const sites = useMemo(() => {
@@ -2357,14 +2350,27 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
         const housekeeping = parseFloat(wo.housekeeping) || 0;
         const retention = parseFloat(wo.retention) || 0;
         const woValue = parseFloat(wo.wo_value) || 0;
-        const balance = billCertified - housekeeping - retention - totalPaid;
+        const balance = (billCertified > 0 ? billCertified : woValue) - housekeeping - retention - totalPaid;
 
         return (
             <div className={styles.statementContainer}>
                 <div id="receipt-ready-indicator" style={{ display: 'none' }}></div>
                 <div className={styles.printHide} style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Button variant="secondary" onClick={() => setSelectedStatementWO(null)}>
-                        <ArrowLeft size={16} /> Back to Search
+                    <Button 
+                        variant="secondary" 
+                        onClick={() => {
+                            const from = new URLSearchParams(location.search).get('from');
+                            const isDirect = new URLSearchParams(location.search).get('direct') === 'true';
+                            if (isDirect) {
+                                if (from === 'payment') navigate('/payment-request');
+                                else if (from === 'invoice') navigate('/invoice-generator');
+                                else window.close();
+                            } else {
+                                setSelectedStatementWO(null);
+                            }
+                        }}
+                    >
+                        <ArrowLeft size={16} /> Back
                     </Button>
                     <Button onClick={() => { setPrintOrientation('portrait'); setShowPrintModal(true); }}>
                         <Printer size={18} style={{ marginRight: '0.5rem' }} /> Print Receipt
@@ -2478,8 +2484,49 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                             </div>
                                             <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 500 }}>{entry.site_name}</span>
                                         </div>
-                                        <SafePdfBtn url={entry.wo_pdf_url} />
-                                    </div>
+                                            <button 
+                                                onClick={() => {
+                                                    setCurrentView('statements');
+                                                    setStatementMode('work_order');
+                                                    setSelectedStatementWO(entry);
+                                                }}
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '4px',
+                                                    padding: '6px 12px',
+                                                    background: '#4f46e5',
+                                                    color: 'white',
+                                                    border: 'none',
+                                                    borderRadius: '6px',
+                                                    fontSize: '0.75rem',
+                                                    fontWeight: 600,
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                <FileText size={14} /> View
+                                            </button>
+                                            <button 
+                                                onClick={() => window.open(`#/vendor-dashboard?wo=${entry.wo_no}&direct=true`, '_blank')}
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '4px',
+                                                    padding: '6px 12px',
+                                                    background: '#fee2e2',
+                                                    color: '#b91c1c',
+                                                    border: '1px solid #fca5a5',
+                                                    borderRadius: '6px',
+                                                    fontSize: '0.75rem',
+                                                    fontWeight: 600,
+                                                    cursor: 'pointer'
+                                                }}
+                                                title="Quick Print Portrait"
+                                            >
+                                                <Printer size={14} /> Print
+                                            </button>
+                                            <SafePdfBtn url={entry.wo_pdf_url} />
+                                        </div>
                                     <div className={styles.cardBody}>
                                         <div className={styles.listItem}>
                                             <span className={styles.listItemSub}>Vendor</span>
@@ -2555,7 +2602,21 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
     };
 
     const renderContent = () => {
-        if (loading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh', color: '#64748b' }}>Loading Dashboard Data...</div>;
+        if (loading) return (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#f8fafc', flexDirection: 'column', gap: '1rem' }}>
+                <LoadingOverlay message="Preparing Dashboard..." />
+                <span style={{ color: '#64748b', fontWeight: 500 }}>Please wait, processing records...</span>
+            </div>
+        );
+
+        if (isDirectPrint && selectedStatementWO) {
+            return (
+                <div style={{ maxWidth: '800px', margin: '0 auto', background: 'white', padding: '1rem' }}>
+                    {renderReceiptView(selectedStatementWO)}
+                </div>
+            );
+        }
+
         switch (currentView) {
             case 'overview': return renderOverview();
             case 'sites': return renderSites();
@@ -2613,8 +2674,33 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                        <Button variant="secondary" onClick={() => setShowPrintModal(false)} style={{ margin: 0 }}>Cancel</Button>
-                        <Button onClick={() => { setShowPrintModal(false); setTimeout(() => window.print(), 300); }}>Continue to Print</Button>
+                        <Button 
+                            variant="secondary" 
+                            style={{ margin: 0 }}
+                            onClick={() => {
+                                const from = new URLSearchParams(location.search).get('from');
+                                if (new URLSearchParams(location.search).get('direct') === 'true') {
+                                    if (from === 'payment') navigate('/payment-request');
+                                    else if (from === 'invoice') navigate('/invoice-generator');
+                                    else window.close();
+                                } else {
+                                    setShowPrintModal(false);
+                                }
+                            }}
+                        >
+                            Back to Form
+                        </Button>
+                        <Button onClick={() => { 
+                            setShowPrintModal(false); 
+                            setTimeout(() => {
+                                window.print();
+                                if (new URLSearchParams(location.search).get('direct') === 'true') {
+                                    window.onafterprint = () => window.close();
+                                }
+                            }, 300); 
+                        }}>
+                            Print Now
+                        </Button>
                     </div>
                 </div>
             </div>
@@ -2674,31 +2760,32 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
     const params = new URLSearchParams(location.search);
     const isDirectPrint = params.get('direct') === 'true';
 
-    // Minimal View for Direct Printing
-    if (isDirectPrint && selectedStatementWO) {
-        return (
-            <div className={styles.directPrintWrapper}>
+    return (
+        <div className={`${styles.dashboardContainer} ${sidebarOpen ? styles.sidebarOpen : ''} ${isDirectPrint ? styles.isDirectMode : ''}`}>
+            {isDirectPrint && (
                 <style>
                     {`
-                    body { background: white !important; margin: 0; padding: 0; }
-                    .${styles.mainContent}, .${styles.contentArea} { padding: 0 !important; margin: 0 !important; border: none !important; }
-                    .${styles.printHide}, .${styles.sidebar}, .${styles.topBar}, .${styles.detailHeader}, .${styles.backBtn}, .${styles.headerButtons} { display: none !important; }
-                    #print-area { margin: 0 auto; box-shadow: none !important; padding: 0 !important; }
-                    .${styles.statementContainer} { padding: 0 !important; border: none !important; background: white !important; }
+                    @media screen {
+                        body { background: white !important; }
+                        .${styles.sidebar}, .${styles.topBar}, .${styles.mobileOverlay} { display: none !important; }
+                        .${styles.mainContent} { margin-left: 0 !important; width: 100% !important; padding: 0 !important; }
+                        .${styles.contentArea} { padding: 0 !important; height: auto !important; overflow: visible !important; }
+                    }
                     @media print {
                         @page { size: portrait; margin: 1cm; }
+                        .${styles.sidebar}, .${styles.topBar}, .${styles.mobileOverlay}, .no-print { display: none !important; }
+                        .${styles.mainContent}, .${styles.contentArea}, .${styles.dashboardContainer} { 
+                            margin: 0 !important; 
+                            padding: 0 !important; 
+                            width: 100% !important; 
+                            display: block !important;
+                            height: auto !important;
+                            overflow: visible !important;
+                        }
                     }
                     `}
                 </style>
-                <div style={{ padding: '1rem', maxWidth: '800px', margin: '0 auto' }}>
-                    {renderReceiptView(selectedStatementWO)}
-                </div>
-            </div>
-        );
-    }
-
-    return (
-        <div className={`${styles.dashboardContainer} ${sidebarOpen ? styles.sidebarOpen : ''}`}>
+            )}
             {loading && <LoadingOverlay message="Please wait, processing data..." />}
             <style>
                 {`
