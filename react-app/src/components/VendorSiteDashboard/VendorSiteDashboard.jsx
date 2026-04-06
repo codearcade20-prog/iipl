@@ -53,13 +53,22 @@ const StatusBadge = ({ status, url, extraStyles = {} }) => {
     // Basic validation to hide empty or corrupted URL strings
     const isUrlValid = url && url.length > 8 && (url.startsWith('http') || url.startsWith('https'));
 
+    // Dynamic colors based on status
+    let badgeColor = { bg: '#fef2f2', text: '#b91c1c' }; // Default Red
+    if (status === 'FINAL') {
+        badgeColor = { bg: '#f0fdf4', text: '#166534' }; // Green
+    } else if (status.startsWith('RAB')) {
+        badgeColor = { bg: '#fffbeb', text: '#92400e' }; // Yellow/Amber
+    }
+
     const badge = (
         <span 
             className={styles.tag} 
             style={{ 
-                background: '#fef2f2', 
-                color: '#b91c1c', 
+                background: badgeColor.bg, 
+                color: badgeColor.text, 
                 cursor: isUrlValid ? 'pointer' : 'default',
+                border: `1px solid ${status === 'FINAL' ? '#bbf7d0' : (status.startsWith('RAB') ? '#fde68a' : '#fecaca')}`,
                 ...extraStyles 
             }}
         >
@@ -84,7 +93,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
     const location = useLocation();
     const navigate = useNavigate();
     const { logout } = useAuth();
-    const { alert, confirm, prompt, toast } = useMessage();
+    const { alert, confirm, toast } = useMessage();
     const [currentView, setCurrentView] = useState('overview');
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [rawData, setRawData] = useState([]);
@@ -130,6 +139,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
     const [vendorStatementView, setVendorStatementView] = useState('detailed'); // detailed, simple
     const [selectedStatementVendor, setSelectedStatementVendor] = useState(null);
     const [selectedStatementSite, setSelectedStatementSite] = useState(null);
+    const [selectedStatementWO, setSelectedStatementWO] = useState(null);
     const [siteStatementView, setSiteStatementView] = useState('detailed'); // detailed, simple
     const [balancePopup, setBalancePopup] = useState(null);
     const [masterVendors, setMasterVendors] = useState([]); // Master list from admin
@@ -149,49 +159,6 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
     const [showColumnSettings, setShowColumnSettings] = useState(false);
     const [printOrientation, setPrintOrientation] = useState('portrait'); // 'portrait' or 'landscape'
     const [showPrintModal, setShowPrintModal] = useState(false);
-
-    // Fetch Data
-    useEffect(() => {
-        const loadInitialData = async () => {
-            await fetchData();
-
-            // Handle URL params for deep linking
-            const params = new URLSearchParams(location.search);
-            const siteParam = params.get('site');
-            const vendorParam = params.get('vendor');
-
-            if (siteParam) {
-                setCurrentView('site_detail');
-                setDetailId(siteParam);
-            } else if (vendorParam) {
-                setCurrentView('vendor_detail');
-                setDetailId(vendorParam);
-            }
-        };
-
-        loadInitialData();
-    }, [location.search]);
-
-    // Auto-refresh every 30 seconds for Project Overview
-    useEffect(() => {
-        let intervalId;
-        if (readOnly && currentView === 'overview') {
-            intervalId = setInterval(() => {
-                fetchData(true); // Silent refresh to avoid scroll reset
-            }, 30000); // 30 seconds
-        }
-        return () => {
-            if (intervalId) clearInterval(intervalId);
-        };
-    }, [readOnly, currentView]);
-    
-    // Search Debouncing
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            setDebouncedSearchQuery(searchQuery);
-        }, 300);
-        return () => clearTimeout(timer);
-    }, [searchQuery]);
 
     const fetchData = async (isSilent = false) => {
         if (!isSilent) setLoading(true);
@@ -243,12 +210,89 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
 
             const { data: sData } = await vendorSupabase.from('sites').select('name').order('name');
             setMasterSites(sData || []);
+            
+            return flattened;
         } catch (error) {
             console.error('Error fetching data:', error);
+            return [];
         } finally {
             if (!isSilent) setLoading(false);
         }
     };
+
+    // Auto-refresh every 30 seconds for Project Overview
+    useEffect(() => {
+        let intervalId;
+        if (readOnly && currentView === 'overview') {
+            intervalId = setInterval(() => {
+                fetchData(true); // Silent refresh to avoid scroll reset
+            }, 30000); // 30 seconds
+        }
+        return () => {
+            if (intervalId) clearInterval(intervalId);
+        };
+    }, [readOnly, currentView]);
+
+    // Search Debouncing
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearchQuery(searchQuery);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
+
+    // Fetch Data
+    useEffect(() => {
+        const loadInitialData = async () => {
+            const data = await fetchData();
+
+            // Handle URL params for deep linking
+            const params = new URLSearchParams(location.search);
+            const siteParam = params.get('site');
+            const vendorParam = params.get('vendor');
+            const woParam = params.get('wo');
+            const isDirectPrint = params.get('direct') === 'true';
+
+            if (woParam) {
+                const foundWO = data.find(w => w.wo_no === woParam);
+                if (foundWO) {
+                    setCurrentView('statements');
+                    setStatementMode('work_order');
+                    setSelectedStatementWO(foundWO);
+                    if (params.get('print') === 'true' || isDirectPrint) {
+                        setPrintOrientation('portrait');
+                        if (isDirectPrint) {
+                            // Longer delay to ensure full render
+                            setTimeout(() => {
+                                if (document.getElementById('receipt-ready-indicator')) {
+                                    window.print();
+                                    window.onafterprint = () => {
+                                        window.close();
+                                    };
+                                } else {
+                                    // Fallback if not found yet
+                                    setTimeout(() => {
+                                        window.print();
+                                        window.onafterprint = () => window.close();
+                                    }, 1000);
+                                }
+                            }, 1200);
+                        } else {
+                            setShowPrintModal(true);
+                        }
+                    }
+                }
+            } else if (siteParam) {
+                setCurrentView('site_detail');
+                setDetailId(siteParam);
+            } else if (vendorParam) {
+                setCurrentView('vendor_detail');
+                setDetailId(vendorParam);
+            }
+        };
+
+        loadInitialData();
+    }, [location.search]);
 
     // Derived Data
     const sites = useMemo(() => {
@@ -258,6 +302,12 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
             const totalValue = siteEntries.reduce((sum, item) => sum + (parseFloat(item.wo_value) || 0), 0);
             return { name: site, totalValue, count: siteEntries.length, entries: siteEntries };
         });
+    }, [rawData]);
+    
+    const recentEntries = useMemo(() => {
+        return [...rawData]
+            .sort((a, b) => new Date(b.created_at || b.wo_date) - new Date(a.created_at || a.wo_date))
+            .slice(0, 6);
     }, [rawData]);
 
     const vendors = useMemo(() => {
@@ -281,7 +331,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                 if (Array.isArray(advList)) {
                     adv = advList.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
                 }
-            } catch (e) { }
+            } catch (err) { /* ignore parse error */ }
             v.advances += adv;
             v.sites.add(item.site_name);
             v.entries.push(item);
@@ -615,7 +665,8 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
         if (woUpdateErr) throw woUpdateErr;
 
         // Update Advances (Delete all old, Insert new - simplest strategy)
-        await vendorSupabase.from('advances').delete().eq('work_order_id', id);
+        const { error: delErr } = await vendorSupabase.from('advances').delete().eq('work_order_id', id);
+        if (delErr) throw delErr;
         if (advs.length > 0) {
             const { error: advErr } = await vendorSupabase.from('advances').insert(
                 advs.map(a => ({ work_order_id: id, amount: a.amount, date: a.date, payment_mode: a.payment_mode }))
@@ -659,7 +710,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
 
                 <h2 className={styles.subtitle} style={{ marginBottom: '1rem', fontWeight: 600, fontSize: '1.2rem' }}>Recent Entries</h2>
                 <div className={styles.gridContainer}>
-                    {rawData.slice(0, 6).map((item) => (
+                    {recentEntries.map((item) => (
                         <div key={item.id} className={styles.infoCard}>
                             <div className={styles.cardHeader}>
                                 <span>{item.site_name}</span>
@@ -793,7 +844,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                                 Balance to Pay <div style={{ fontSize: '0.7em', border: '1px solid #b91c1c', borderRadius: '50%', width: '14px', height: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>i</div>
                                             </span>
                                             <span className={styles.currency} style={{ fontWeight: 700, color: '#b91c1c' }}>
-                                                {formatCurrency((parseFloat(entry.bill_certified_value) || 0) - (parseFloat(entry.housekeeping) || 0) - (parseFloat(entry.retention) || 0) - totalAdv)}
+                                                {formatCurrency((Math.max(parseFloat(entry.bill_certified_value) || 0, parseFloat(entry.wo_value) || 0)) - (parseFloat(entry.housekeeping) || 0) - (parseFloat(entry.retention) || 0) - totalAdv)}
                                             </span>
                                         </div>
                                     </div>
@@ -873,7 +924,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                                 Balance to Pay <div style={{ fontSize: '0.7em', border: '1px solid #b91c1c', borderRadius: '50%', width: '14px', height: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>i</div>
                                             </span>
                                             <span className={styles.currency} style={{ fontWeight: 700, color: '#b91c1c' }}>
-                                                {formatCurrency((parseFloat(entry.bill_certified_value) || 0) - (parseFloat(entry.housekeeping) || 0) - (parseFloat(entry.retention) || 0) - totalAdv)}
+                                                {formatCurrency((Math.max(parseFloat(entry.bill_certified_value) || 0, parseFloat(entry.wo_value) || 0)) - (parseFloat(entry.housekeeping) || 0) - (parseFloat(entry.retention) || 0) - totalAdv)}
                                             </span>
                                         </div>
                                     </div>
@@ -947,7 +998,14 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                         inputMode="decimal"
                         className={styles.formInput}
                         value={formData.woValue}
-                        onChange={e => setFormData({ ...formData, woValue: e.target.value, billCertifiedValue: e.target.value })}
+                        onChange={e => {
+                            const val = e.target.value;
+                            setFormData(prev => ({ 
+                                ...prev, 
+                                woValue: val, 
+                                billCertifiedValue: (prev.billCertifiedValue === prev.woValue || !prev.billCertifiedValue) ? val : prev.billCertifiedValue 
+                            }));
+                        }}
                         required
                         placeholder="0"
                     />
@@ -1215,7 +1273,8 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                             {filtered.length > 0 ? filtered.map(item => {
                                 const advs = parseAdvances(item.advance_details);
                                 const totalAdv = advs.reduce((a, b) => a + (parseFloat(b.amount) || 0), 0);
-                                const balance = (parseFloat(item.bill_certified_value) || 0) - (parseFloat(item.housekeeping) || 0) - (parseFloat(item.retention) || 0) - totalAdv;
+                                const baseValue = Math.max(parseFloat(item.bill_certified_value) || 0, parseFloat(item.wo_value) || 0);
+                                const balance = baseValue - (parseFloat(item.housekeeping) || 0) - (parseFloat(item.retention) || 0) - totalAdv;
                                 return (
                                     <tr key={item.id}>
                                         <td>{item.site_name}</td>
@@ -1315,6 +1374,18 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                             <div className={`${styles.statIcon} ${styles.bgGradient2}`} style={{ marginBottom: '1.5rem' }}><Building2 size={32} /></div>
                             <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.5rem' }}>Generate Site Statement</h3>
                             <p style={{ color: '#64748b' }}>Detailed individual ledger or summary for a specific site.</p>
+                        </div>
+
+                        <div
+                            className={styles.infoCard}
+                            onClick={() => setStatementMode('work_order')}
+                            style={{ padding: '3rem 2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', transition: 'transform 0.2s', textAlign: 'center' }}
+                            onMouseOver={e => e.currentTarget.style.transform = 'translateY(-5px)'}
+                            onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}
+                        >
+                            <div className={`${styles.statIcon} ${styles.bgGradient3}`} style={{ marginBottom: '1.5rem' }}><File size={32} /></div>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.5rem' }}>Work Order Report</h3>
+                            <p style={{ color: '#64748b' }}>Search and view a detailed receipt for a specific work order.</p>
                         </div>
                     </div>
                 </div>
@@ -1571,7 +1642,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                                 {siteVendors.map((v, i) => {
                                                     const advs = parseAdvances(v.advance_details);
                                                     const total = advs.reduce((a, b) => a + (parseFloat(b.amount) || 0), 0);
-                                                    const balance = (parseFloat(v.bill_certified_value) || 0) - (parseFloat(v.housekeeping) || 0) - (parseFloat(v.retention) || 0) - total;
+                                                    const balance = Math.max(parseFloat(v.bill_certified_value) || 0, parseFloat(v.wo_value) || 0) - (parseFloat(v.housekeeping) || 0) - (parseFloat(v.retention) || 0) - total;
                                                     return <td key={i} style={{ fontWeight: 700, color: '#dc2626' }}>{formatCurrency(balance)}</td>;
                                                 })}
                                             </tr>
@@ -1659,7 +1730,6 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
             let content;
             if (siteStatementView === 'detailed') {
                 let grandTotalCertified = 0;
-                let grandTotalWoValue = 0;
                 let grandTotalDebit = 0;
 
                 content = (
@@ -1677,7 +1747,6 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                             const vendorBalance = finalBillValue - finalDebit;
 
                             grandTotalCertified += finalBillValue;
-                            grandTotalWoValue += woValue;
                             grandTotalDebit += finalDebit;
 
                             return (
@@ -2212,6 +2281,161 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                 </div>
             );
         }
+
+        if (statementMode === 'work_order') {
+            if (!selectedStatementWO) {
+                const searchResults = searchQuery.trim() === '' ? [] : rawData.filter(item =>
+                    (item.wo_no || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    (item.site_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    (item.vendor_name || '').toLowerCase().includes(searchQuery.toLowerCase())
+                );
+
+                return (
+                    <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+                        <div className={styles.detailHeader}>
+                            <button className={styles.backBtn} onClick={() => { setStatementMode('menu'); setSearchQuery(''); }}>
+                                <ArrowLeft size={16} /> Back
+                            </button>
+                            <h1>Search Work Order</h1>
+                        </div>
+                        <div className={styles.searchBar} style={{ width: '100%', marginBottom: '2rem' }}>
+                            <Search size={16} />
+                            <input
+                                type="text"
+                                placeholder="Search by WO No, Site, or Vendor..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                autoFocus
+                            />
+                        </div>
+                        <div className={styles.gridContainer}>
+                            {searchResults.map(wo => (
+                                <div key={wo.id} className={styles.infoCard} onClick={() => { setSelectedStatementWO(wo); setSearchQuery(''); }}>
+                                    <div className={styles.cardHeader}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <FileText size={18} />
+                                            <span>{wo.wo_no || 'N/A'}</span>
+                                        </div>
+                                        <StatusBadge status={wo.bill_status} url={wo.wo_status_url} extraStyles={{ fontSize: '0.7rem' }} />
+                                    </div>
+                                    <div className={styles.cardBody}>
+                                        <div style={{ marginBottom: '0.5rem' }}>
+                                            <span style={{ fontSize: '0.8rem', color: '#64748b', display: 'block' }}>Project</span>
+                                            <span style={{ fontWeight: 600 }}>{wo.site_name}</span>
+                                        </div>
+                                        <div>
+                                            <span style={{ fontSize: '0.8rem', color: '#64748b', display: 'block' }}>Vendor</span>
+                                            <span style={{ fontWeight: 500 }}>{wo.vendor_name}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                            {searchQuery.trim() !== '' && searchResults.length === 0 && (
+                                <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '3rem', color: '#64748b' }}>
+                                    No matching work orders found.
+                                </div>
+                            )}
+                            {searchQuery.trim() === '' && (
+                                <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>
+                                    Start typing to search for a work order...
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                );
+            }
+
+            return renderReceiptView(selectedStatementWO);
+        }
+    };
+
+    const renderReceiptView = (wo) => {
+        if (!wo) return null;
+        const advancesList = parseAdvances(wo.advance_details);
+        const totalPaid = advancesList.reduce((sum, a) => sum + (parseFloat(a.amount) || 0), 0);
+        const billCertified = parseFloat(wo.bill_certified_value) || 0;
+        const housekeeping = parseFloat(wo.housekeeping) || 0;
+        const retention = parseFloat(wo.retention) || 0;
+        const woValue = parseFloat(wo.wo_value) || 0;
+        const balance = (billCertified > 0 ? billCertified : woValue) - housekeeping - retention - totalPaid;
+
+        return (
+            <div className={styles.statementContainer}>
+                <div id="receipt-ready-indicator" style={{ display: 'none' }}></div>
+                <div className={styles.printHide} style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Button variant="secondary" onClick={() => setSelectedStatementWO(null)}>
+                        <ArrowLeft size={16} /> Back to Search
+                    </Button>
+                    <Button onClick={() => { setPrintOrientation('portrait'); setShowPrintModal(true); }}>
+                        <Printer size={18} style={{ marginRight: '0.5rem' }} /> Print Receipt
+                    </Button>
+                </div>
+
+                <div id="print-area" className={styles.receiptWrapper}>
+                    <div className={styles.receiptContainer}>
+                        <div className={styles.receiptHeader}>
+                            <div className={styles.receiptWoNo}>{wo.wo_no || 'N/A'}</div>
+                            <div className={styles.receiptStatusTag}>
+                                <StatusBadge status={wo.bill_status} url={wo.wo_status_url} />
+                            </div>
+                            <div className={styles.receiptSiteName}>{wo.site_name.toUpperCase()}</div>
+                        </div>
+
+                        <div className={styles.receiptBody}>
+                            <div className={styles.receiptSection}>
+                                <div className={styles.receiptLabel}>Vendor</div>
+                                <div className={styles.receiptValue} style={{ fontWeight: 700 }}>{wo.vendor_name.toUpperCase()}</div>
+                            </div>
+
+                            <div className={styles.receiptDivider}></div>
+
+                            <div className={styles.receiptSection}>
+                                <div className={styles.receiptLabel}>Work Order Date</div>
+                                <div className={styles.receiptValue}>{formatDate(wo.wo_date)}</div>
+                            </div>
+
+                            <div className={styles.receiptDivider}></div>
+
+                            <div className={styles.receiptSection}>
+                                <div className={styles.receiptLabel}>WO Value</div>
+                                <div className={styles.receiptValue}>{formatCurrency(woValue)}</div>
+                            </div>
+
+                            <div className={styles.receiptDivider}></div>
+
+                            <div className={styles.receiptSection}>
+                                <div className={styles.receiptLabel}>Total Paid</div>
+                                <div className={styles.receiptValue} style={{ color: '#4f46e5' }}>{formatCurrency(totalPaid)}</div>
+                            </div>
+
+                            <div className={styles.receiptBalanceRow}>
+                                <span className={styles.receiptBalanceLabel}>Balance to Pay</span>
+                                <span className={styles.receiptBalanceValue}>{formatCurrency(balance)}</span>
+                            </div>
+
+                            <div className={styles.receiptHistorySection}>
+                                <h4 className={styles.receiptHistoryTitle}>PAYMENT HISTORY</h4>
+                                {advancesList.length > 0 ? (
+                                    <div className={styles.receiptHistoryList}>
+                                        {advancesList.map((adv, i) => (
+                                            <div key={i} className={styles.receiptHistoryItem}>
+                                                <div>
+                                                    <div className={styles.receiptHistoryDate}>{adv.date}</div>
+                                                    <div className={styles.receiptHistoryMode}>{adv.payment_mode || 'M1'}</div>
+                                                </div>
+                                                <div className={styles.receiptHistoryAmount}>{formatCurrency(adv.amount)}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className={styles.receiptNoHistory}>No payment history found</div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
     };
 
     const renderWOSearch = () => {
@@ -2403,9 +2627,11 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
         const advs = parseAdvances(entry.advance_details || []);
         const totalAdv = advs.reduce((a, b) => a + (parseFloat(b.amount) || 0), 0);
         const billCertified = parseFloat(entry.bill_certified_value) || 0;
+        const woValue = parseFloat(entry.wo_value) || 0;
         const housekeeping = parseFloat(entry.housekeeping) || 0;
         const retention = parseFloat(entry.retention) || 0;
-        const balance = billCertified - housekeeping - retention - totalAdv;
+        const baseValue = Math.max(billCertified, woValue);
+        const balance = baseValue - housekeeping - retention - totalAdv;
 
         return (
             <div className={styles.modalOverlay} onClick={() => setBalancePopup(null)} style={{ alignItems: 'center', justifyContent: 'center', display: 'flex' }}>
@@ -2444,6 +2670,32 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
             </div>
         );
     };
+
+    const params = new URLSearchParams(location.search);
+    const isDirectPrint = params.get('direct') === 'true';
+
+    // Minimal View for Direct Printing
+    if (isDirectPrint && selectedStatementWO) {
+        return (
+            <div className={styles.directPrintWrapper}>
+                <style>
+                    {`
+                    body { background: white !important; margin: 0; padding: 0; }
+                    .${styles.mainContent}, .${styles.contentArea} { padding: 0 !important; margin: 0 !important; border: none !important; }
+                    .${styles.printHide}, .${styles.sidebar}, .${styles.topBar}, .${styles.detailHeader}, .${styles.backBtn}, .${styles.headerButtons} { display: none !important; }
+                    #print-area { margin: 0 auto; box-shadow: none !important; padding: 0 !important; }
+                    .${styles.statementContainer} { padding: 0 !important; border: none !important; background: white !important; }
+                    @media print {
+                        @page { size: portrait; margin: 1cm; }
+                    }
+                    `}
+                </style>
+                <div style={{ padding: '1rem', maxWidth: '800px', margin: '0 auto' }}>
+                    {renderReceiptView(selectedStatementWO)}
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className={`${styles.dashboardContainer} ${sidebarOpen ? styles.sidebarOpen : ''}`}>

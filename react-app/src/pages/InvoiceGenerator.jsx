@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { Link } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 import { Button } from '../components/ui/Button';
+import { FileText, Printer } from 'lucide-react';
 import { Input, LoadingOverlay, SearchableSelect } from '../components/ui';
 import PrintModal from '../components/PrintModal';
 import styles from './InvoiceGenerator.module.css';
@@ -34,6 +35,8 @@ const InvoiceGenerator = () => {
     const [loading, setLoading] = useState(false);
     const [showWoDate, setShowWoDate] = useState(false);
     const { alert, confirm, toast } = useMessage();
+
+    const [isSaved, setIsSaved] = useState(false);
 
     // DB Mapping
     const DB_COLUMNS = {
@@ -111,6 +114,7 @@ const InvoiceGenerator = () => {
     };
 
     const handleVendorChange = (val) => {
+        setIsSaved(false);
         const vendor = vendors.find(v => v[DB_COLUMNS.NAME] === val);
         const newFormData = {
             ...formData,
@@ -136,6 +140,7 @@ const InvoiceGenerator = () => {
     };
 
     const handleSiteChange = (val) => {
+        setIsSaved(false);
         const newFormData = { ...formData, project: val, woNumber: '' };
         setFormData(newFormData);
         if (formData.vendorName && val) {
@@ -322,6 +327,7 @@ const InvoiceGenerator = () => {
             const { error } = await supabase.from('payment_history').insert([payload]);
             if (error) throw error;
 
+            setIsSaved(true);
             toast('Invoice Saved to History!');
         } catch (e) {
             console.error(e);
@@ -417,7 +423,29 @@ const InvoiceGenerator = () => {
             <div className={styles.sidebar}>
                 <div className={styles.header}>
                     <h2 className={styles.title}>Invoice Data Entry</h2>
-                    <div style={{ display: 'flex', gap: '8px' }}>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        {isSaved && formData.woNumber && filteredWOs.some(wo => wo.wo_no === formData.woNumber) && (
+                            <button 
+                                onClick={() => window.open(`#/vendor-dashboard?wo=${formData.woNumber}&direct=true`, '_blank')}
+                                style={{ 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    justifyContent: 'center',
+                                    padding: '8px',
+                                    background: '#fef2f2', 
+                                    border: '1px solid #fecaca', 
+                                    color: '#b91c1c',
+                                    borderRadius: '8px',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s'
+                                }}
+                                title="Print Work Order Receipt"
+                                onMouseOver={e => e.currentTarget.style.background = '#fee2e2'}
+                                onMouseOut={e => e.currentTarget.style.background = '#fef2f2'}
+                            >
+                                <Printer size={20} />
+                            </button>
+                        )}
                         <Button variant="secondary" onClick={openHistoryModal} style={{ padding: '8px 12px' }}>History</Button>
                         <Link to="/"><button className={styles.homeBtn}>🏠</button></Link>
                     </div>

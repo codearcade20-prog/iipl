@@ -90,8 +90,8 @@ function App() {
               <Route path="update" element={<ProtectedRoute module="project_status"><ProjectStatusUpdate /></ProtectedRoute>} />
               <Route path="personnel/:role" element={<ProtectedRoute module="project_entry"><ProjectPersonnel /></ProtectedRoute>} />
             </Route>
-            <Route path="/sub-vendor-checklist" element={<ProtectedRoute><SubVendorChecklist /></ProtectedRoute>} />
-            <Route path="/sub-vendor-checklist/history" element={<ProtectedRoute><SubVendorChecklistHistory /></ProtectedRoute>} />
+            <Route path="/sub-vendor-checklist" element={<ProtectedRoute module="sub_vendor_checklist"><SubVendorChecklist /></ProtectedRoute>} />
+            <Route path="/sub-vendor-checklist/history" element={<ProtectedRoute module="sub_vendor_checklist"><SubVendorChecklistHistory /></ProtectedRoute>} />
           </Routes>
 
         </Router>

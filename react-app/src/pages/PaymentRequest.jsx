@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
+import { FileText, Printer } from 'lucide-react';
 import { Input, LoadingOverlay, SearchableSelect } from '../components/ui';
 import PrintModal from '../components/PrintModal';
 import styles from './PaymentRequest.module.css';
@@ -36,6 +37,8 @@ const PaymentRequest = () => {
 
     // PAN field visibility control
     const [showPan, setShowPan] = useState(true);
+
+    const [isSaved, setIsSaved] = useState(false);
 
     // Supabase Maps
     const DB_COLUMNS = {
@@ -85,6 +88,7 @@ const PaymentRequest = () => {
     };
 
     const handleVendorChange = (val) => {
+        setIsSaved(false);
         const vendor = vendors.find(v => v[DB_COLUMNS.NAME] === val);
         setFormData(prev => ({
             ...prev,
@@ -135,6 +139,7 @@ const PaymentRequest = () => {
     };
 
     const handleSiteChange = (val) => {
+        setIsSaved(false);
         const newFormData = {
             ...formData,
             project: val,
@@ -177,6 +182,7 @@ const PaymentRequest = () => {
     };
 
     const handleWOChange = (e) => {
+        setIsSaved(false);
         const val = e.target.value;
         const wo = filteredWOs.find(w => w.wo_no === val);
         setFormData(prev => ({
@@ -274,6 +280,7 @@ const PaymentRequest = () => {
             const { error } = await supabase.from('payment_history').insert([payload]);
             if (error) throw error;
 
+            setIsSaved(true);
             toast('Payment Request Saved to History!');
         } catch (e) {
             console.error(e);
@@ -361,7 +368,29 @@ const PaymentRequest = () => {
             <div className={styles.formSection}>
                 <div className={styles.formHeader}>
                     <h2 className={styles.title}>Payment Request</h2>
-                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        {isSaved && formData.invoiceNo && filteredWOs.some(wo => wo.wo_no === formData.invoiceNo) && (
+                            <button 
+                                onClick={() => window.open(`#/vendor-dashboard?wo=${formData.invoiceNo}&direct=true`, '_blank')}
+                                style={{ 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    justifyContent: 'center',
+                                    padding: '8px',
+                                    background: '#fef2f2', 
+                                    border: '1px solid #fecaca', 
+                                    color: '#b91c1c',
+                                    borderRadius: '8px',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s'
+                                }}
+                                title="Print Work Order Receipt"
+                                onMouseOver={e => e.currentTarget.style.background = '#fee2e2'}
+                                onMouseOut={e => e.currentTarget.style.background = '#fef2f2'}
+                            >
+                                <Printer size={20} />
+                            </button>
+                        )}
                         <Button variant="secondary" onClick={openHistoryModal} style={{ padding: '8px 12px' }}>History</Button>
                         <Link to="/"><button className={styles.homeBtn}>🏠</button></Link>
                     </div>

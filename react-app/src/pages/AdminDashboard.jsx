@@ -65,7 +65,8 @@ const AdminDashboard = () => {
         username: '',
         password: '',
         is_admin: false,
-        permissions: []
+        permissions: [],
+        team_role: ''
     });
 
     // --- SITES STATE ---
@@ -603,11 +604,12 @@ const AdminDashboard = () => {
                 username: u.username,
                 password: u.password,
                 is_admin: u.is_admin,
-                permissions: u.permissions || []
+                permissions: u.permissions || [],
+                team_role: u.team_role || ''
             });
         } else {
             setEditingUserId(null);
-            setUserForm({ username: '', password: '', is_admin: false, permissions: [] });
+            setUserForm({ username: '', password: '', is_admin: false, permissions: [], team_role: '' });
         }
         setUserModalOpen(true);
     };
@@ -2058,6 +2060,23 @@ const AdminDashboard = () => {
                                     />
                                 </div>
 
+                                <div className={styles.inputGroup} style={{ marginTop: '16px' }}>
+                                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, color: '#475569', fontSize: '0.9rem' }}>Team Role / Field Access</label>
+                                    <select
+                                        style={{ width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '8px', background: 'white' }}
+                                        value={userForm.team_role}
+                                        onChange={e => setUserForm({ ...userForm, team_role: e.target.value })}
+                                    >
+                                        <option value="">No Specific Team (Full Access)</option>
+                                        <option value="coordinator">Project Coordinator Team</option>
+                                        <option value="design">Design Team</option>
+                                        <option value="purchase">Purchase Team</option>
+                                        <option value="factory">Factory Team</option>
+                                        <option value="site_engineers">Site Engineers Team</option>
+                                    </select>
+                                    <p style={{ marginTop: '4px', fontSize: '0.75rem', color: '#64748b' }}>Members will only be able to edit fields belonging to their assigned team.</p>
+                                </div>
+
                                 <div style={{ marginTop: '24px', padding: '16px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                                     <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
                                         <input
@@ -2086,7 +2105,8 @@ const AdminDashboard = () => {
                                                         { id: 'project_entry', label: 'Project Entry' },
                                                         { id: 'project_status', label: 'Project Status' },
                                                         { id: 'overview', label: 'Project Overview' },
-                                                        { id: 'workorders', label: 'Work Orders' }
+                                                        { id: 'workorders', label: 'Work Orders' },
+                                                        { id: 'sub_vendor_checklist', label: 'Sub Vendor Checklist' }
                                                     ]
                                                 },
                                                 {

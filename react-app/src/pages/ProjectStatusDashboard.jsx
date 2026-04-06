@@ -367,10 +367,162 @@ const ProjectStatusDashboard = () => {
                                                 <div className={styles.hProgressBar}><div style={{ width: `${h.completion_percentage}%` }}></div></div>
                                             </div>
                                             <div className={styles.breakdownGrid}>
-                                                <div className={styles.breakdownItem}>
+                                                {/* Group: Project Coordinators */}
+                                                <div className={styles.breakdownItem} style={{ gridColumn: '1 / -1', borderBottom: '1px solid #eef2f6', marginBottom: '4px', paddingBottom: '4px' }}>
+                                                    <span style={{ color: '#3b82f6', fontSize: '0.75rem' }}>PROJECT COORDINATOR TEAM</span>
+                                                </div>
+                                                <div 
+                                                    className={`${styles.breakdownItem} ${styles.popoverContainer} ${styles.breakdownItemClickable}`}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setActivePopover(activePopover === `plan-${h.id}` ? null : `plan-${h.id}`);
+                                                    }}
+                                                >
                                                     <span className={styles.labelLong}>Planning & Kick Start:</span>
                                                     <span className={styles.labelShort}>Planning:</span>
-                                                    <strong>{h.planning_kickstart}%</strong>
+                                                    <strong style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                        {h.planning_kickstart}% <ChevronRight size={14} style={{ transform: activePopover === `plan-${h.id}` ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
+                                                    </strong>
+
+                                                    {activePopover === `plan-${h.id}` && (
+                                                        <div className={styles.popoverOverlay} onClick={e => e.stopPropagation()}>
+                                                            <div className={styles.popoverTitle}>
+                                                                <span>Planning Breakdown</span>
+                                                                <button className={styles.popoverClose} onClick={() => setActivePopover(null)}><X size={14} /></button>
+                                                            </div>
+                                                            {[
+                                                                { label: 'Site Pooja', short: 'Pooja', value: h.site_pooja },
+                                                                { label: 'Office Documentation', short: 'Office Doc', value: h.office_documentation },
+                                                                { label: 'Sample Arr. (Moodboard)', short: 'Moodboard', value: h.sample_moodboard }
+                                                            ].map((item, idx) => (
+                                                                <div key={idx} className={styles.popoverItem}>
+                                                                    <div className={styles.popoverLabel}>
+                                                                        <span className={styles.labelLong}>{item.label}</span>
+                                                                        <span className={styles.labelShort}>{item.short}</span>
+                                                                        <span className={styles.popoverValue}>{item.value}%</span>
+                                                                    </div>
+                                                                    <div className={styles.pMiniBar}>
+                                                                        <div className={styles.pMiniFill} style={{ width: `${item.value}%` }}></div>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* Group: Design Team */}
+                                                <div className={styles.breakdownItem} style={{ gridColumn: '1 / -1', borderBottom: '1px solid #eef2f6', margin: '8px 0 4px', paddingBottom: '4px' }}>
+                                                    <span style={{ color: '#10b981', fontSize: '0.75rem' }}>DESIGN TEAM</span>
+                                                </div>
+                                                <div className={styles.breakdownItem}>
+                                                    <span className={styles.labelLong}>Shop Drawing (Initial):</span>
+                                                    <span className={styles.labelShort}>Shop Drw (I):</span>
+                                                    <strong>{h.shop_drawing}%</strong>
+                                                </div>
+                                                <div className={styles.breakdownItem}>
+                                                    <span className={styles.labelLong}>Line Drawing:</span>
+                                                    <span className={styles.labelShort}>Line Drw:</span>
+                                                    <strong>{h.line_drawing}%</strong>
+                                                </div>
+                                                <div className={styles.breakdownItem}>
+                                                    <span className={styles.labelLong}>Review & Revisions:</span>
+                                                    <span className={styles.labelShort}>Review:</span>
+                                                    <strong>{h.review_revisions}%</strong>
+                                                </div>
+                                                <div className={styles.breakdownItem}>
+                                                    <span className={styles.labelLong}>Shop Drawing (Final):</span>
+                                                    <span className={styles.labelShort}>Shop Drw (F):</span>
+                                                    <strong>{h.shop_drawing_final}%</strong>
+                                                </div>
+                                                <div className={styles.breakdownItem}>
+                                                    <span className={styles.labelLong}>Cutting Plan:</span>
+                                                    <span className={styles.labelShort}>Cutting Plan:</span>
+                                                    <strong>{h.cutting_plan}%</strong>
+                                                </div>
+                                                <div className={styles.breakdownItem}>
+                                                    <span className={styles.labelLong}>Finishes List:</span>
+                                                    <span className={styles.labelShort}>Finishes:</span>
+                                                    <strong>{h.finishes_list}%</strong>
+                                                </div>
+
+                                                {/* Group: Purchase Team */}
+                                                <div className={styles.breakdownItem} style={{ gridColumn: '1 / -1', borderBottom: '1px solid #eef2f6', margin: '8px 0 4px', paddingBottom: '4px' }}>
+                                                    <span style={{ color: '#8b5cf6', fontSize: '0.75rem' }}>PURCHASE TEAM</span>
+                                                </div>
+                                                <div className={styles.breakdownItem}>
+                                                    <span className={styles.labelLong}>MRF Status:</span>
+                                                    <span className={styles.labelShort}>MRF Status:</span>
+                                                    <strong>{h.mrf_status}%</strong>
+                                                </div>
+                                                <div className={styles.breakdownItem}>
+                                                    <span className={styles.labelLong}>Raw Materials:</span>
+                                                    <span className={styles.labelShort}>Raw Mat:</span>
+                                                    <strong>{h.raw_materials}%</strong>
+                                                </div>
+                                                <div className={styles.breakdownItem}>
+                                                    <span className={styles.labelLong}>Long Lead Materials:</span>
+                                                    <span className={styles.labelShort}>Long Lead:</span>
+                                                    <strong>{h.long_lead_materials}%</strong>
+                                                </div>
+                                                <div className={styles.breakdownItem}>
+                                                    <span className={styles.labelLong}>Finishes & Accessories:</span>
+                                                    <span className={styles.labelShort}>Accessories:</span>
+                                                    <strong>{h.finishes_accessories}%</strong>
+                                                </div>
+                                                <div className={styles.breakdownItem}>
+                                                    <span className={styles.labelLong}>Material Delivery:</span>
+                                                    <span className={styles.labelShort}>Delivery:</span>
+                                                    <strong>{h.material_delivery}%</strong>
+                                                </div>
+
+                                                {/* Group: Factory */}
+                                                <div className={styles.breakdownItem} style={{ gridColumn: '1 / -1', borderBottom: '1px solid #eef2f6', margin: '8px 0 4px', paddingBottom: '4px' }}>
+                                                    <span style={{ color: '#f59e0b', fontSize: '0.75rem' }}>FACTORY TEAM</span>
+                                                </div>
+                                                <div 
+                                                    className={`${styles.breakdownItem} ${styles.popoverContainer} ${styles.breakdownItemClickable}`}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setActivePopover(activePopover === `prod-${h.id}` ? null : `prod-${h.id}`);
+                                                    }}
+                                                >
+                                                    <span className={styles.labelLong}>Production Overall:</span>
+                                                    <span className={styles.labelShort}>Production:</span>
+                                                    <strong style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                        {h.production}% <ChevronRight size={14} style={{ transform: activePopover === `prod-${h.id}` ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
+                                                    </strong>
+
+                                                    {activePopover === `prod-${h.id}` && (
+                                                        <div className={styles.popoverOverlay} onClick={e => e.stopPropagation()}>
+                                                            <div className={styles.popoverTitle}>
+                                                                <span>Production Breakdown</span>
+                                                                <button className={styles.popoverClose} onClick={() => setActivePopover(null)}><X size={14} /></button>
+                                                            </div>
+                                                            {[
+                                                                { label: 'Cutting/Panelling', short: 'Cutting', value: h.cutting_panelling },
+                                                                { label: 'Assembly', short: 'Assembly', value: h.assembly },
+                                                                { label: 'Polishing', short: 'Polishing', value: h.polishing },
+                                                                { label: 'Final Finishing', short: 'Finishing', value: h.final_finishing },
+                                                                { label: 'Packing & Forwarding', short: 'Packing', value: h.packing_forwarding }
+                                                            ].map((item, idx) => (
+                                                                <div key={idx} className={styles.popoverItem}>
+                                                                    <div className={styles.popoverLabel}>
+                                                                        <span className={styles.labelLong}>{item.label}</span>
+                                                                        <span className={styles.labelShort}>{item.short}</span>
+                                                                        <span className={styles.popoverValue}>{item.value}%</span>
+                                                                    </div>
+                                                                    <div className={styles.pMiniBar}>
+                                                                        <div className={styles.pMiniFill} style={{ width: `${item.value}%` }}></div>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* Group: Site Engineers */}
+                                                <div className={styles.breakdownItem} style={{ gridColumn: '1 / -1', borderBottom: '1px solid #eef2f6', margin: '8px 0 4px', paddingBottom: '4px' }}>
+                                                    <span style={{ color: '#06b6d4', fontSize: '0.75rem' }}>SITE ENGINEERS TEAM</span>
                                                 </div>
                                                 <div className={styles.breakdownItem}>
                                                     <span className={styles.labelLong}>Site Measurement:</span>
@@ -383,41 +535,6 @@ const ProjectStatusDashboard = () => {
                                                     <strong>{h.site_marking}%</strong>
                                                 </div>
                                                 <div className={styles.breakdownItem}>
-                                                    <span className={styles.labelLong}>Sample Moodboard:</span>
-                                                    <span className={styles.labelShort}>Moodboard:</span>
-                                                    <strong>{h.sample_moodboard}%</strong>
-                                                </div>
-                                                <div className={styles.breakdownItem}>
-                                                    <span className={styles.labelLong}>Shop Drawing (Initial):</span>
-                                                    <span className={styles.labelShort}>Shop Drw (I):</span>
-                                                    <strong>{h.shop_drawing}%</strong>
-                                                </div>
-                                                <div className={styles.breakdownItem}>
-                                                    <span className={styles.labelLong}>Finishes List:</span>
-                                                    <span className={styles.labelShort}>Finishes:</span>
-                                                    <strong>{h.finishes_list}%</strong>
-                                                </div>
-                                                <div className={styles.breakdownItem}>
-                                                    <span className={styles.labelLong}>Shop Drawing (Final):</span>
-                                                    <span className={styles.labelShort}>Shop Drw (F):</span>
-                                                    <strong>{h.shop_drawing_final}%</strong>
-                                                </div>
-                                                <div className={styles.breakdownItem}>
-                                                    <span className={styles.labelLong}>MRF Status:</span>
-                                                    <span className={styles.labelShort}>MRF Status:</span>
-                                                    <strong>{h.mrf_status}%</strong>
-                                                </div>
-                                                <div className={styles.breakdownItem}>
-                                                    <span className={styles.labelLong}>Production:</span>
-                                                    <span className={styles.labelShort}>Production:</span>
-                                                    <strong>{h.production}%</strong>
-                                                </div>
-                                                <div className={styles.breakdownItem}>
-                                                    <span className={styles.labelLong}>Material Delivery:</span>
-                                                    <span className={styles.labelShort}>Delivery:</span>
-                                                    <strong>{h.material_delivery}%</strong>
-                                                </div>
-                                                <div className={styles.breakdownItem}>
                                                     <span className={styles.labelLong}>Site Installation:</span>
                                                     <span className={styles.labelShort}>Installation:</span>
                                                     <strong>{h.site_installation}%</strong>
@@ -426,16 +543,16 @@ const ProjectStatusDashboard = () => {
                                                     className={`${styles.breakdownItem} ${styles.popoverContainer} ${styles.breakdownItemClickable}`}
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        setActivePopover(activePopover === h.id ? null : h.id);
+                                                        setActivePopover(activePopover === `site-${h.id}` ? null : `site-${h.id}`);
                                                     }}
                                                 >
                                                     <span className={styles.labelLong}>Site Work (Overall):</span>
                                                     <span className={styles.labelShort}>Site Work:</span>
                                                     <strong style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                        {h.site_work}% <ChevronRight size={14} style={{ transform: activePopover === h.id ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
+                                                        {h.site_work}% <ChevronRight size={14} style={{ transform: activePopover === `site-${h.id}` ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
                                                     </strong>
 
-                                                    {activePopover === h.id && (
+                                                    {activePopover === `site-${h.id}` && (
                                                         <div className={styles.popoverOverlay} onClick={e => e.stopPropagation()}>
                                                             <div className={styles.popoverTitle}>
                                                                 <span>Site Breakdown</span>

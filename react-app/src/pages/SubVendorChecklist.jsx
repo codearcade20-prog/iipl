@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { Save, Printer, ArrowLeft, Loader2, Check, Download, Clock } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useMessage } from '../context/MessageContext';
+import SearchableSelect from '../components/ui/SearchableSelect';
 import styles from './SubVendorChecklist.module.css';
 
 const SubVendorChecklist = () => {
@@ -35,11 +36,11 @@ const SubVendorChecklist = () => {
         bank_name: '',
 
         // Budget Details
-        material_budget: 0,
-        labour_budget: 0,
+        material_budget: '',
+        labour_budget: '',
         total_budget: 0,
-        final_material_amount: 0,
-        final_labour_amount: 0,
+        final_material_amount: '',
+        final_labour_amount: '',
         total_value: 0,
 
         // Purchase Details
@@ -80,6 +81,8 @@ const SubVendorChecklist = () => {
             "Sub Vendor is not permitted to take any work directly from the project client or any other vendor work in the same project"
         ]
     });
+
+    const [showFinalAmounts, setShowFinalAmounts] = useState(false);
 
     const fetchData = useCallback(async () => {
         setLoading(true);
@@ -194,9 +197,17 @@ const SubVendorChecklist = () => {
 
     const handleBudgetChange = (field, value) => {
         setForm(prev => {
-            const updated = { ...prev, [field]: parseFloat(value) || 0 };
-            updated.total_budget = updated.material_budget + updated.labour_budget;
-            updated.total_value = updated.final_material_amount + updated.final_labour_amount;
+            const val = value === '' ? '' : parseFloat(value);
+            const updated = { ...prev, [field]: val };
+            
+            // For calculations, treat empty string as 0
+            const m_budget = parseFloat(updated.material_budget) || 0;
+            const l_budget = parseFloat(updated.labour_budget) || 0;
+            const f_m_amount = parseFloat(updated.final_material_amount) || 0;
+            const f_l_amount = parseFloat(updated.final_labour_amount) || 0;
+            
+            updated.total_budget = m_budget + l_budget;
+            updated.total_value = f_m_amount + f_l_amount;
             return updated;
         });
     };
@@ -298,18 +309,15 @@ const SubVendorChecklist = () => {
                         <div className={styles.label}>Select Project (Autofill)</div>
                         <div className={styles.value}>
                             <div className={styles.inputWrapper}>
-                                <select className={styles.select} value={form.project_id} onChange={(e) => handleProjectChange(e.target.value)}>
-                                    {loading ? (
-                                        <option>Loading projects...</option>
-                                    ) : projects.length === 0 ? (
-                                        <option>No projects found (Checked 'projects' & 'sites')</option>
-                                    ) : (
-                                        <>
-                                            <option value="">--- Choose Existing Project ---</option>
-                                            {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                                        </>
-                                    )}
-                                </select>
+                                <SearchableSelect
+                                    options={projects.map(p => p.name)}
+                                    value={form.project_name}
+                                    onChange={(name) => {
+                                        const p = projects.find(x => x.name === name);
+                                        if (p) handleProjectChange(p.id);
+                                    }}
+                                    placeholder={loading ? "Loading projects..." : projects.length === 0 ? "No projects found" : "--- Choose Existing Project ---"}
+                                />
                             </div>
                             <span className={styles.printValue}>{form.project_name}</span>
                         </div>
@@ -327,22 +335,15 @@ const SubVendorChecklist = () => {
                         <div className={styles.label}>Select Vendor (Autofill)</div>
                         <div className={styles.value}>
                             <div className={styles.inputWrapper}>
-                                <select className={styles.select} value={form.vendor_id} onChange={(e) => handleVendorChange(e.target.value)}>
-                                    {loading ? (
-                                        <option>Loading vendors...</option>
-                                    ) : vendors.length === 0 ? (
-                                        <option>No vendors found in database</option>
-                                    ) : (
-                                        <>
-                                            <option value="">--- Choose Existing Vendor ---</option>
-                                            {vendors.map(v => (
-                                                <option key={v.id} value={v.id}>
-                                                    {v.vendor_name || 'Unnamed Vendor'} {v.vendor_company ? `(${v.vendor_company})` : ''}
-                                                </option>
-                                            ))}
-                                        </>
-                                    )}
-                                </select>
+                                <SearchableSelect
+                                    options={vendors.map(v => `${v.vendor_name || 'Unnamed Vendor'} ${v.vendor_company ? `(${v.vendor_company})` : ''}`)}
+                                    value={form.vendor_name ? `${form.vendor_name} ${form.vendor_company_name ? `(${form.vendor_company_name})` : ''}` : ''}
+                                    onChange={(fullName) => {
+                                        const v = vendors.find(v => `${v.vendor_name || 'Unnamed Vendor'} ${v.vendor_company ? `(${v.vendor_company})` : ''}` === fullName);
+                                        if (v) handleVendorChange(v.id);
+                                    }}
+                                    placeholder={loading ? "Loading vendors..." : vendors.length === 0 ? "No vendors found" : "--- Choose Existing Vendor ---"}
+                                />
                             </div>
                             <span className={styles.printValue}>{form.vendor_name} {form.vendor_company_name ? `(${form.vendor_company_name})` : ''}</span>
                         </div>
@@ -501,34 +502,50 @@ const SubVendorChecklist = () => {
                             <span className={styles.printValue}><strong>{form.total_budget}</strong></span>
                         </div>
                     </div>
-                    <div style={{ height: '1rem', backgroundColor: '#e2e8f0' }}></div>
-                    <div className={styles.gridRow}>
-                        <div className={styles.label}>Final Material Amount</div>
-                        <div className={styles.value}>
-                            <div className={styles.inputWrapper}>
-                                <input type="number" className={styles.input} value={form.final_material_amount} onChange={(e) => handleBudgetChange('final_material_amount', e.target.value)} />
-                            </div>
-                            <span className={styles.printValue}>{form.final_material_amount}</span>
-                        </div>
+                    <div className={styles.noPrint} style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#f8fafc' }}>
+                        <input 
+                            type="checkbox" 
+                            id="showFinalAmounts" 
+                            checked={showFinalAmounts} 
+                            onChange={(e) => setShowFinalAmounts(e.target.checked)}
+                            style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                        />
+                        <label htmlFor="showFinalAmounts" style={{ fontSize: '0.875rem', fontWeight: '600', color: '#475569', cursor: 'pointer' }}>
+                            Show Final budget details
+                        </label>
                     </div>
-                    <div className={styles.gridRow}>
-                        <div className={styles.label}>Final Labour Amount</div>
-                        <div className={styles.value}>
-                            <div className={styles.inputWrapper}>
-                                <input type="number" className={styles.input} value={form.final_labour_amount} onChange={(e) => handleBudgetChange('final_labour_amount', e.target.value)} />
+
+                    {showFinalAmounts && (
+                        <>
+                            <div className={styles.gridRow}>
+                                <div className={styles.label}>Final Material Amount</div>
+                                <div className={styles.value}>
+                                    <div className={styles.inputWrapper}>
+                                        <input type="number" className={styles.input} value={form.final_material_amount} onChange={(e) => handleBudgetChange('final_material_amount', e.target.value)} />
+                                    </div>
+                                    <span className={styles.printValue}>{form.final_material_amount}</span>
+                                </div>
                             </div>
-                            <span className={styles.printValue}>{form.final_labour_amount}</span>
-                        </div>
-                    </div>
-                    <div className={styles.gridRow}>
-                        <div className={styles.label}>Total Value</div>
-                        <div className={styles.value}>
-                            <div className={styles.inputWrapper}>
-                                <input type="number" className={styles.input} value={form.total_value} readOnly style={{ backgroundColor: '#f1f5f9' }} />
+                            <div className={styles.gridRow}>
+                                <div className={styles.label}>Final Labour Amount</div>
+                                <div className={styles.value}>
+                                    <div className={styles.inputWrapper}>
+                                        <input type="number" className={styles.input} value={form.final_labour_amount} onChange={(e) => handleBudgetChange('final_labour_amount', e.target.value)} />
+                                    </div>
+                                    <span className={styles.printValue}>{form.final_labour_amount}</span>
+                                </div>
                             </div>
-                            <span className={styles.printValue}><strong>{form.total_value}</strong></span>
-                        </div>
-                    </div>
+                            <div className={styles.gridRow}>
+                                <div className={styles.label}>Total Value</div>
+                                <div className={styles.value}>
+                                    <div className={styles.inputWrapper}>
+                                        <input type="number" className={styles.input} value={form.total_value} readOnly style={{ backgroundColor: '#f1f5f9' }} />
+                                    </div>
+                                    <span className={styles.printValue}><strong>{form.total_value}</strong></span>
+                                </div>
+                            </div>
+                        </>
+                    )}
                 </div>
 
                 {/* 4. PURCHASE DETAILS */}
