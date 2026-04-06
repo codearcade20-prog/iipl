@@ -67,7 +67,8 @@ const SubVendorChecklist = () => {
             "final_bill_approval": "MD",
             "work_done_other_vendor": "",
             "housekeeping_deduction": "YES/NO",
-            "retention_5": "YES/NO"
+            "retention_5": "YES/NO",
+            "remarks": ""
         },
 
         // Terms and conditions
@@ -666,6 +667,21 @@ const SubVendorChecklist = () => {
                                 </select>
                             </div>
                             <span className={styles.printValue}>{form.payment_terms.retention_5}</span>
+                        </div>
+                    </div>
+                    <div className={styles.gridRow}>
+                        <div className={styles.label}>Remarks</div>
+                        <div className={styles.value}>
+                            <div className={styles.inputWrapper}>
+                                <textarea 
+                                    className={styles.input} 
+                                    style={{ minHeight: '80px', padding: '0.75rem', lineHeight: '1.5' }}
+                                    value={form.payment_terms.remarks || ''} 
+                                    onChange={(e) => handlePaymentTermChange('remarks', e.target.value)} 
+                                    placeholder="Enter additional payment remarks here..."
+                                />
+                            </div>
+                            <span className={styles.printValue} style={{ whiteSpace: 'pre-wrap' }}>{form.payment_terms.remarks || 'N/A'}</span>
                         </div>
                     </div>
                 </div>
