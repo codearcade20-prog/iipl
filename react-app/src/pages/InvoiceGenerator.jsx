@@ -485,10 +485,9 @@ const InvoiceGenerator = () => {
                     <Input type="date" label="Date" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
                 </div>
                 <div style={{ marginTop: '12px' }}>
-                    <label className={styles.label}>Work Order No</label>
-                    <select
-                        className={styles.select}
-                        value={formData.woNumber || ''}
+                    <Input 
+                        label="Work Order NO" 
+                        value={formData.woNumber || ''} 
                         onChange={e => {
                             setIsSaved(false);
                             const val = e.target.value;
@@ -501,13 +500,7 @@ const InvoiceGenerator = () => {
                                 setItems(newItems);
                             }
                         }}
-                        style={{ width: '100%', padding: '10px' }}
-                    >
-                        <option value="">Select Work Order</option>
-                        {filteredWOs.map((wo, i) => (
-                            <option key={i} value={wo.wo_no}>{wo.wo_no}</option>
-                        ))}
-                    </select>
+                    />
                 </div>
                 <div style={{ marginTop: '16px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <input
