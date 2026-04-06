@@ -844,7 +844,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                                 Balance to Pay <div style={{ fontSize: '0.7em', border: '1px solid #b91c1c', borderRadius: '50%', width: '14px', height: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>i</div>
                                             </span>
                                             <span className={styles.currency} style={{ fontWeight: 700, color: '#b91c1c' }}>
-                                                {formatCurrency((Math.max(parseFloat(entry.bill_certified_value) || 0, parseFloat(entry.wo_value) || 0)) - (parseFloat(entry.housekeeping) || 0) - (parseFloat(entry.retention) || 0) - totalAdv)}
+                                                {formatCurrency((parseFloat(entry.bill_certified_value) || 0) - (parseFloat(entry.housekeeping) || 0) - (parseFloat(entry.retention) || 0) - totalAdv)}
                                             </span>
                                         </div>
                                     </div>
@@ -924,7 +924,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                                 Balance to Pay <div style={{ fontSize: '0.7em', border: '1px solid #b91c1c', borderRadius: '50%', width: '14px', height: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>i</div>
                                             </span>
                                             <span className={styles.currency} style={{ fontWeight: 700, color: '#b91c1c' }}>
-                                                {formatCurrency((Math.max(parseFloat(entry.bill_certified_value) || 0, parseFloat(entry.wo_value) || 0)) - (parseFloat(entry.housekeeping) || 0) - (parseFloat(entry.retention) || 0) - totalAdv)}
+                                                {formatCurrency((parseFloat(entry.bill_certified_value) || 0) - (parseFloat(entry.housekeeping) || 0) - (parseFloat(entry.retention) || 0) - totalAdv)}
                                             </span>
                                         </div>
                                     </div>
@@ -1273,7 +1273,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                             {filtered.length > 0 ? filtered.map(item => {
                                 const advs = parseAdvances(item.advance_details);
                                 const totalAdv = advs.reduce((a, b) => a + (parseFloat(b.amount) || 0), 0);
-                                const baseValue = Math.max(parseFloat(item.bill_certified_value) || 0, parseFloat(item.wo_value) || 0);
+                                const baseValue = parseFloat(item.bill_certified_value) || 0;
                                 const balance = baseValue - (parseFloat(item.housekeeping) || 0) - (parseFloat(item.retention) || 0) - totalAdv;
                                 return (
                                     <tr key={item.id}>
@@ -1474,7 +1474,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                                     const certVal = parseFloat(entry.bill_certified_value) || 0;
                                                     const hsk = parseFloat(entry.housekeeping) || 0;
                                                     const ret = parseFloat(entry.retention) || 0;
-                                                    const netPayable = (certVal || orderVal) - hsk - ret;
+                                                    const netPayable = certVal - hsk - ret;
                                                     const balance = netPayable - rowPaid;
 
                                                     vOrderTotal += orderVal;
@@ -1642,7 +1642,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                                 {siteVendors.map((v, i) => {
                                                     const advs = parseAdvances(v.advance_details);
                                                     const total = advs.reduce((a, b) => a + (parseFloat(b.amount) || 0), 0);
-                                                    const balance = Math.max(parseFloat(v.bill_certified_value) || 0, parseFloat(v.wo_value) || 0) - (parseFloat(v.housekeeping) || 0) - (parseFloat(v.retention) || 0) - total;
+                                                    const balance = (parseFloat(v.bill_certified_value) || 0) - (parseFloat(v.housekeeping) || 0) - (parseFloat(v.retention) || 0) - total;
                                                     return <td key={i} style={{ fontWeight: 700, color: '#dc2626' }}>{formatCurrency(balance)}</td>;
                                                 })}
                                             </tr>
@@ -1742,7 +1742,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                             const advs = parseAdvances(entry.advance_details);
                             const totalPaid = advs.reduce((sum, a) => sum + (parseFloat(a.amount) || 0), 0);
 
-                            const finalBillValue = billCertified > 0 ? billCertified : woValue;
+                            const finalBillValue = billCertified;
                             const finalDebit = housekeeping + retention + totalPaid;
                             const vendorBalance = finalBillValue - finalDebit;
 
@@ -1854,7 +1854,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                 const advs = parseAdvances(entry.advance_details);
                                 const paid = advs.reduce((s, a) => s + (parseFloat(a.amount) || 0), 0);
 
-                                const finalBillValue = billCertified > 0 ? billCertified : woValue;
+                                const finalBillValue = billCertified;
                                 const deductions = hsk + ret;
                                 const balance = finalBillValue - deductions - paid;
 
@@ -2026,7 +2026,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                             const advs = parseAdvances(entry.advance_details);
                             const totalPaid = advs.reduce((sum, a) => sum + (parseFloat(a.amount) || 0), 0);
 
-                            const finalCredit = billCertified > 0 ? billCertified : woValue;
+                            const finalCredit = billCertified;
                             const finalDebit = housekeeping + retention + totalPaid;
                             const siteBalance = finalCredit - finalDebit;
 
@@ -2154,7 +2154,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                 const woValue = parseFloat(entry.wo_value) || 0;
 
                                 // Use Bill Certified if > 0, else WO Value
-                                const finalBillValue = billCertified > 0 ? billCertified : woValue;
+                                const finalBillValue = billCertified;
                                 const totalDed = housekeeping + retention;
                                 const bal = finalBillValue - totalDed - sitePaid;
 
@@ -2357,7 +2357,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
         const housekeeping = parseFloat(wo.housekeeping) || 0;
         const retention = parseFloat(wo.retention) || 0;
         const woValue = parseFloat(wo.wo_value) || 0;
-        const balance = (billCertified > 0 ? billCertified : woValue) - housekeeping - retention - totalPaid;
+        const balance = billCertified - housekeeping - retention - totalPaid;
 
         return (
             <div className={styles.statementContainer}>
@@ -2630,7 +2630,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
         const woValue = parseFloat(entry.wo_value) || 0;
         const housekeeping = parseFloat(entry.housekeeping) || 0;
         const retention = parseFloat(entry.retention) || 0;
-        const baseValue = Math.max(billCertified, woValue);
+        const baseValue = billCertified;
         const balance = baseValue - housekeeping - retention - totalAdv;
 
         return (
