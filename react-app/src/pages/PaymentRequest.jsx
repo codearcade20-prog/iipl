@@ -369,9 +369,15 @@ const PaymentRequest = () => {
                 <div className={styles.formHeader}>
                     <h2 className={styles.title}>Payment Request</h2>
                       <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                        {isSaved && formData.invoiceNo && (
+                        {formData.invoiceNo && (
                             <button 
-                                onClick={() => window.open(`#/vendor-dashboard?wo=${formData.invoiceNo}&direct=true&from=payment`, '_blank')}
+                                onClick={() => {
+                                    if (!isSaved) {
+                                        alert("Please save the data first then take a printout");
+                                        return;
+                                    }
+                                    window.open(`#/vendor-dashboard?wo=${formData.invoiceNo}&direct=true&from=payment`, '_blank')
+                                }}
                                 style={{ 
                                     display: 'flex', 
                                     alignItems: 'center', 

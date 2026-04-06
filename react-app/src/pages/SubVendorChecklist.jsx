@@ -83,6 +83,7 @@ const SubVendorChecklist = () => {
             "Sub Vendor is not permitted to take any work directly from the project client or any other vendor work in the same project"
         ]
     });
+    const [isSaved, setIsSaved] = useState(false);
 
     const [showFinalAmounts, setShowFinalAmounts] = useState(false);
 
@@ -142,7 +143,10 @@ const SubVendorChecklist = () => {
                     .single();
 
                 if (error) throw error;
-                if (data) setForm(data);
+                if (data) {
+                    setForm(data);
+                    setIsSaved(true);
+                }
             } catch (err) {
                 console.error('Error loading record:', err);
                 toast('Failed to load record');
@@ -162,8 +166,10 @@ const SubVendorChecklist = () => {
                 project_name: p.name,
                 location: p.location || ''
             }));
+            setIsSaved(false);
         } else {
             setForm(prev => ({ ...prev, project_id: '', project_name: '', location: '' }));
+            setIsSaved(false);
         }
     };
 
@@ -187,6 +193,7 @@ const SubVendorChecklist = () => {
                 bank_branch: v.bank_branch || '',
                 bank_name: v.bank_name || ''
             }));
+            setIsSaved(false);
         } else {
             setForm(prev => ({
                 ...prev,
@@ -194,6 +201,7 @@ const SubVendorChecklist = () => {
                 phone_no: '', aadhaar_no: '', pan_no: '', gst_no: '', billing_address: '',
                 bank_account_name: '', bank_account_number: '', bank_ifsc_code: '', bank_branch: '', bank_name: ''
             }));
+            setIsSaved(false);
         }
     };
 
@@ -210,6 +218,7 @@ const SubVendorChecklist = () => {
             
             updated.total_budget = m_budget + l_budget;
             updated.total_value = f_m_amount + f_l_amount;
+            setIsSaved(false);
             return updated;
         });
     };
@@ -225,6 +234,7 @@ const SubVendorChecklist = () => {
                 }
             }
         }));
+        setIsSaved(false);
     };
 
     const handlePaymentTermChange = (field, value) => {
@@ -235,6 +245,7 @@ const SubVendorChecklist = () => {
                 [field]: value
             }
         }));
+        setIsSaved(false);
     };
 
     const handleSubmit = async (e) => {
@@ -255,6 +266,7 @@ const SubVendorChecklist = () => {
 
             const { error } = await query;
             if (error) throw error;
+            setIsSaved(true);
             toast("Sub Vendor Checklist saved successfully!");
             if (!checklistId) navigate('/sub-vendor-checklist/history');
         } catch (err) {
@@ -266,6 +278,10 @@ const SubVendorChecklist = () => {
     };
 
     const handlePrint = () => {
+        if (!isSaved && !checklistId) {
+            alert("Please save the data first then take a printout");
+            return;
+        }
         window.print();
     };
 

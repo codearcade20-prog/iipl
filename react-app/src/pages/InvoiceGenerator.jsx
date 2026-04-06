@@ -425,9 +425,15 @@ const InvoiceGenerator = () => {
                 <div className={styles.header}>
                     <h2 className={styles.title}>Invoice Data Entry</h2>
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                        {isSaved && formData.woNumber && (
+                        {formData.woNumber && (
                             <button 
-                                onClick={() => window.open(`#/vendor-dashboard?wo=${formData.woNumber}&direct=true&from=invoice`, '_blank')}
+                                onClick={() => {
+                                    if (!isSaved) {
+                                        alert("Please save the data first then take a printout");
+                                        return;
+                                    }
+                                    window.open(`#/vendor-dashboard?wo=${formData.woNumber}&direct=true&from=invoice`, '_blank')
+                                }}
                                 style={{ 
                                     display: 'flex', 
                                     alignItems: 'center', 
