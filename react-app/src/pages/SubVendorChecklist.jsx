@@ -39,10 +39,10 @@ const SubVendorChecklist = () => {
         // Budget Details
         material_budget: '',
         labour_budget: '',
-        total_budget: 0,
+        total_budget: '',
         final_material_amount: '',
         final_labour_amount: '',
-        total_value: 0,
+        total_value: '',
 
         // Purchase Details
         purchase_details: {
@@ -144,7 +144,11 @@ const SubVendorChecklist = () => {
 
                 if (error) throw error;
                 if (data) {
-                    setForm(data);
+                    const sanitizedData = { ...data };
+                    ['material_budget', 'labour_budget', 'total_budget', 'final_material_amount', 'final_labour_amount', 'total_value'].forEach(key => {
+                        if (sanitizedData[key] === 0) sanitizedData[key] = '';
+                    });
+                    setForm(sanitizedData);
                     setIsSaved(true);
                 }
             } catch (err) {
@@ -216,8 +220,8 @@ const SubVendorChecklist = () => {
             const f_m_amount = parseFloat(updated.final_material_amount) || 0;
             const f_l_amount = parseFloat(updated.final_labour_amount) || 0;
             
-            updated.total_budget = m_budget + l_budget;
-            updated.total_value = f_m_amount + f_l_amount;
+            updated.total_budget = (m_budget + l_budget) || '';
+            updated.total_value = (f_m_amount + f_l_amount) || '';
             setIsSaved(false);
             return updated;
         });
@@ -603,26 +607,20 @@ const SubVendorChecklist = () => {
                                         <div style={{ padding: '0.5rem', borderBottom: '1px solid #f1f5f9' }}>{idx + 1}. {item}</div>
                                     </td>
                                     <td className={styles.centered}>
-                                        <div className={styles.inputWrapper}>
-                                            <input
-                                                type="checkbox"
-                                                className={styles.toggleInput}
-                                                checked={form.purchase_details[item].vendor}
-                                                onChange={() => handlePurchaseToggle(item, 'vendor')}
-                                            />
-                                        </div>
-                                        <span className={styles.printValue}>{form.purchase_details[item].vendor ? 'YES' : 'NO'}</span>
+                                        <input
+                                            type="checkbox"
+                                            className={styles.toggleInput}
+                                            checked={form.purchase_details[item].vendor}
+                                            onChange={() => handlePurchaseToggle(item, 'vendor')}
+                                        />
                                     </td>
                                     <td className={styles.centered}>
-                                        <div className={styles.inputWrapper}>
-                                            <input
-                                                type="checkbox"
-                                                className={styles.toggleInput}
-                                                checked={form.purchase_details[item].iipl}
-                                                onChange={() => handlePurchaseToggle(item, 'iipl')}
-                                            />
-                                        </div>
-                                        <span className={styles.printValue}>{form.purchase_details[item].iipl ? 'YES' : 'NO'}</span>
+                                        <input
+                                            type="checkbox"
+                                            className={styles.toggleInput}
+                                            checked={form.purchase_details[item].iipl}
+                                            onChange={() => handlePurchaseToggle(item, 'iipl')}
+                                        />
                                     </td>
                                 </tr>
                             ))}

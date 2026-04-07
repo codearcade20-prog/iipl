@@ -24,12 +24,14 @@ import LoadingScreen from '../components/LoadingScreen';
 const ProjectStatusDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [projects, setProjects] = useState([]);
-    const [updates, setUpdates] = useState([]);
+    const [statusData, setStatusData] = useState([]); // Master reality
+    const [updates, setUpdates] = useState([]); // History for speed/logs
     const [filterStatus, setFilterStatus] = useState('All');
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedProject, setSelectedProject] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [activePopover, setActivePopover] = useState(null); // Track which update's site work detail is open
+    const [isMasterView, setIsMasterView] = useState(false); // Toggle to show the Big Matrix
+    const [activePopover, setActivePopover] = useState(null); 
 
     useEffect(() => {
         fetchDashboardData();
@@ -41,6 +43,11 @@ const ProjectStatusDashboard = () => {
             const { data: projData, error: projError } = await supabase.from('projects').select('*');
             if (projError) throw projError;
 
+            // 1. Fetch Current Master Status (Reality)
+            const { data: masterData, error: masterError } = await supabase.from('project_current_status').select('*');
+            if (masterError) throw masterError;
+
+            // 2. Fetch History (for Velocity/Trends/Logs)
             const { data: updateData, error: updateError } = await supabase
                 .from('project_status_updates')
                 .select('*')
@@ -48,6 +55,7 @@ const ProjectStatusDashboard = () => {
             if (updateError) throw updateError;
 
             setProjects(projData || []);
+            setStatusData(masterData || []);
             setUpdates(updateData || []);
         } catch (error) {
             console.error("Error fetching dashboard data:", error);
@@ -60,12 +68,13 @@ const ProjectStatusDashboard = () => {
         const today = new Date();
         
         return projects.map(project => {
+            const projectStatus = statusData.find(s => s.project_id === project.id) || {};
             const projectUpdates = updates.filter(u => u.project_id === project.id);
-            const latestUpdate = projectUpdates[projectUpdates.length - 1];
+            const latestUpdate = projectUpdates[projectUpdates.length - 1]; // Last log entry
             const firstUpdate = projectUpdates[0];
             
-            // 1. Calculate Current Progress from the most recent update
-            const currentProgress = latestUpdate ? parseFloat(latestUpdate.completion_percentage) : 0;
+            // 1. Calculate Current Progress from the MASTER table (The Truth)
+            const currentProgress = projectStatus ? parseFloat(projectStatus.completion_percentage || 0) : 0;
             
             // 2. Calculate Work Velocity (Average % progress gained per day)
             // Logic: Total progress gain / Total days elapsed
@@ -126,6 +135,7 @@ const ProjectStatusDashboard = () => {
 
             return {
                 ...project,
+                ...projectStatus, // Spread in the sub-categories (site_pooja, etc)
                 currentProgress,
                 speed: speed.toFixed(1),
                 expectedDate,
@@ -171,6 +181,14 @@ const ProjectStatusDashboard = () => {
                     <p className={styles.subtitle}>Real-time performance metrics and predictive analytics</p>
                 </div>
                 <div className={styles.headerActions}>
+                    <button 
+                        className={styles.viewBtn} 
+                        onClick={() => setIsMasterView(!isMasterView)}
+                        style={{ marginRight: '10px', background: isMasterView ? '#3b82f6' : '#fff', color: isMasterView ? '#fff' : '#334155' }}
+                    >
+                        {isMasterView ? <LayoutDashboard size={18} /> : <TrendingUp size={18} />} 
+                        {isMasterView ? ' Standard View' : ' Master View'}
+                    </button>
                     <button className={styles.exportBtn} onClick={() => window.print()}>
                         <Download size={18} /> Export Report
                     </button>
@@ -261,82 +279,135 @@ const ProjectStatusDashboard = () => {
                 </div>
             </div>
 
-            {/* Project Table */}
-            <div className={styles.tableCard}>
-                <div className={styles.tableWrapper}>
-                    <table className={styles.table}>
-                        <thead>
-                            <tr>
-                                <th>Project Details</th>
-                                <th>Schedule</th>
-                                <th>Progress</th>
-                                <th>Performance</th>
-                                <th>Status</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredProjects.map(project => (
-                                <tr key={project.id} className={styles.tableRow}>
-                                    <td data-label="Project Details">
-                                        <div className={styles.projectNameCell}>
-                                            <span className={styles.pName}>{project.name}</span>
-                                            <span className={styles.pCoordinator}><User size={12} /> {project.coordinator || 'Unassigned'}</span>
-                                        </div>
-                                    </td>
-                                    <td data-label="Schedule">
-                                        <div className={styles.pDates}>
-                                            <span>Starts: {new Date(project.start_date).toLocaleDateString()}</span>
-                                            <span>Ends: {new Date(project.end_date).toLocaleDateString()}</span>
-                                        </div>
-                                    </td>
-                                    <td data-label="Progress">
-                                        <div className={styles.progressCell}>
-                                            <div className={styles.progressBarBg}>
-                                                <div 
-                                                    className={styles.progressBarFill} 
-                                                    style={{ 
-                                                        width: `${project.currentProgress}%`,
-                                                        background: project.statusColor === 'red' ? '#ef4444' : 
-                                                                    project.statusColor === 'yellow' ? '#f59e0b' : '#3b82f6'
-                                                    }}
-                                                ></div>
-                                            </div>
-                                            <span className={styles.progressText}>{project.currentProgress}%</span>
-                                        </div>
-                                    </td>
-                                    <td data-label="Performance">
-                                        <div className={styles.predictionCell}>
-                                            <div className={styles.speedBadge}>
-                                                <TrendingUp size={12} /> {project.speed}% / day
-                                            </div>
-                                            <div className={styles.expectedDate}>
-                                                Exp. completion: {project.expectedDate ? project.expectedDate.toLocaleDateString() : 'N/A'}
-                                            </div>
-                                            {project.delayDays > 0 && (
-                                                <div className={styles.delayTag}>
-                                                    <ArrowDownRight size={12} /> {project.delayDays} days delay
-                                                </div>
-                                            )}
-                                        </div>
-                                    </td>
-                                    <td data-label="Status">
-                                        <span className={`${styles.statusBadge} ${styles[project.status.toLowerCase().replace(' ', '')]}`}>
-                                            {project.status === 'On Track' && <CheckCircle2 size={12} />}
-                                            {project.status}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <button className={styles.detailsBtn} onClick={() => openProjectDetails(project)}>
-                                            <ChevronRight size={20} />
-                                        </button>
-                                    </td>
+            {/* CONDITIONAL VIEW RENDER */}
+            {isMasterView ? (
+                <div className={styles.tableCard}>
+                    <div className={styles.tableWrapper}>
+                        <table className={styles.table}>
+                            <thead>
+                                <tr style={{ background: '#f8fafc' }}>
+                                    <th style={{ width: '25%' }}>Project Name</th>
+                                    <th style={{ textAlign: 'center' }}>Planning</th>
+                                    <th style={{ textAlign: 'center' }}>Design</th>
+                                    <th style={{ textAlign: 'center' }}>Purchase</th>
+                                    <th style={{ textAlign: 'center' }}>Factory</th>
+                                    <th style={{ textAlign: 'center' }}>Site</th>
+                                    <th style={{ textAlign: 'center', background: '#eff6ff' }}>OVERALL</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {filteredProjects.map(project => (
+                                    <tr key={project.id} className={styles.matrixRow} onClick={() => openProjectDetails(project)} style={{ cursor: 'pointer' }}>
+                                        <td>
+                                            <div style={{ fontWeight: '600', color: '#1e293b' }}>{project.name}</div>
+                                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{project.code || 'NO CODE'}</div>
+                                        </td>
+                                        <td style={{ textAlign: 'center' }}>
+                                            <div className={styles.matrixVal}>{project.planning_kickstart || 0}%</div>
+                                            <div className={styles.matrixBar}><div style={{ width: `${project.planning_kickstart}%`, background: '#3b82f6' }}></div></div>
+                                        </td>
+                                        <td style={{ textAlign: 'center' }}>
+                                            <div className={styles.matrixVal}>{project.shop_drawing || project.design_percentage || 0}%</div>
+                                            <div className={styles.matrixBar}><div style={{ width: `${project.shop_drawing || 0}%`, background: '#10b981' }}></div></div>
+                                        </td>
+                                        <td style={{ textAlign: 'center' }}>
+                                            <div className={styles.matrixVal}>{project.mrf_status || 0}%</div>
+                                            <div className={styles.matrixBar}><div style={{ width: `${project.mrf_status || 0}%`, background: '#8b5cf6' }}></div></div>
+                                        </td>
+                                        <td style={{ textAlign: 'center' }}>
+                                            <div className={styles.matrixVal}>{project.production || 0}%</div>
+                                            <div className={styles.matrixBar}><div style={{ width: `${project.production || 0}%`, background: '#f59e0b' }}></div></div>
+                                        </td>
+                                        <td style={{ textAlign: 'center' }}>
+                                            <div className={styles.matrixVal}>{project.site_work || 0}%</div>
+                                            <div className={styles.matrixBar}><div style={{ width: `${project.site_work || 0}%`, background: '#06b6d4' }}></div></div>
+                                        </td>
+                                        <td style={{ textAlign: 'center', background: '#f8fafc', fontWeight: 'bold', color: '#1e293b' }}>
+                                            {project.currentProgress}%
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-            </div>
+            ) : (
+                <div className={styles.tableCard}>
+                    <div className={styles.tableWrapper}>
+                        <table className={styles.table}>
+                            <thead>
+                                <tr>
+                                    <th>Project Details</th>
+                                    <th>Schedule</th>
+                                    <th>Progress</th>
+                                    <th>Performance</th>
+                                    <th>Status</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filteredProjects.map(project => (
+                                    <tr key={project.id} className={styles.tableRow}>
+                                        <td data-label="Project Details">
+                                            <div className={styles.projectNameCell}>
+                                                <span className={styles.pName}>{project.name}</span>
+                                                <span className={styles.pCoordinator}><User size={12} /> {project.coordinator || 'Unassigned'}</span>
+                                            </div>
+                                        </td>
+                                        <td data-label="Schedule">
+                                            <div className={styles.pDates}>
+                                                <span>Starts: {new Date(project.start_date).toLocaleDateString()}</span>
+                                                <span>Ends: {new Date(project.end_date).toLocaleDateString()}</span>
+                                            </div>
+                                        </td>
+                                        <td data-label="Progress">
+                                            <div className={styles.progressCell}>
+                                                <div className={styles.progressBarBg}>
+                                                    <div 
+                                                        className={styles.progressBarFill} 
+                                                        style={{ 
+                                                            width: `${project.currentProgress}%`,
+                                                            background: project.statusColor === 'red' ? '#ef4444' : 
+                                                                        project.statusColor === 'yellow' ? '#f59e0b' : '#3b82f6'
+                                                        }}
+                                                    ></div>
+                                                </div>
+                                                <span className={styles.progressText}>{project.currentProgress}%</span>
+                                            </div>
+                                        </td>
+                                        <td data-label="Performance">
+                                            <div className={styles.predictionCell}>
+                                                <div className={styles.speedBadge}>
+                                                    <TrendingUp size={12} /> {project.speed}% / day
+                                                </div>
+                                                <div className={styles.expectedDate}>
+                                                    Exp. completion: {project.expectedDate ? project.expectedDate.toLocaleDateString() : 'N/A'}
+                                                </div>
+                                                {project.delayDays > 0 && (
+                                                    <div className={styles.delayTag}>
+                                                        <ArrowDownRight size={12} /> {project.delayDays} days delay
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </td>
+                                        <td data-label="Status">
+                                            <span className={`${styles.statusBadge} ${styles[project.status.toLowerCase().replace(' ', '')]}`}>
+                                                {project.status === 'On Track' && <CheckCircle2 size={12} />}
+                                                {project.status}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <button className={styles.detailsBtn} onClick={() => openProjectDetails(project)}>
+                                                <ChevronRight size={20} />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
 
             {/* Project Detail Modal */}
             {isModalOpen && selectedProject && (
@@ -354,242 +425,234 @@ const ProjectStatusDashboard = () => {
 
                         <div className={styles.modalGrid}>
                             <div className={styles.historyList}>
-                                <h3 className={styles.historyTitle}><History size={18} /> Complete Update Log</h3>
-                                {selectedProject.history.length > 0 ? selectedProject.history.map((h) => (
-                                    <div key={h.id} className={styles.historyCard}>
-                                        <div className={styles.historyHeader}>
-                                            <span className={styles.historyUser}><User size={12} /> {h.username}</span>
-                                            <span className={styles.historyDate}>{new Date(h.status_date).toLocaleDateString()}</span>
+                                <h3 className={styles.historyTitle}><History size={18} /> Current Project Status</h3>
+                                <div className={styles.historyCard}>
+                                    <div className={styles.historyBody}>
+                                        <div className={styles.historyProgress}>
+                                            <div className={styles.hProgressLabel}>Current Overall Progress: <strong>{selectedProject.currentProgress}%</strong></div>
+                                            <div className={styles.hProgressBar}><div style={{ width: `${selectedProject.currentProgress}%` }}></div></div>
                                         </div>
-                                        <div className={styles.historyBody}>
-                                            <div className={styles.historyProgress}>
-                                                <div className={styles.hProgressLabel}>Progress reached: <strong>{h.completion_percentage}%</strong></div>
-                                                <div className={styles.hProgressBar}><div style={{ width: `${h.completion_percentage}%` }}></div></div>
+                                        <div className={styles.breakdownGrid}>
+                                            {/* Group: Project Coordinators */}
+                                            <div className={styles.breakdownItem} style={{ gridColumn: '1 / -1', borderBottom: '1px solid #eef2f6', marginBottom: '4px', paddingBottom: '4px' }}>
+                                                <span style={{ color: '#3b82f6', fontSize: '0.75rem' }}>PROJECT COORDINATOR TEAM</span>
                                             </div>
-                                            <div className={styles.breakdownGrid}>
-                                                {/* Group: Project Coordinators */}
-                                                <div className={styles.breakdownItem} style={{ gridColumn: '1 / -1', borderBottom: '1px solid #eef2f6', marginBottom: '4px', paddingBottom: '4px' }}>
-                                                    <span style={{ color: '#3b82f6', fontSize: '0.75rem' }}>PROJECT COORDINATOR TEAM</span>
-                                                </div>
-                                                <div 
-                                                    className={`${styles.breakdownItem} ${styles.popoverContainer} ${styles.breakdownItemClickable}`}
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setActivePopover(activePopover === `plan-${h.id}` ? null : `plan-${h.id}`);
-                                                    }}
-                                                >
-                                                    <span className={styles.labelLong}>Planning & Kick Start:</span>
-                                                    <span className={styles.labelShort}>Planning:</span>
-                                                    <strong style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                        {h.planning_kickstart}% <ChevronRight size={14} style={{ transform: activePopover === `plan-${h.id}` ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
-                                                    </strong>
+                                            <div 
+                                                className={`${styles.breakdownItem} ${styles.popoverContainer} ${styles.breakdownItemClickable}`}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setActivePopover(activePopover === `plan-current` ? null : `plan-current`);
+                                                }}
+                                            >
+                                                <span className={styles.labelLong}>Planning & Kick Start:</span>
+                                                <span className={styles.labelShort}>Planning:</span>
+                                                <strong style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                    {selectedProject.planning_kickstart}% <ChevronRight size={14} style={{ transform: activePopover === `plan-current` ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
+                                                </strong>
 
-                                                    {activePopover === `plan-${h.id}` && (
-                                                        <div className={styles.popoverOverlay} onClick={e => e.stopPropagation()}>
-                                                            <div className={styles.popoverTitle}>
-                                                                <span>Planning Breakdown</span>
-                                                                <button className={styles.popoverClose} onClick={() => setActivePopover(null)}><X size={14} /></button>
-                                                            </div>
-                                                            {[
-                                                                { label: 'Site Pooja', short: 'Pooja', value: h.site_pooja },
-                                                                { label: 'Office Documentation', short: 'Office Doc', value: h.office_documentation },
-                                                                { label: 'Sample Arr. (Moodboard)', short: 'Moodboard', value: h.sample_moodboard }
-                                                            ].map((item, idx) => (
-                                                                <div key={idx} className={styles.popoverItem}>
-                                                                    <div className={styles.popoverLabel}>
-                                                                        <span className={styles.labelLong}>{item.label}</span>
-                                                                        <span className={styles.labelShort}>{item.short}</span>
-                                                                        <span className={styles.popoverValue}>{item.value}%</span>
-                                                                    </div>
-                                                                    <div className={styles.pMiniBar}>
-                                                                        <div className={styles.pMiniFill} style={{ width: `${item.value}%` }}></div>
-                                                                    </div>
-                                                                </div>
-                                                            ))}
+                                                {activePopover === `plan-current` && (
+                                                    <div className={styles.popoverOverlay} onClick={e => e.stopPropagation()}>
+                                                        <div className={styles.popoverTitle}>
+                                                            <span>Planning Breakdown</span>
+                                                            <button className={styles.popoverClose} onClick={() => setActivePopover(null)}><X size={14} /></button>
                                                         </div>
-                                                    )}
-                                                </div>
-
-                                                {/* Group: Design Team */}
-                                                <div className={styles.breakdownItem} style={{ gridColumn: '1 / -1', borderBottom: '1px solid #eef2f6', margin: '8px 0 4px', paddingBottom: '4px' }}>
-                                                    <span style={{ color: '#10b981', fontSize: '0.75rem' }}>DESIGN TEAM</span>
-                                                </div>
-                                                <div className={styles.breakdownItem}>
-                                                    <span className={styles.labelLong}>Shop Drawing (Initial):</span>
-                                                    <span className={styles.labelShort}>Shop Drw (I):</span>
-                                                    <strong>{h.shop_drawing}%</strong>
-                                                </div>
-                                                <div className={styles.breakdownItem}>
-                                                    <span className={styles.labelLong}>Line Drawing:</span>
-                                                    <span className={styles.labelShort}>Line Drw:</span>
-                                                    <strong>{h.line_drawing}%</strong>
-                                                </div>
-                                                <div className={styles.breakdownItem}>
-                                                    <span className={styles.labelLong}>Review & Revisions:</span>
-                                                    <span className={styles.labelShort}>Review:</span>
-                                                    <strong>{h.review_revisions}%</strong>
-                                                </div>
-                                                <div className={styles.breakdownItem}>
-                                                    <span className={styles.labelLong}>Shop Drawing (Final):</span>
-                                                    <span className={styles.labelShort}>Shop Drw (F):</span>
-                                                    <strong>{h.shop_drawing_final}%</strong>
-                                                </div>
-                                                <div className={styles.breakdownItem}>
-                                                    <span className={styles.labelLong}>Cutting Plan:</span>
-                                                    <span className={styles.labelShort}>Cutting Plan:</span>
-                                                    <strong>{h.cutting_plan}%</strong>
-                                                </div>
-                                                <div className={styles.breakdownItem}>
-                                                    <span className={styles.labelLong}>Finishes List:</span>
-                                                    <span className={styles.labelShort}>Finishes:</span>
-                                                    <strong>{h.finishes_list}%</strong>
-                                                </div>
-
-                                                {/* Group: Purchase Team */}
-                                                <div className={styles.breakdownItem} style={{ gridColumn: '1 / -1', borderBottom: '1px solid #eef2f6', margin: '8px 0 4px', paddingBottom: '4px' }}>
-                                                    <span style={{ color: '#8b5cf6', fontSize: '0.75rem' }}>PURCHASE TEAM</span>
-                                                </div>
-                                                <div className={styles.breakdownItem}>
-                                                    <span className={styles.labelLong}>MRF Status:</span>
-                                                    <span className={styles.labelShort}>MRF Status:</span>
-                                                    <strong>{h.mrf_status}%</strong>
-                                                </div>
-                                                <div className={styles.breakdownItem}>
-                                                    <span className={styles.labelLong}>Raw Materials:</span>
-                                                    <span className={styles.labelShort}>Raw Mat:</span>
-                                                    <strong>{h.raw_materials}%</strong>
-                                                </div>
-                                                <div className={styles.breakdownItem}>
-                                                    <span className={styles.labelLong}>Long Lead Materials:</span>
-                                                    <span className={styles.labelShort}>Long Lead:</span>
-                                                    <strong>{h.long_lead_materials}%</strong>
-                                                </div>
-                                                <div className={styles.breakdownItem}>
-                                                    <span className={styles.labelLong}>Finishes & Accessories:</span>
-                                                    <span className={styles.labelShort}>Accessories:</span>
-                                                    <strong>{h.finishes_accessories}%</strong>
-                                                </div>
-                                                <div className={styles.breakdownItem}>
-                                                    <span className={styles.labelLong}>Material Delivery:</span>
-                                                    <span className={styles.labelShort}>Delivery:</span>
-                                                    <strong>{h.material_delivery}%</strong>
-                                                </div>
-
-                                                {/* Group: Factory */}
-                                                <div className={styles.breakdownItem} style={{ gridColumn: '1 / -1', borderBottom: '1px solid #eef2f6', margin: '8px 0 4px', paddingBottom: '4px' }}>
-                                                    <span style={{ color: '#f59e0b', fontSize: '0.75rem' }}>FACTORY TEAM</span>
-                                                </div>
-                                                <div 
-                                                    className={`${styles.breakdownItem} ${styles.popoverContainer} ${styles.breakdownItemClickable}`}
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setActivePopover(activePopover === `prod-${h.id}` ? null : `prod-${h.id}`);
-                                                    }}
-                                                >
-                                                    <span className={styles.labelLong}>Production Overall:</span>
-                                                    <span className={styles.labelShort}>Production:</span>
-                                                    <strong style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                        {h.production}% <ChevronRight size={14} style={{ transform: activePopover === `prod-${h.id}` ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
-                                                    </strong>
-
-                                                    {activePopover === `prod-${h.id}` && (
-                                                        <div className={styles.popoverOverlay} onClick={e => e.stopPropagation()}>
-                                                            <div className={styles.popoverTitle}>
-                                                                <span>Production Breakdown</span>
-                                                                <button className={styles.popoverClose} onClick={() => setActivePopover(null)}><X size={14} /></button>
-                                                            </div>
-                                                            {[
-                                                                { label: 'Cutting/Panelling', short: 'Cutting', value: h.cutting_panelling },
-                                                                { label: 'Assembly', short: 'Assembly', value: h.assembly },
-                                                                { label: 'Polishing', short: 'Polishing', value: h.polishing },
-                                                                { label: 'Final Finishing', short: 'Finishing', value: h.final_finishing },
-                                                                { label: 'Packing & Forwarding', short: 'Packing', value: h.packing_forwarding }
-                                                            ].map((item, idx) => (
-                                                                <div key={idx} className={styles.popoverItem}>
-                                                                    <div className={styles.popoverLabel}>
-                                                                        <span className={styles.labelLong}>{item.label}</span>
-                                                                        <span className={styles.labelShort}>{item.short}</span>
-                                                                        <span className={styles.popoverValue}>{item.value}%</span>
-                                                                    </div>
-                                                                    <div className={styles.pMiniBar}>
-                                                                        <div className={styles.pMiniFill} style={{ width: `${item.value}%` }}></div>
-                                                                    </div>
+                                                        {[
+                                                            { label: 'Site Pooja', short: 'Pooja', value: selectedProject.site_pooja },
+                                                            { label: 'Office Documentation', short: 'Office Doc', value: selectedProject.office_documentation },
+                                                            { label: 'Sample Arr. (Moodboard)', short: 'Moodboard', value: selectedProject.sample_moodboard }
+                                                        ].map((item, idx) => (
+                                                            <div key={idx} className={styles.popoverItem}>
+                                                                <div className={styles.popoverLabel}>
+                                                                    <span className={styles.labelLong}>{item.label}</span>
+                                                                    <span className={styles.labelShort}>{item.short}</span>
+                                                                    <span className={styles.popoverValue}>{item.value}%</span>
                                                                 </div>
-                                                            ))}
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                {/* Group: Site Engineers */}
-                                                <div className={styles.breakdownItem} style={{ gridColumn: '1 / -1', borderBottom: '1px solid #eef2f6', margin: '8px 0 4px', paddingBottom: '4px' }}>
-                                                    <span style={{ color: '#06b6d4', fontSize: '0.75rem' }}>SITE ENGINEERS TEAM</span>
-                                                </div>
-                                                <div className={styles.breakdownItem}>
-                                                    <span className={styles.labelLong}>Site Measurement:</span>
-                                                    <span className={styles.labelShort}>Measurement:</span>
-                                                    <strong>{h.site_measurement}%</strong>
-                                                </div>
-                                                <div className={styles.breakdownItem}>
-                                                    <span className={styles.labelLong}>Site Marking:</span>
-                                                    <span className={styles.labelShort}>Marking:</span>
-                                                    <strong>{h.site_marking}%</strong>
-                                                </div>
-                                                <div className={styles.breakdownItem}>
-                                                    <span className={styles.labelLong}>Site Installation:</span>
-                                                    <span className={styles.labelShort}>Installation:</span>
-                                                    <strong>{h.site_installation}%</strong>
-                                                </div>
-                                                <div 
-                                                    className={`${styles.breakdownItem} ${styles.popoverContainer} ${styles.breakdownItemClickable}`}
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setActivePopover(activePopover === `site-${h.id}` ? null : `site-${h.id}`);
-                                                    }}
-                                                >
-                                                    <span className={styles.labelLong}>Site Work (Overall):</span>
-                                                    <span className={styles.labelShort}>Site Work:</span>
-                                                    <strong style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                        {h.site_work}% <ChevronRight size={14} style={{ transform: activePopover === `site-${h.id}` ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
-                                                    </strong>
-
-                                                    {activePopover === `site-${h.id}` && (
-                                                        <div className={styles.popoverOverlay} onClick={e => e.stopPropagation()}>
-                                                            <div className={styles.popoverTitle}>
-                                                                <span>Site Breakdown</span>
-                                                                <button className={styles.popoverClose} onClick={() => setActivePopover(null)}><X size={14} /></button>
-                                                            </div>
-                                                            {[
-                                                                { label: 'Civil Work', short: 'Civil', value: h.civil_work },
-                                                                { label: 'False Ceiling', short: 'Ceiling', value: h.false_ceiling },
-                                                                { label: 'Carpentry', short: 'Carpentry', value: h.carpentry_work },
-                                                                { label: 'Painting', short: 'Painting', value: h.painting }
-                                                            ].map((item, idx) => (
-                                                                <div key={idx} className={styles.popoverItem}>
-                                                                    <div className={styles.popoverLabel}>
-                                                                        <span className={styles.labelLong}>{item.label}</span>
-                                                                        <span className={styles.labelShort}>{item.short}</span>
-                                                                        <span className={styles.popoverValue}>{item.value}%</span>
-                                                                    </div>
-                                                                    <div className={styles.pMiniBar}>
-                                                                        <div className={styles.pMiniFill} style={{ width: `${item.value}%` }}></div>
-                                                                    </div>
+                                                                <div className={styles.pMiniBar}>
+                                                                    <div className={styles.pMiniFill} style={{ width: `${item.value}%` }}></div>
                                                                 </div>
-                                                            ))}
-                                                        </div>
-                                                    )}
-                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
                                             </div>
-                                            <p className={styles.hRemarks}>{h.remarks}</p>
-                                            {h.file_url && (
-                                                <a href={h.file_url} target="_blank" rel="noreferrer" className={styles.hLink}>
-                                                    <LinkIcon size={14} /> View Report Attachment
-                                                </a>
-                                            )}
+
+                                            {/* Group: Design Team */}
+                                            <div className={styles.breakdownItem} style={{ gridColumn: '1 / -1', borderBottom: '1px solid #eef2f6', margin: '8px 0 4px', paddingBottom: '4px' }}>
+                                                <span style={{ color: '#10b981', fontSize: '0.75rem' }}>DESIGN TEAM</span>
+                                            </div>
+                                            <div className={styles.breakdownItem}>
+                                                <span className={styles.labelLong}>Shop Drawing (Initial):</span>
+                                                <span className={styles.labelShort}>Shop Drw (I):</span>
+                                                <strong>{selectedProject.shop_drawing}%</strong>
+                                            </div>
+                                            <div className={styles.breakdownItem}>
+                                                <span className={styles.labelLong}>Line Drawing:</span>
+                                                <span className={styles.labelShort}>Line Drw:</span>
+                                                <strong>{selectedProject.line_drawing}%</strong>
+                                            </div>
+                                            <div className={styles.breakdownItem}>
+                                                <span className={styles.labelLong}>Review & Revisions:</span>
+                                                <span className={styles.labelShort}>Review:</span>
+                                                <strong>{selectedProject.review_revisions}%</strong>
+                                            </div>
+                                            <div className={styles.breakdownItem}>
+                                                <span className={styles.labelLong}>Shop Drawing (Final):</span>
+                                                <span className={styles.labelShort}>Shop Drw (F):</span>
+                                                <strong>{selectedProject.shop_drawing_final}%</strong>
+                                            </div>
+                                            <div className={styles.breakdownItem}>
+                                                <span className={styles.labelLong}>Cutting Plan:</span>
+                                                <span className={styles.labelShort}>Cutting Plan:</span>
+                                                <strong>{selectedProject.cutting_plan}%</strong>
+                                            </div>
+                                            <div className={styles.breakdownItem}>
+                                                <span className={styles.labelLong}>Finishes List:</span>
+                                                <span className={styles.labelShort}>Finishes:</span>
+                                                <strong>{selectedProject.finishes_list}%</strong>
+                                            </div>
+
+                                            {/* Group: Purchase Team */}
+                                            <div className={styles.breakdownItem} style={{ gridColumn: '1 / -1', borderBottom: '1px solid #eef2f6', margin: '8px 0 4px', paddingBottom: '4px' }}>
+                                                <span style={{ color: '#8b5cf6', fontSize: '0.75rem' }}>PURCHASE TEAM</span>
+                                            </div>
+                                            <div className={styles.breakdownItem}>
+                                                <span className={styles.labelLong}>MRF Status:</span>
+                                                <span className={styles.labelShort}>MRF Status:</span>
+                                                <strong>{selectedProject.mrf_status}%</strong>
+                                            </div>
+                                            <div className={styles.breakdownItem}>
+                                                <span className={styles.labelLong}>Raw Materials:</span>
+                                                <span className={styles.labelShort}>Raw Mat:</span>
+                                                <strong>{selectedProject.raw_materials}%</strong>
+                                            </div>
+                                            <div className={styles.breakdownItem}>
+                                                <span className={styles.labelLong}>Long Lead Materials:</span>
+                                                <span className={styles.labelShort}>Long Lead:</span>
+                                                <strong>{selectedProject.long_lead_materials}%</strong>
+                                            </div>
+                                            <div className={styles.breakdownItem}>
+                                                <span className={styles.labelLong}>Finishes & Accessories:</span>
+                                                <span className={styles.labelShort}>Accessories:</span>
+                                                <strong>{selectedProject.finishes_accessories}%</strong>
+                                            </div>
+                                            <div className={styles.breakdownItem}>
+                                                <span className={styles.labelLong}>Material Delivery:</span>
+                                                <span className={styles.labelShort}>Delivery:</span>
+                                                <strong>{selectedProject.material_delivery}%</strong>
+                                            </div>
+
+                                            {/* Group: Factory */}
+                                            <div className={styles.breakdownItem} style={{ gridColumn: '1 / -1', borderBottom: '1px solid #eef2f6', margin: '8px 0 4px', paddingBottom: '4px' }}>
+                                                <span style={{ color: '#f59e0b', fontSize: '0.75rem' }}>FACTORY TEAM</span>
+                                            </div>
+                                            <div 
+                                                className={`${styles.breakdownItem} ${styles.popoverContainer} ${styles.breakdownItemClickable}`}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setActivePopover(activePopover === `prod-current` ? null : `prod-current`);
+                                                }}
+                                            >
+                                                <span className={styles.labelLong}>Production Overall:</span>
+                                                <span className={styles.labelShort}>Production:</span>
+                                                <strong style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                    {selectedProject.production}% <ChevronRight size={14} style={{ transform: activePopover === `prod-current` ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
+                                                </strong>
+
+                                                {activePopover === `prod-current` && (
+                                                    <div className={styles.popoverOverlay} onClick={e => e.stopPropagation()}>
+                                                        <div className={styles.popoverTitle}>
+                                                            <span>Production Breakdown</span>
+                                                            <button className={styles.popoverClose} onClick={() => setActivePopover(null)}><X size={14} /></button>
+                                                        </div>
+                                                        {[
+                                                            { label: 'Cutting/Panelling', short: 'Cutting', value: selectedProject.cutting_panelling },
+                                                            { label: 'Assembly', short: 'Assembly', value: selectedProject.assembly },
+                                                            { label: 'Polishing', short: 'Polishing', value: selectedProject.polishing },
+                                                            { label: 'Final Finishing', short: 'Finishing', value: selectedProject.final_finishing },
+                                                            { label: 'Packing & Forwarding', short: 'Packing', value: selectedProject.packing_forwarding }
+                                                        ].map((item, idx) => (
+                                                            <div key={idx} className={styles.popoverItem}>
+                                                                <div className={styles.popoverLabel}>
+                                                                    <span className={styles.labelLong}>{item.label}</span>
+                                                                    <span className={styles.labelShort}>{item.short}</span>
+                                                                    <span className={styles.popoverValue}>{item.value}%</span>
+                                                                </div>
+                                                                <div className={styles.pMiniBar}>
+                                                                    <div className={styles.pMiniFill} style={{ width: `${item.value}%` }}></div>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Group: Site Engineers */}
+                                            <div className={styles.breakdownItem} style={{ gridColumn: '1 / -1', borderBottom: '1px solid #eef2f6', margin: '8px 0 4px', paddingBottom: '4px' }}>
+                                                <span style={{ color: '#06b6d4', fontSize: '0.75rem' }}>SITE ENGINEERS TEAM</span>
+                                            </div>
+                                            <div className={styles.breakdownItem}>
+                                                <span className={styles.labelLong}>Site Measurement:</span>
+                                                <span className={styles.labelShort}>Measurement:</span>
+                                                <strong>{selectedProject.site_measurement}%</strong>
+                                            </div>
+                                            <div className={styles.breakdownItem}>
+                                                <span className={styles.labelLong}>Site Marking:</span>
+                                                <span className={styles.labelShort}>Marking:</span>
+                                                <strong>{selectedProject.site_marking}%</strong>
+                                            </div>
+                                            <div className={styles.breakdownItem}>
+                                                <span className={styles.labelLong}>Site Installation:</span>
+                                                <span className={styles.labelShort}>Installation:</span>
+                                                <strong>{selectedProject.site_installation}%</strong>
+                                            </div>
+                                            <div 
+                                                className={`${styles.breakdownItem} ${styles.popoverContainer} ${styles.breakdownItemClickable}`}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setActivePopover(activePopover === `site-current` ? null : `site-current`);
+                                                }}
+                                            >
+                                                <span className={styles.labelLong}>Site Work (Overall):</span>
+                                                <span className={styles.labelShort}>Site Work:</span>
+                                                <strong style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                    {selectedProject.site_work}% <ChevronRight size={14} style={{ transform: activePopover === `site-current` ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
+                                                </strong>
+
+                                                {activePopover === `site-current` && (
+                                                    <div className={styles.popoverOverlay} onClick={e => e.stopPropagation()}>
+                                                        <div className={styles.popoverTitle}>
+                                                            <span>Site Breakdown</span>
+                                                            <button className={styles.popoverClose} onClick={() => setActivePopover(null)}><X size={14} /></button>
+                                                        </div>
+                                                        {[
+                                                            { label: 'Civil Work', short: 'Civil', value: selectedProject.civil_work },
+                                                            { label: 'False Ceiling', short: 'Ceiling', value: selectedProject.false_ceiling },
+                                                            { label: 'Carpentry', short: 'Carpentry', value: selectedProject.carpentry_work },
+                                                            { label: 'Painting', short: 'Painting', value: selectedProject.painting }
+                                                        ].map((item, idx) => (
+                                                            <div key={idx} className={styles.popoverItem}>
+                                                                <div className={styles.popoverLabel}>
+                                                                    <span className={styles.labelLong}>{item.label}</span>
+                                                                    <span className={styles.labelShort}>{item.short}</span>
+                                                                    <span className={styles.popoverValue}>{item.value}%</span>
+                                                                </div>
+                                                                <div className={styles.pMiniBar}>
+                                                                    <div className={styles.pMiniFill} style={{ width: `${item.value}%` }}></div>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
+                                        {selectedProject.remarks && <p className={styles.hRemarks}>{selectedProject.remarks}</p>}
+                                        {selectedProject.file_url && (
+                                            <a href={selectedProject.file_url} target="_blank" rel="noreferrer" className={styles.hLink}>
+                                                <LinkIcon size={14} /> View Latest Report Attachment
+                                            </a>
+                                        )}
                                     </div>
-                                )) : (
-                                    <p className={styles.noHistory}>No updates posted for this project yet.</p>
-                                )}
+                                </div>
                             </div>
 
                             <div className={styles.sidebarDetails}>
@@ -622,6 +685,45 @@ const ProjectStatusDashboard = () => {
                                     <div className={styles.insightStat}>
                                         <span>Target Deadline</span>
                                         <strong>{new Date(selectedProject.end_date).toLocaleDateString()}</strong>
+                                    </div>
+                                </div>
+
+                                <div className={styles.detailCard}>
+                                    <h4 style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '8px', marginBottom: '12px' }}>Team Responsibility</h4>
+                                    <div className={styles.insightStat}>
+                                        <span>Coordination</span>
+                                        <div>
+                                            <div style={{ fontSize: '0.8rem', fontWeight: '600' }}>{selectedProject.coord_updated_by || 'No Updates'}</div>
+                                            <div style={{ fontSize: '0.65rem', color: '#94a3b8' }}>{selectedProject.coord_updated_at ? new Date(selectedProject.coord_updated_at).toLocaleDateString() : 'N/A'}</div>
+                                        </div>
+                                    </div>
+                                    <div className={styles.insightStat}>
+                                        <span>Design Team</span>
+                                        <div>
+                                            <div style={{ fontSize: '0.8rem', fontWeight: '600' }}>{selectedProject.design_updated_by || 'No Updates'}</div>
+                                            <div style={{ fontSize: '0.65rem', color: '#94a3b8' }}>{selectedProject.design_updated_at ? new Date(selectedProject.design_updated_at).toLocaleDateString() : 'N/A'}</div>
+                                        </div>
+                                    </div>
+                                    <div className={styles.insightStat}>
+                                        <span>Purchase Team</span>
+                                        <div>
+                                            <div style={{ fontSize: '0.8rem', fontWeight: '600' }}>{selectedProject.purchase_updated_by || 'No Updates'}</div>
+                                            <div style={{ fontSize: '0.65rem', color: '#94a3b8' }}>{selectedProject.purchase_updated_at ? new Date(selectedProject.purchase_updated_at).toLocaleDateString() : 'N/A'}</div>
+                                        </div>
+                                    </div>
+                                    <div className={styles.insightStat}>
+                                        <span>Factory Team</span>
+                                        <div>
+                                            <div style={{ fontSize: '0.8rem', fontWeight: '600' }}>{selectedProject.factory_updated_by || 'No Updates'}</div>
+                                            <div style={{ fontSize: '0.65rem', color: '#94a3b8' }}>{selectedProject.factory_updated_at ? new Date(selectedProject.factory_updated_at).toLocaleDateString() : 'N/A'}</div>
+                                        </div>
+                                    </div>
+                                    <div className={styles.insightStat}>
+                                        <span>Site Team</span>
+                                        <div>
+                                            <div style={{ fontSize: '0.8rem', fontWeight: '600' }}>{selectedProject.site_updated_by || 'No Updates'}</div>
+                                            <div style={{ fontSize: '0.65rem', color: '#94a3b8' }}>{selectedProject.site_updated_at ? new Date(selectedProject.site_updated_at).toLocaleDateString() : 'N/A'}</div>
+                                        </div>
                                     </div>
                                 </div>
 

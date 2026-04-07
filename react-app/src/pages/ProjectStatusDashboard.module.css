@@ -46,6 +46,39 @@
     border-color: #cbd5e1;
 }
 
+.headerActions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.viewBtn {
+    background: white;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+    padding: 0.75rem 1.25rem;
+    border-radius: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.viewBtn:hover {
+    background: #f8fafc;
+    border-color: #3b82f6;
+    color: #3b82f6;
+}
+
+.viewActive {
+    background: #eff6ff;
+    border-color: #3b82f6;
+    color: #3b82f6;
+}
+
 /* Stats Grid */
 .statsGrid {
     display: grid;
@@ -760,4 +793,29 @@
 .breakdownItemClickable:hover {
     background: #eff6ff;
     border-color: #bfdbfe;
+}
+
+.matrixRow:hover {
+    background: #f0f9ff !important;
+}
+
+.matrixVal {
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin-bottom: 4px;
+}
+
+.matrixBar {
+    width: 60px;
+    height: 4px;
+    background: #f1f5f9;
+    border-radius: 2px;
+    margin: 0 auto;
+    overflow: hidden;
+}
+
+.matrixBar div {
+    height: 100%;
+    border-radius: 2px;
 }

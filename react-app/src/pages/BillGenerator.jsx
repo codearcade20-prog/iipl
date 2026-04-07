@@ -315,7 +315,7 @@ const BillGenerator = () => {
                 <Input label="Project Name" value={formData.projectName} onChange={e => setFormData({ ...formData, projectName: e.target.value })} />
                 <Input label="Type of Work" value={formData.typeOfWork} onChange={e => setFormData({ ...formData, typeOfWork: e.target.value })} />
                 <Input label="Work Order No" value={formData.workOrderNo} onChange={e => setFormData({ ...formData, workOrderNo: e.target.value })} />
-                <Input label="Project Code" value={formData.projectCode} onChange={e => setFormData({ ...formData, projectCode: e.target.value })} />
+                <Input label="Project Code" value={formData.projectCode} onChange={e => setFormData({ ...formData, projectCode: e.target.value })} maxLength={16} />
                 <Input label="Client Code" value={formData.clientCode} onChange={e => setFormData({ ...formData, clientCode: e.target.value })} />
                 <Input label="Vendor Mobile" value={formData.vendorMobile} onChange={e => setFormData({ ...formData, vendorMobile: e.target.value })} />
 
@@ -423,7 +423,7 @@ const BillGenerator = () => {
                             </div>
                             <div className={styles.metaItem}>
                                 <span className={styles.metaLabel}>PROJECT CODE :</span>
-                                <input className={styles.inlineInput} value={formData.projectCode} onChange={e => setFormData({ ...formData, projectCode: e.target.value })} />
+                                <input className={styles.inlineInput} value={formData.projectCode} onChange={e => setFormData({ ...formData, projectCode: e.target.value })} maxLength={16} />
                             </div>
                             <div className={styles.metaItem}>
                                 <span className={styles.metaLabel}>CLIENT CODE :</span>

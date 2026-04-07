@@ -12,6 +12,7 @@ const ProjectStatusUpdate = () => {
     const [loading, setLoading] = useState(false);
     const [projects, setProjects] = useState([]);
     const [updates, setUpdates] = useState([]);
+    const [initialMasterStatus, setInitialMasterStatus] = useState(null); // Reference point for regression check
     const [form, setForm] = useState({
         project_id: '',
         completion_percentage: '',
@@ -128,26 +129,26 @@ const ProjectStatusUpdate = () => {
         if (!projectId) return;
         setLoading(true);
         try {
+            // READ from the Master Table (Absolute Reality)
             const { data, error } = await supabase
-                .from('project_status_updates')
+                .from('project_current_status')
                 .select('*')
                 .eq('project_id', projectId)
-                .order('updated_at', { ascending: false })
-                .limit(1)
                 .single();
 
             if (data) {
-                // Pre-fill form with latest data to allow merging updates
+                setInitialMasterStatus(data);
+                // Pre-fill form with the master state (no more regressions)
                 setForm(prev => ({
                     ...prev,
                     ...data,
-                    project_id: projectId, // Ensure project_id stays same
-                    remarks: '', // Clear remarks for new update
-                    file_url: '' // Clear file_url for new update
+                    remarks: '', // Keep remarks empty for new activities
+                    file_url: '' // Keep file_url empty for new entry
                 }));
-                toast("Fetched latest progress for this project.");
+                toast("Fetched master progress for this project.");
             } else {
-                // Reset form if no previous data
+                setInitialMasterStatus(null);
+                // If no master status yet, we start fresh
                 setForm(prev => ({
                     ...prev,
                     project_id: projectId,
@@ -163,7 +164,7 @@ const ProjectStatusUpdate = () => {
                 }));
             }
         } catch (error) {
-            console.error("Error fetching latest status:", error);
+            console.error("Error fetching master status:", error);
         } finally {
             setLoading(false);
         }
@@ -185,6 +186,32 @@ const ProjectStatusUpdate = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        
+        // REGRESSION VALIDATION
+        if (initialMasterStatus) {
+            const fieldsToValidate = [
+                'completion_percentage', 'planning_kickstart', 'site_pooja', 'office_documentation',
+                'site_measurement', 'site_marking', 'sample_moodboard', 'shop_drawing',
+                'line_drawing', 'review_revisions', 'shop_drawing_final', 'cutting_plan',
+                'finishes_list', 'finishes_accessories', 'mrf_status', 'raw_materials',
+                'long_lead_materials', 'production', 'cutting_panelling', 'assembly',
+                'polishing', 'final_finishing', 'packing_forwarding', 'material_delivery',
+                'site_installation', 'site_work', 'civil_work', 'false_ceiling',
+                'carpentry_work', 'painting'
+            ];
+
+            for (const field of fieldsToValidate) {
+                const newValue = parseFloat(form[field]) || 0;
+                const oldValue = parseFloat(initialMasterStatus[field]) || 0;
+                
+                if (newValue < oldValue) {
+                    alert(`Invalid Entry: "${field.replace(/_/g, ' ').toUpperCase()}" cannot be decreased from ${oldValue}% to ${newValue}%. Progress must only go forward.`);
+                    setLoading(false);
+                    return;
+                }
+            }
+        }
+
         if (!form.project_id) {
             toast("Please select a project");
             return;
@@ -210,48 +237,87 @@ const ProjectStatusUpdate = () => {
 
         setLoading(true);
         try {
-            const { error } = await supabase
+            const role = user?.team_role || 'admin';
+            const username = user?.username || 'System';
+            const now = new Date().toISOString();
+
+            const updatePayload = {
+                project_id: form.project_id,
+                completion_percentage: parseFloat(form.completion_percentage),
+                planning_kickstart: parseFloat(form.planning_kickstart) || 0,
+                site_pooja: parseFloat(form.site_pooja) || 0,
+                office_documentation: parseFloat(form.office_documentation) || 0,
+                site_measurement: parseFloat(form.site_measurement) || 0,
+                site_marking: parseFloat(form.site_marking) || 0,
+                sample_moodboard: parseFloat(form.sample_moodboard) || 0,
+                shop_drawing: parseFloat(form.shop_drawing) || 0,
+                line_drawing: parseFloat(form.line_drawing) || 0,
+                review_revisions: parseFloat(form.review_revisions) || 0,
+                shop_drawing_final: parseFloat(form.shop_drawing_final) || 0,
+                cutting_plan: parseFloat(form.cutting_plan) || 0,
+                finishes_list: parseFloat(form.finishes_list) || 0,
+                finishes_accessories: parseFloat(form.finishes_accessories) || 0,
+                mrf_status: parseFloat(form.mrf_status) || 0,
+                raw_materials: parseFloat(form.raw_materials) || 0,
+                long_lead_materials: parseFloat(form.long_lead_materials) || 0,
+                production: parseFloat(form.production) || 0,
+                cutting_panelling: parseFloat(form.cutting_panelling) || 0,
+                assembly: parseFloat(form.assembly) || 0,
+                polishing: parseFloat(form.polishing) || 0,
+                final_finishing: parseFloat(form.final_finishing) || 0,
+                packing_forwarding: parseFloat(form.packing_forwarding) || 0,
+                material_delivery: parseFloat(form.material_delivery) || 0,
+                site_installation: parseFloat(form.site_installation) || 0,
+                site_work: parseFloat(form.site_work) || 0,
+                civil_work: parseFloat(form.civil_work) || 0,
+                false_ceiling: parseFloat(form.false_ceiling) || 0,
+                carpentry_work: parseFloat(form.carpentry_work) || 0,
+                painting: parseFloat(form.painting) || 0,
+                remarks: form.remarks,
+                file_url: form.file_url,
+                last_updated_by: username,
+                updated_at: now
+            };
+
+            // INTELLIGENT TEAM TAGGING: Only update the metadata for the user's specific section
+            if (role === 'coordinator' || role === 'admin') {
+                updatePayload.coord_updated_by = username;
+                updatePayload.coord_updated_at = now;
+            }
+            if (role === 'design' || role === 'admin') {
+                updatePayload.design_updated_by = username;
+                updatePayload.design_updated_at = now;
+            }
+            if (role === 'purchase' || role === 'admin') {
+                updatePayload.purchase_updated_by = username;
+                updatePayload.purchase_updated_at = now;
+            }
+            if (role === 'factory' || role === 'admin') {
+                updatePayload.factory_updated_by = username;
+                updatePayload.factory_updated_at = now;
+            }
+            if (role === 'site_engineers' || role === 'admin') {
+                updatePayload.site_updated_by = username;
+                updatePayload.site_updated_at = now;
+            }
+
+            // 1. UPDATE Master Reality (UPSERT)
+            const { error: masterError } = await supabase
+                .from('project_current_status')
+                .upsert([updatePayload]);
+            
+            if (masterError) throw masterError;
+
+            // 2. INSERT into History Log (for Audit/MD feed)
+            const { error: historyError } = await supabase
                 .from('project_status_updates')
                 .insert([{
-                    project_id: form.project_id,
+                    ...updatePayload,
                     status_date: currentDate,
-                    completion_percentage: parseFloat(form.completion_percentage),
-                    planning_kickstart: parseFloat(form.planning_kickstart) || 0,
-                    site_pooja: parseFloat(form.site_pooja) || 0,
-                    office_documentation: parseFloat(form.office_documentation) || 0,
-                    site_measurement: parseFloat(form.site_measurement) || 0,
-                    site_marking: parseFloat(form.site_marking) || 0,
-                    sample_moodboard: parseFloat(form.sample_moodboard) || 0,
-                    shop_drawing: parseFloat(form.shop_drawing) || 0,
-                    line_drawing: parseFloat(form.line_drawing) || 0,
-                    review_revisions: parseFloat(form.review_revisions) || 0,
-                    shop_drawing_final: parseFloat(form.shop_drawing_final) || 0,
-                    cutting_plan: parseFloat(form.cutting_plan) || 0,
-                    finishes_list: parseFloat(form.finishes_list) || 0,
-                    finishes_accessories: parseFloat(form.finishes_accessories) || 0,
-                    mrf_status: parseFloat(form.mrf_status) || 0,
-                    raw_materials: parseFloat(form.raw_materials) || 0,
-                    long_lead_materials: parseFloat(form.long_lead_materials) || 0,
-                    production: parseFloat(form.production) || 0,
-                    cutting_panelling: parseFloat(form.cutting_panelling) || 0,
-                    assembly: parseFloat(form.assembly) || 0,
-                    polishing: parseFloat(form.polishing) || 0,
-                    final_finishing: parseFloat(form.final_finishing) || 0,
-                    packing_forwarding: parseFloat(form.packing_forwarding) || 0,
-                    material_delivery: parseFloat(form.material_delivery) || 0,
-                    site_installation: parseFloat(form.site_installation) || 0,
-                    site_work: parseFloat(form.site_work) || 0,
-                    civil_work: parseFloat(form.civil_work) || 0,
-                    false_ceiling: parseFloat(form.false_ceiling) || 0,
-                    carpentry_work: parseFloat(form.carpentry_work) || 0,
-                    painting: parseFloat(form.painting) || 0,
-                    remarks: form.remarks,
-                    file_url: form.file_url,
-                    username: user?.username || 'System',
-                    updated_at: new Date().toISOString()
+                    username: username
                 }]);
 
-            if (error) throw error;
+            if (historyError) throw historyError;
             
             toast("Status update recorded successfully!");
             setForm({

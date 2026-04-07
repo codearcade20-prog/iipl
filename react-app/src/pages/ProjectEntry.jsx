@@ -84,7 +84,7 @@ const ProjectEntry = () => {
                 if (error) throw error;
                 toast("Project updated successfully!");
             } else {
-                const { error } = await supabase
+                const { data: newProject, error } = await supabase
                     .from('projects')
                     .insert([{
                         name: form.name,
@@ -97,8 +97,21 @@ const ProjectEntry = () => {
                         end_date: form.end_date || null,
                         remarks: form.remarks,
                         created_by: user?.username || 'Unknown'
-                    }]);
+                    }])
+                    .select()
+                    .single();
+
                 if (error) throw error;
+
+                // INITIALIZE Master Status for the new project
+                if (newProject) {
+                    await supabase.from('project_current_status').insert([{
+                        project_id: newProject.id,
+                        completion_percentage: 0,
+                        last_updated_by: user?.username || 'System'
+                    }]);
+                }
+
                 toast("Project created successfully!");
             }
             resetForm();
@@ -194,6 +207,7 @@ const ProjectEntry = () => {
                             value={form.code} 
                             onChange={(e) => setForm({...form, code: e.target.value})} 
                             placeholder="Enter project code"
+                            maxLength={16}
                         />
                     </div>
 
