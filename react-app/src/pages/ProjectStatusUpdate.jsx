@@ -25,6 +25,7 @@ const ProjectStatusUpdate = () => {
         shop_drawing: '',
         line_drawing: '',
         review_revisions: '',
+        mrf_approval: '',
         shop_drawing_final: '',
         cutting_plan: '',
         finishes_list: '',
@@ -75,17 +76,17 @@ const ProjectStatusUpdate = () => {
         // 4. Prepare manual main status fields for Overall Completion (Excluding the three calculated ones)
         const manualMainFields = [
             'site_measurement', 'site_marking',
-            'shop_drawing', 'line_drawing', 'review_revisions', 'shop_drawing_final', 'cutting_plan',
+            'shop_drawing', 'line_drawing', 'review_revisions', 'mrf_approval', 'shop_drawing_final', 'cutting_plan',
             'finishes_list', 'finishes_accessories', 'mrf_status', 'raw_materials', 'long_lead_materials',
             'material_delivery', 'site_installation'
         ];
         
-        // Sum the 14 manual main fields
+        // Sum the 15 manual main fields
         const manualSum = manualMainFields.reduce((acc, field) => acc + (parseFloat(form[field]) || 0), 0);
         
         // Add the 3 calculated averages (Planning, Production, Site Work)
         const totalSum = manualSum + planningAvg + siteWorkAvg + productionAvg;
-        const totalAvg = totalSum / 17; // Now dividing by 17 main categories
+        const totalAvg = totalSum / 18; // Now dividing by 18 main categories
 
         // 5. Update form state once with all calculated values
         setForm(prev => ({ 
@@ -99,7 +100,7 @@ const ProjectStatusUpdate = () => {
         // Dependencies: all sub-fields and independent main fields
         form.site_pooja, form.office_documentation, form.sample_moodboard,
         form.site_measurement, form.site_marking,
-        form.shop_drawing, form.line_drawing, form.review_revisions, form.shop_drawing_final, form.cutting_plan,
+        form.shop_drawing, form.line_drawing, form.review_revisions, form.mrf_approval, form.shop_drawing_final, form.cutting_plan,
         form.finishes_list, form.finishes_accessories, form.mrf_status, form.raw_materials, form.long_lead_materials,
         form.material_delivery, form.site_installation,
         form.civil_work, form.false_ceiling, form.carpentry_work, form.painting,
@@ -155,7 +156,7 @@ const ProjectStatusUpdate = () => {
                     completion_percentage: 0,
                     planning_kickstart: 0, site_pooja: 0, office_documentation: 0,
                     site_measurement: 0, site_marking: 0, sample_moodboard: 0,
-                    shop_drawing: 0, line_drawing: 0, review_revisions: 0, shop_drawing_final: 0, cutting_plan: 0,
+                    shop_drawing: 0, line_drawing: 0, review_revisions: 0, mrf_approval: 0, shop_drawing_final: 0, cutting_plan: 0,
                     finishes_list: 0, finishes_accessories: 0, mrf_status: 0, raw_materials: 0, long_lead_materials: 0,
                     production: 0, cutting_panelling: 0, assembly: 0, polishing: 0, final_finishing: 0, packing_forwarding: 0,
                     material_delivery: 0, site_installation: 0, site_work: 0,
@@ -171,17 +172,28 @@ const ProjectStatusUpdate = () => {
     };
 
     const handleProjectChange = (projectId) => {
-        setForm({ ...form, project_id: projectId });
+        setForm(prev => ({ ...prev, project_id: projectId }));
         if (projectId) {
             fetchLatestProjectStatus(projectId);
         }
     };
 
     const handlePercentageChange = (field, value) => {
-        let val = value === '' ? '' : parseFloat(value);
-        if (val !== '' && val > 100) val = 100;
-        if (val !== '' && val < 0) val = 0;
-        setForm({ ...form, [field]: val === '' ? '' : val.toString() });
+        setForm(prev => {
+            let val = value === '' ? '' : parseFloat(value);
+            if (val !== '' && val > 100) val = 100;
+            if (val !== '' && val < 0) val = 0;
+
+            // NEW: Strict constraint for MRF Status (Purchase) based on MRF Approval (Design)
+            if (field === 'mrf_status') {
+                const approvalLimit = parseFloat(prev.mrf_approval) || 0;
+                if (val !== '' && val > approvalLimit) {
+                    val = approvalLimit;
+                }
+            }
+
+            return { ...prev, [field]: val === '' ? '' : val.toString() };
+        });
     };
 
     const handleSubmit = async (e) => {
@@ -192,7 +204,7 @@ const ProjectStatusUpdate = () => {
             const fieldsToValidate = [
                 'completion_percentage', 'planning_kickstart', 'site_pooja', 'office_documentation',
                 'site_measurement', 'site_marking', 'sample_moodboard', 'shop_drawing',
-                'line_drawing', 'review_revisions', 'shop_drawing_final', 'cutting_plan',
+                'line_drawing', 'review_revisions', 'mrf_approval', 'shop_drawing_final', 'cutting_plan',
                 'finishes_list', 'finishes_accessories', 'mrf_status', 'raw_materials',
                 'long_lead_materials', 'production', 'cutting_panelling', 'assembly',
                 'polishing', 'final_finishing', 'packing_forwarding', 'material_delivery',
@@ -212,6 +224,16 @@ const ProjectStatusUpdate = () => {
             }
         }
 
+        // MRF APPROVAL VALIDATION (Capping Purchase by Design)
+        const currentApproval = parseFloat(form.mrf_approval) || 0;
+        const currentStatus = parseFloat(form.mrf_status) || 0;
+
+        if (currentStatus > currentApproval) {
+            alert(`Entry Blocked: You cannot report ${currentStatus}% MRF Status because the Design Team has only approved ${currentApproval}%. \n\nPlease coordinate with Design to update the MRF Approval first.`);
+            setLoading(false);
+            return;
+        }
+
         if (!form.project_id) {
             toast("Please select a project");
             return;
@@ -220,7 +242,7 @@ const ProjectStatusUpdate = () => {
         const percentageFields = [
             'planning_kickstart', 'site_pooja', 'office_documentation', 
             'site_measurement', 'site_marking', 'sample_moodboard',
-            'shop_drawing', 'line_drawing', 'review_revisions', 'shop_drawing_final', 'cutting_plan',
+            'shop_drawing', 'line_drawing', 'review_revisions', 'mrf_approval', 'shop_drawing_final', 'cutting_plan',
             'finishes_list', 'finishes_accessories', 'mrf_status', 'raw_materials', 'long_lead_materials',
             'production', 'cutting_panelling', 'assembly', 'polishing', 'final_finishing', 'packing_forwarding',
             'material_delivery', 'site_installation', 'site_work',
@@ -253,6 +275,7 @@ const ProjectStatusUpdate = () => {
                 shop_drawing: parseFloat(form.shop_drawing) || 0,
                 line_drawing: parseFloat(form.line_drawing) || 0,
                 review_revisions: parseFloat(form.review_revisions) || 0,
+                mrf_approval: parseFloat(form.mrf_approval) || 0,
                 shop_drawing_final: parseFloat(form.shop_drawing_final) || 0,
                 cutting_plan: parseFloat(form.cutting_plan) || 0,
                 finishes_list: parseFloat(form.finishes_list) || 0,
@@ -332,6 +355,7 @@ const ProjectStatusUpdate = () => {
                 shop_drawing: '',
                 line_drawing: '',
                 review_revisions: '',
+                mrf_approval: '',
                 shop_drawing_final: '',
                 cutting_plan: '',
                 finishes_list: '',
@@ -488,6 +512,13 @@ const ProjectStatusUpdate = () => {
                             </div>
                             <div className={styles.fieldGroup}>
                                 <label className={styles.label}>
+                                    <span className={styles.labelLong}>MRF Approval (%)</span>
+                                    <span className={styles.labelShort}>MRF Appr. (%)</span>
+                                </label>
+                                <input type="number" className={styles.input} value={form.mrf_approval} onChange={(e) => handlePercentageChange('mrf_approval', e.target.value)} placeholder="0-100" min="0" max="100" />
+                            </div>
+                            <div className={styles.fieldGroup}>
+                                <label className={styles.label}>
                                     <span className={styles.labelLong}>Shop Drawing (Final) (%)</span>
                                     <span className={styles.labelShort}>Shop Drw (F) (%)</span>
                                 </label>
@@ -517,10 +548,28 @@ const ProjectStatusUpdate = () => {
                         <div className={styles.subGrid}>
                             <div className={styles.fieldGroup}>
                                 <label className={styles.label}>
-                                    <span className={styles.labelLong}>MRF Status (%)</span>
-                                    <span className={styles.labelShort}>MRF (%)</span>
+                                    <span className={styles.labelLong}>MRF Approval (Locked) (%)</span>
+                                    <span className={styles.labelShort}>Approval (%)</span>
                                 </label>
-                                <input type="number" className={styles.input} value={form.mrf_status} onChange={(e) => handlePercentageChange('mrf_status', e.target.value)} placeholder="0-100" min="0" max="100" />
+                                <input type="number" className={`${styles.input} ${styles.readOnlyHighlight}`} value={form.mrf_approval || 0} readOnly placeholder="0-100" />
+                            </div>
+                            <div className={styles.fieldGroup}>
+                                <label className={styles.label}>
+                                    <span className={styles.labelLong}>MRF Status ({form.mrf_approval || 0}% Approved)</span>
+                                    <span className={styles.labelShort}>MRF ({form.mrf_approval || 0}% Appr.)</span>
+                                </label>
+                                <input 
+                                    type="number" 
+                                    className={styles.input} 
+                                    value={form.mrf_status} 
+                                    onChange={(e) => handlePercentageChange('mrf_status', e.target.value)} 
+                                    placeholder={`Approved Limit: ${form.mrf_approval || 0}%`} 
+                                    min="0" 
+                                    max={form.mrf_approval || 0} 
+                                />
+                                <span style={{ fontSize: '0.7rem', color: '#6366f1', marginTop: '4px', fontWeight: '500' }}>
+                                    Design has approved {form.mrf_approval || 0}%. Enter a value between 0-{form.mrf_approval || 0}.
+                                </span>
                             </div>
                             <div className={styles.fieldGroup}>
                                 <label className={styles.label}>
@@ -761,6 +810,7 @@ const ProjectStatusUpdate = () => {
                                     <div className={styles.breakdownItem}><span>Shop Drw (I):</span> <strong>{update.shop_drawing}%</strong></div>
                                     <div className={styles.breakdownItem}><span>Line Drawing:</span> <strong>{update.line_drawing}%</strong></div>
                                     <div className={styles.breakdownItem}><span>Review & Rev:</span> <strong>{update.review_revisions}%</strong></div>
+                                    <div className={styles.breakdownItem}><span>MRF Approval:</span> <strong>{update.mrf_approval}%</strong></div>
                                     <div className={styles.breakdownItem}><span>Shop Drw (F):</span> <strong>{update.shop_drawing_final}%</strong></div>
                                     <div className={styles.breakdownItem}><span>Cutting Plan:</span> <strong>{update.cutting_plan}%</strong></div>
                                     <div className={styles.breakdownItem}><span>Finishes List:</span> <strong>{update.finishes_list}%</strong></div>

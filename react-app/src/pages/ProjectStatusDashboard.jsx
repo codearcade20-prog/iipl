@@ -76,7 +76,12 @@ const ProjectStatusDashboard = () => {
             // 1. Calculate Current Progress from the MASTER table (The Truth)
             const currentProgress = projectStatus ? parseFloat(projectStatus.completion_percentage || 0) : 0;
             
-            // 2. Calculate Work Velocity (Average % progress gained per day)
+            // 2. MRF Effective Status (Capped by Design Approval for MD validation)
+            const mrfStatus = projectStatus ? parseFloat(projectStatus.mrf_status || 0) : 0;
+            const mrfApproval = projectStatus ? parseFloat(projectStatus.mrf_approval || 0) : 0;
+            const effectiveMRF = Math.min(mrfStatus, mrfApproval);
+            
+            // 3. Calculate Work Velocity (Average % progress gained per day)
             // Logic: Total progress gain / Total days elapsed
             let speed = 0;
             if (projectUpdates.length > 1) {
@@ -137,6 +142,8 @@ const ProjectStatusDashboard = () => {
                 ...project,
                 ...projectStatus, // Spread in the sub-categories (site_pooja, etc)
                 currentProgress,
+                effectiveMRF,
+                mrfApproval,
                 speed: speed.toFixed(1),
                 expectedDate,
                 status,
@@ -304,15 +311,18 @@ const ProjectStatusDashboard = () => {
                                         </td>
                                         <td style={{ textAlign: 'center' }}>
                                             <div className={styles.matrixVal}>{project.planning_kickstart || 0}%</div>
-                                            <div className={styles.matrixBar}><div style={{ width: `${project.planning_kickstart}%`, background: '#3b82f6' }}></div></div>
+                                            <div className={styles.matrixBar}><div style={{ width: `${project.planning_kickstart || 0}%`, background: '#3b82f6' }}></div></div>
                                         </td>
                                         <td style={{ textAlign: 'center' }}>
                                             <div className={styles.matrixVal}>{project.shop_drawing || project.design_percentage || 0}%</div>
                                             <div className={styles.matrixBar}><div style={{ width: `${project.shop_drawing || 0}%`, background: '#10b981' }}></div></div>
                                         </td>
                                         <td style={{ textAlign: 'center' }}>
-                                            <div className={styles.matrixVal}>{project.mrf_status || 0}%</div>
-                                            <div className={styles.matrixBar}><div style={{ width: `${project.mrf_status || 0}%`, background: '#8b5cf6' }}></div></div>
+                                            <div className={styles.matrixVal}>
+                                                {project.effectiveMRF}% 
+                                                <span style={{ fontSize: '0.65rem', color: '#94a3b8', display: 'block' }}>Appr: {project.mrfApproval}%</span>
+                                            </div>
+                                            <div className={styles.matrixBar}><div style={{ width: `${project.effectiveMRF || 0}%`, background: '#8b5cf6' }}></div></div>
                                         </td>
                                         <td style={{ textAlign: 'center' }}>
                                             <div className={styles.matrixVal}>{project.production || 0}%</div>
@@ -496,6 +506,11 @@ const ProjectStatusDashboard = () => {
                                                 <strong>{selectedProject.review_revisions}%</strong>
                                             </div>
                                             <div className={styles.breakdownItem}>
+                                                <span className={styles.labelLong}>MRF Approval:</span>
+                                                <span className={styles.labelShort}>MRF Appr:</span>
+                                                <strong style={{ color: '#10b981' }}>{selectedProject.mrf_approval}%</strong>
+                                            </div>
+                                            <div className={styles.breakdownItem}>
                                                 <span className={styles.labelLong}>Shop Drawing (Final):</span>
                                                 <span className={styles.labelShort}>Shop Drw (F):</span>
                                                 <strong>{selectedProject.shop_drawing_final}%</strong>
@@ -516,9 +531,11 @@ const ProjectStatusDashboard = () => {
                                                 <span style={{ color: '#8b5cf6', fontSize: '0.75rem' }}>PURCHASE TEAM</span>
                                             </div>
                                             <div className={styles.breakdownItem}>
-                                                <span className={styles.labelLong}>MRF Status:</span>
-                                                <span className={styles.labelShort}>MRF Status:</span>
-                                                <strong>{selectedProject.mrf_status}%</strong>
+                                                <span className={styles.labelLong}>MRF Status ({selectedProject.mrf_approval || 0}%):</span>
+                                                <span className={styles.labelShort}>MRF ({selectedProject.mrf_approval || 0}%):</span>
+                                                <strong style={{ color: selectedProject.mrf_status > selectedProject.mrf_approval ? '#ef4444' : 'inherit' }}>
+                                                    {selectedProject.effectiveMRF}%
+                                                </strong>
                                             </div>
                                             <div className={styles.breakdownItem}>
                                                 <span className={styles.labelLong}>Raw Materials:</span>
