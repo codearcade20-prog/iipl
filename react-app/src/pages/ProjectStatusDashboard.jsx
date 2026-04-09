@@ -82,20 +82,22 @@ const ProjectStatusDashboard = () => {
             const effectiveMRF = Math.min(mrfStatus, mrfApproval);
             
             // 3. Calculate Work Velocity (Average % progress gained per day)
-            // Logic: Total progress gain / Total days elapsed
             let speed = 0;
+            
+            // Try calculating from Update History first (Short-term velocity)
             if (projectUpdates.length > 1) {
-                // Calculation across multiple updates
                 const daysDiff = (new Date(latestUpdate.status_date) - new Date(firstUpdate.status_date)) / (1000 * 60 * 60 * 24);
-                if (daysDiff > 0) {
+                if (daysDiff > 1) {
                     speed = (currentProgress - parseFloat(firstUpdate.completion_percentage)) / daysDiff;
                 }
-            } else if (latestUpdate && project.start_date) {
-                // If only one update exists, calculate speed since project start
-                const daysSinceStart = (new Date(latestUpdate.status_date) - new Date(project.start_date)) / (1000 * 60 * 60 * 24);
-                if (daysSinceStart > 0) {
-                    speed = currentProgress / daysSinceStart;
-                }
+            }
+            
+            // If history speed is zero (e.g. updates all on same day or no history), 
+            // fallback to Project Start Date (Long-term velocity)
+            if (speed <= 0 && project.start_date && currentProgress > 0) {
+                const daysSinceStart = (today - new Date(project.start_date)) / (1000 * 60 * 60 * 24);
+                const effectiveDays = Math.max(daysSinceStart, 1);
+                speed = currentProgress / effectiveDays;
             }
 
             // 3. Project Expected Completion Date
@@ -117,10 +119,19 @@ const ProjectStatusDashboard = () => {
                 statusColor = 'blue';
             } else if (project.end_date) {
                 const deadline = new Date(project.end_date);
-                if (expectedDate && expectedDate > deadline) {
+                
+                // CRITICAL FIX: If today is past deadline and project is not done, it is DELAYED
+                if (today > deadline) {
                     status = 'Delayed';
                     statusColor = 'red';
-                } else if (latestUpdate) {
+                }
+                // OR if predicted date is past deadline
+                else if (expectedDate && expectedDate > deadline) {
+                    status = 'Delayed';
+                    statusColor = 'red';
+                } 
+                // OR if no update for 5 days
+                else if (latestUpdate) {
                     const daysSinceUpdate = (today - new Date(latestUpdate.status_date)) / (1000 * 60 * 60 * 24);
                     if (daysSinceUpdate > 5) {
                         status = 'At Risk';
@@ -144,11 +155,11 @@ const ProjectStatusDashboard = () => {
                 currentProgress,
                 effectiveMRF,
                 mrfApproval,
-                speed: speed.toFixed(1),
+                speed: speed.toFixed(2),
                 expectedDate,
+                delayDays,
                 status,
                 statusColor,
-                delayDays,
                 lastUpdate: latestUpdate,
                 history: projectUpdates.reverse()
             };
@@ -178,10 +189,71 @@ const ProjectStatusDashboard = () => {
         setIsModalOpen(true);
     };
 
+    const handlePrint = () => {
+        const style = document.createElement('style');
+        style.id = 'print-dashboard-override';
+        style.innerHTML = `
+            @page { size: landscape; margin: 10mm; }
+            @media print {
+                /* Aggressively hide EVERYTHING first */
+                body * { 
+                    visibility: hidden !important; 
+                }
+                
+                /* Specifically show our container and all its children */
+                #project-status-dashboard-actual, 
+                #project-status-dashboard-actual * { 
+                    visibility: visible !important; 
+                }
+                
+                /* Reset parents so they don't block visibility or layout */
+                html, body, #root, #root > *, [class*="wrapper"], [class*="content"] {
+                    visibility: visible !important;
+                    display: block !important;
+                    overflow: visible !important;
+                    height: auto !important;
+                    min-height: 0 !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    border: none !important;
+                }
+
+                /* Position the dashboard at the very top */
+                #project-status-dashboard-actual { 
+                    position: absolute !important; 
+                    left: 0 !important; 
+                    top: 0 !important; 
+                    width: 100% !important;
+                    margin: 0 !important;
+                    padding: 20px !important;
+                }
+
+                /* Hide UI elements we definitely don't want in the report */
+                [class*="headerActions"], 
+                [class*="controlsBar"], 
+                [class*="detailsBtn"],
+                [class*="viewBtn"] {
+                    display: none !important;
+                }
+
+                /* Ensure table fits and is visible */
+                table { margin-top: 10px !important; width: 100% !important; }
+            }
+        `;
+        document.head.appendChild(style);
+        window.print();
+        
+        // Cleanup
+        setTimeout(() => {
+            const el = document.getElementById('print-dashboard-override');
+            if (el) document.head.removeChild(el);
+        }, 1000);
+    };
+
     if (loading) return <LoadingScreen message="Loading project dashboard..." />;
 
     return (
-        <div className={styles.container}>
+        <div id="project-status-dashboard-actual" className={styles.container}>
             <header className={styles.header}>
                 <div className={styles.headerTitles}>
                     <h1 className={styles.title}>Project Status Dashboard</h1>
@@ -196,7 +268,7 @@ const ProjectStatusDashboard = () => {
                         {isMasterView ? <LayoutDashboard size={18} /> : <TrendingUp size={18} />} 
                         {isMasterView ? ' Standard View' : ' Master View'}
                     </button>
-                    <button className={styles.exportBtn} onClick={() => window.print()}>
+                    <button className={styles.exportBtn} onClick={handlePrint}>
                         <Download size={18} /> Export Report
                     </button>
                 </div>
@@ -394,8 +466,8 @@ const ProjectStatusDashboard = () => {
                                                     Exp. completion: {project.expectedDate ? project.expectedDate.toLocaleDateString() : 'N/A'}
                                                 </div>
                                                 {project.delayDays > 0 && (
-                                                    <div className={styles.delayTag}>
-                                                        <ArrowDownRight size={12} /> {project.delayDays} days delay
+                                                    <div className={styles.delayTag} style={{ color: '#ef4444', fontWeight: 'bold' }}>
+                                                        🚨 {project.delayDays} Days Delay
                                                     </div>
                                                 )}
                                             </div>
@@ -699,6 +771,12 @@ const ProjectStatusDashboard = () => {
                                         <span>Expected End</span>
                                         <strong>{selectedProject.expectedDate ? selectedProject.expectedDate.toLocaleDateString() : 'N/A'}</strong>
                                     </div>
+                                    {selectedProject.delayDays > 0 && (
+                                        <div className={styles.insightStat} style={{ background: '#fef2f2', padding: '8px', borderRadius: '4px' }}>
+                                            <span style={{ color: '#ef4444' }}>Delay Insight</span>
+                                            <strong style={{ color: '#ef4444' }}>🚨 {selectedProject.delayDays} Days Delayed</strong>
+                                        </div>
+                                    )}
                                     <div className={styles.insightStat}>
                                         <span>Target Deadline</span>
                                         <strong>{new Date(selectedProject.end_date).toLocaleDateString()}</strong>

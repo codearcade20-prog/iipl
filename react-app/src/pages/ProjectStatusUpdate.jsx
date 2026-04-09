@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import { Calendar, LayoutDashboard, Percent, Link as LinkIcon, MessageSquare, User, Clock, CheckCircle, Trash2 } from 'lucide-react';
+import { Calendar, LayoutDashboard, Percent, Link as LinkIcon, MessageSquare, User, Clock, CheckCircle, Trash2, Save, AlertCircle, History, Send, CheckCircle2, TrendingUp, ChevronRight, Eye, X } from 'lucide-react';
 import { useMessage } from '../context/MessageContext';
 import LoadingScreen from '../components/LoadingScreen';
 import styles from './ProjectStatusUpdate.module.css';
@@ -13,6 +13,7 @@ const ProjectStatusUpdate = () => {
     const [projects, setProjects] = useState([]);
     const [updates, setUpdates] = useState([]);
     const [initialMasterStatus, setInitialMasterStatus] = useState(null); // Reference point for regression check
+    const [viewingUpdate, setViewingUpdate] = useState(null); // For history detail view
     const [form, setForm] = useState({
         project_id: '',
         completion_percentage: '',
@@ -184,12 +185,29 @@ const ProjectStatusUpdate = () => {
             if (val !== '' && val > 100) val = 100;
             if (val !== '' && val < 0) val = 0;
 
-            // NEW: Strict constraint for MRF Status (Purchase) based on MRF Approval (Design)
+            // 1. MRF Status (Purchase) capped by MRF Approval (Design)
             if (field === 'mrf_status') {
-                const approvalLimit = parseFloat(prev.mrf_approval) || 0;
-                if (val !== '' && val > approvalLimit) {
-                    val = approvalLimit;
-                }
+                const limit = parseFloat(prev.mrf_approval) || 0;
+                if (val !== '' && val > limit) val = limit;
+            }
+
+            // 2. Cutting Plan (Design) capped by Shop Drawing Final (Design)
+            if (field === 'cutting_plan') {
+                const limit = parseFloat(prev.shop_drawing_final) || 0;
+                if (val !== '' && val > limit) val = limit;
+            }
+
+            // 3. Factory Sub-fields capped by Cutting Plan (Design)
+            const factoryFields = ['cutting_panelling', 'assembly', 'polishing', 'final_finishing', 'packing_forwarding'];
+            if (factoryFields.includes(field)) {
+                const limit = parseFloat(prev.cutting_plan) || 0;
+                if (val !== '' && val > limit) val = limit;
+            }
+
+            // 4. Site Installation capped by Material Delivery
+            if (field === 'site_installation') {
+                const limit = parseFloat(prev.material_delivery) || 0;
+                if (val !== '' && val > limit) val = limit;
             }
 
             return { ...prev, [field]: val === '' ? '' : val.toString() };
@@ -199,7 +217,7 @@ const ProjectStatusUpdate = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         
-        // REGRESSION VALIDATION
+        // 1. REGRESSION VALIDATION (No-Decrease Rule)
         if (initialMasterStatus) {
             const fieldsToValidate = [
                 'completion_percentage', 'planning_kickstart', 'site_pooja', 'office_documentation',
@@ -212,26 +230,68 @@ const ProjectStatusUpdate = () => {
                 'carpentry_work', 'painting'
             ];
 
+            const isAdmin = user?.team_role === 'admin';
+            let regressionFound = false;
+            let regressionField = '';
+            let oldVal = 0;
+            let newVal = 0;
+
             for (const field of fieldsToValidate) {
-                const newValue = parseFloat(form[field]) || 0;
-                const oldValue = parseFloat(initialMasterStatus[field]) || 0;
+                const curNew = parseFloat(form[field]) || 0;
+                const curOld = parseFloat(initialMasterStatus[field]) || 0;
                 
-                if (newValue < oldValue) {
-                    alert(`Invalid Entry: "${field.replace(/_/g, ' ').toUpperCase()}" cannot be decreased from ${oldValue}% to ${newValue}%. Progress must only go forward.`);
+                if (curNew < curOld) {
+                    regressionFound = true;
+                    regressionField = field.replace(/_/g, ' ').toUpperCase();
+                    oldVal = curOld;
+                    newVal = curNew;
+                    break;
+                }
+            }
+
+            if (regressionFound) {
+                if (isAdmin) {
+                    const confirmBypass = await confirm(
+                        `Administrative Override: You are decreasing "${regressionField}" from ${oldVal}% to ${newVal}%. \n\nStandard users are blocked from decreasing progress. Are you sure this is a necessary correction?`,
+                        { title: "Bypass Validation", okText: "Yes, Override", cancelText: "Cancel" }
+                    );
+                    if (!confirmBypass) {
+                        setLoading(false);
+                        return;
+                    }
+                } else {
+                    alert(`Invalid Entry: "${regressionField}" cannot be decreased from ${oldVal}% to ${newVal}%. Progress must only go forward.`);
                     setLoading(false);
                     return;
                 }
             }
         }
 
-        // MRF APPROVAL VALIDATION (Capping Purchase by Design)
-        const currentApproval = parseFloat(form.mrf_approval) || 0;
-        const currentStatus = parseFloat(form.mrf_status) || 0;
+        // 2. LOGICAL DEPENDENCY VALIDATIONS (Hard Gates)
+        const v = (f) => parseFloat(form[f]) || 0;
 
-        if (currentStatus > currentApproval) {
-            alert(`Entry Blocked: You cannot report ${currentStatus}% MRF Status because the Design Team has only approved ${currentApproval}%. \n\nPlease coordinate with Design to update the MRF Approval first.`);
-            setLoading(false);
-            return;
+        // MRF Purchase Gate
+        if (v('mrf_status') > v('mrf_approval')) {
+            alert(`Dependency Error: MRF Purchase (${v('mrf_status')}%) cannot exceed Design Approval (${v('mrf_approval')}%).`);
+            setLoading(false); return;
+        }
+
+        // Design to Production Gate
+        if (v('cutting_plan') > v('shop_drawing_final')) {
+            alert(`Dependency Error: Cutting Plan (${v('cutting_plan')}%) cannot progress beyond Final Shop Drawings (${v('shop_drawing_final')}%).`);
+            setLoading(false); return;
+        }
+
+        // Factory Gate
+        if (v('cutting_panelling') > v('cutting_plan')) {
+            alert(`Dependency Error: Factory Production cannot start/exceed the Cutting Plan attainment (${v('cutting_plan')}%).`);
+            setLoading(false); return;
+        }
+
+        // Site Logistics Gate
+        if (v('site_installation') > v('material_delivery')) {
+            alert(`Dependency Error: Site Installation (${v('site_installation')}%) cannot exceed Material Delivery (${v('material_delivery')}%).`);
+            setLoading(false); return;
         }
 
         if (!form.project_id) {
@@ -728,23 +788,25 @@ const ProjectStatusUpdate = () => {
                     </div>
                     )}
 
-                    <div className={styles.section} style={{ gridColumn: 'span 2', background: '#eff6ff' }}>
-                        <div className={styles.fieldGroup}>
-                            <label className={styles.label} style={{ fontSize: '1.1rem', fontWeight: 800, color: '#1e40af' }}>
-                                <Percent size={18} /> 
-                                <span className={styles.labelLong}>Overall Project Completion (%)</span>
-                                <span className={styles.labelShort}>Overall (%)</span>
-                            </label>
-                            <input 
-                                type="number" 
-                                className={`${styles.input} ${styles.readOnlyHighlight}`} 
-                                style={{ fontSize: '1.25rem', height: '4rem' }}
-                                value={form.completion_percentage} 
-                                readOnly
-                                placeholder="Auto-calculated"
-                            />
+                    {(user?.team_role === 'admin' || user?.team_role === 'coordinator' || !user?.team_role) && (
+                        <div className={styles.section} style={{ gridColumn: 'span 2', background: '#eff6ff' }}>
+                            <div className={styles.fieldGroup}>
+                                <label className={styles.label} style={{ fontSize: '1.1rem', fontWeight: 800, color: '#1e40af' }}>
+                                    <Percent size={18} /> 
+                                    <span className={styles.labelLong}>Overall Project Completion (%)</span>
+                                    <span className={styles.labelShort}>Overall (%)</span>
+                                </label>
+                                <input 
+                                    type="number" 
+                                    className={`${styles.input} ${styles.readOnlyHighlight}`} 
+                                    style={{ fontSize: '1.25rem', height: '4rem' }}
+                                    value={form.completion_percentage} 
+                                    readOnly
+                                    placeholder="Auto-calculated"
+                                />
+                            </div>
                         </div>
-                    </div>
+                    )}
 
                     <div className={styles.fieldGroup}>
                         <label className={styles.label}><LinkIcon size={14} /> File Attachment URL</label>
@@ -787,69 +849,154 @@ const ProjectStatusUpdate = () => {
 
             <div className={styles.historySection}>
                 <h2 className={styles.sectionTitle}>Recent Status Updates</h2>
-                <div className={styles.updateList}>
-                    {updates.length > 0 ? updates.map(update => (
-                        <div key={update.id} className={styles.updateCard}>
-                            <div className={styles.updateHeader}>
-                                <div>
-                                    <h3 className={styles.projectTitle}>{update.projects?.name}</h3>
-                                    <span className={styles.updateDate}>{new Date(update.status_date).toLocaleDateString()}</span>
-                                </div>
-                                <div className={styles.percentageBadge}>
-                                    {update.completion_percentage}% Done
-                                </div>
-                            </div>
-                            <div className={styles.updateBody}>
-                                <div className={styles.breakdownGrid}>
-                                    <div className={styles.breakdownItem}><span style={{ color: '#3b82f6' }}>Coordinator:</span></div>
-                                    <div className={styles.breakdownItem}><span>Planning & Kick Start:</span> <strong>{update.planning_kickstart}%</strong></div>
-                                    <div className={styles.breakdownItem}><span>— Site Pooja:</span> <strong>{update.site_pooja}%</strong></div>
-                                    <div className={styles.breakdownItem}><span>— Office Doc:</span> <strong>{update.office_documentation}%</strong></div>
-                                    <div className={styles.breakdownItem}><span>— Sample Moodboard:</span> <strong>{update.sample_moodboard}%</strong></div>
-                                    <div className={styles.breakdownItem}><span style={{ color: '#10b981' }}>Design:</span></div>
-                                    <div className={styles.breakdownItem}><span>Shop Drw (I):</span> <strong>{update.shop_drawing}%</strong></div>
-                                    <div className={styles.breakdownItem}><span>Line Drawing:</span> <strong>{update.line_drawing}%</strong></div>
-                                    <div className={styles.breakdownItem}><span>Review & Rev:</span> <strong>{update.review_revisions}%</strong></div>
-                                    <div className={styles.breakdownItem}><span>MRF Approval:</span> <strong>{update.mrf_approval}%</strong></div>
-                                    <div className={styles.breakdownItem}><span>Shop Drw (F):</span> <strong>{update.shop_drawing_final}%</strong></div>
-                                    <div className={styles.breakdownItem}><span>Cutting Plan:</span> <strong>{update.cutting_plan}%</strong></div>
-                                    <div className={styles.breakdownItem}><span>Finishes List:</span> <strong>{update.finishes_list}%</strong></div>
-                                    <div className={styles.breakdownItem}><span style={{ color: '#8b5cf6' }}>Purchase:</span></div>
-                                    <div className={styles.breakdownItem}><span>MRF Status:</span> <strong>{update.mrf_status}%</strong></div>
-                                    <div className={styles.breakdownItem}><span>Raw Materials:</span> <strong>{update.raw_materials}%</strong></div>
-                                    <div className={styles.breakdownItem}><span>Long Lead Mat:</span> <strong>{update.long_lead_materials}%</strong></div>
-                                    <div className={styles.breakdownItem}><span>Accessories:</span> <strong>{update.finishes_accessories}%</strong></div>
-                                    <div className={styles.breakdownItem}><span>Mat Delivery:</span> <strong>{update.material_delivery}%</strong></div>
-                                    <div className={styles.breakdownItem}><span style={{ color: '#f59e0b' }}>Factory:</span></div>
-                                    <div className={styles.breakdownItem}><span>Production (O):</span> <strong>{update.production}%</strong></div>
-                                    <div className={styles.breakdownItem}><span style={{ color: '#06b6d4' }}>Site:</span></div>
-                                    <div className={styles.breakdownItem}><span>Measurement:</span> <strong>{update.site_measurement}%</strong></div>
-                                    <div className={styles.breakdownItem}><span>Marking:</span> <strong>{update.site_marking}%</strong></div>
-                                    <div className={styles.breakdownItem}><span>Installation:</span> <strong>{update.site_installation}%</strong></div>
-                                    <div className={styles.breakdownItem}><span>Site Work (O):</span> <strong>{update.site_work}%</strong></div>
-                                </div>
-                                <p className={styles.remarks}>{update.remarks || 'No remarks provided'}</p>
-                                {update.file_url && (
-                                    <a href={update.file_url} target="_blank" rel="noreferrer" className={styles.fileLink}>
-                                        <LinkIcon size={14} /> View Attachment
-                                    </a>
-                                )}
-                            </div>
-                            <div className={styles.updateFooter}>
-                                <div className={styles.footerInfo}>
-                                    <span>Updated by: {update.username}</span>
-                                    <span>{new Date(update.updated_at).toLocaleTimeString()}</span>
-                                </div>
-                                <button className={styles.deleteBtn} onClick={() => handleDelete(update.id)}>
-                                    <Trash2 size={16} />
-                                </button>
-                            </div>
-                        </div>
-                    )) : (
-                        <p className={styles.noData}>No status updates found yet.</p>
-                    )}
+                <div className={styles.tableWrapper}>
+                    <table className={styles.historyTable}>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Project Name</th>
+                                {(user?.team_role === 'admin' || user?.team_role === 'coordinator' || !user?.team_role) && <th>Overall</th>}
+                                <th>Updated By</th>
+                                <th>Remarks</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {updates.length > 0 ? updates.map(update => (
+                                <tr key={update.id}>
+                                    <td style={{ whiteSpace: 'nowrap' }}>{new Date(update.status_date).toLocaleDateString()}</td>
+                                    <td>
+                                        <div style={{ fontWeight: 600 }}>{update.projects?.name}</div>
+                                    </td>
+                                    {(user?.team_role === 'admin' || user?.team_role === 'coordinator' || !user?.team_role) && (
+                                        <td>
+                                            <div className={styles.tableProgress}>
+                                                <div className={styles.pBar}><div style={{ width: `${update.completion_percentage}%` }}></div></div>
+                                                <span>{update.completion_percentage}%</span>
+                                            </div>
+                                        </td>
+                                    )}
+                                    <td>
+                                        <div style={{ textTransform: 'capitalize', fontSize: '0.85rem' }}>{update.username || 'System'}</div>
+                                    </td>
+                                    <td>
+                                        <div className={styles.remarksCell} title={update.remarks}>
+                                            {update.remarks || '-'}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div className={styles.actionGroup}>
+                                            <button className={styles.viewBtn} onClick={() => setViewingUpdate(update)} title="View Details">
+                                                <Eye size={16} />
+                                            </button>
+                                            {user?.team_role === 'admin' && (
+                                                <button className={styles.deleteBtn} onClick={() => handleDelete(update.id)} title="Delete Record">
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            )}
+                                        </div>
+                                    </td>
+                                </tr>
+                            )) : (
+                                <tr><td colSpan={6} style={{ textAlign: 'center', padding: '2rem' }}>No status updates found</td></tr>
+                            )}
+                        </tbody>
+                    </table>
                 </div>
             </div>
+
+            {/* History Detail Modal */}
+            {viewingUpdate && (
+                <div className={styles.modalOverlay} onClick={() => setViewingUpdate(null)}>
+                    <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
+                        <header className={styles.modalHeader}>
+                            <div>
+                                <h2 className={styles.modalTitle}>{viewingUpdate.projects?.name}</h2>
+                                <p className={styles.modalSubtitle}>History Record: {new Date(viewingUpdate.status_date).toLocaleDateString()}</p>
+                            </div>
+                            <button className={styles.closeBtn} onClick={() => setViewingUpdate(null)}>
+                                <X size={24} />
+                            </button>
+                        </header>
+                        <div className={styles.modalBody}>
+                            <div className={styles.detailTableWrapper}>
+                                <table className={styles.detailTable}>
+                                    <thead>
+                                        <tr>
+                                            <th>Field Description</th>
+                                            <th>Value (%)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {/* Group: Coordinator */}
+                                        <tr className={styles.groupHeaderRow}><td colSpan="2">PROJECT COORDINATOR TEAM</td></tr>
+                                        <tr><td>Planning & Kick Start (Overall)</td><td><strong>{viewingUpdate.planning_kickstart}%</strong></td></tr>
+                                        <tr><td className={styles.indented}>— Site Pooja</td><td>{viewingUpdate.site_pooja}%</td></tr>
+                                        <tr><td className={styles.indented}>— Office Documentation</td><td>{viewingUpdate.office_documentation}%</td></tr>
+                                        <tr><td className={styles.indented}>— Sample Arr. (Moodboard)</td><td>{viewingUpdate.sample_moodboard}%</td></tr>
+                                        
+                                        {/* Group: Design */}
+                                        <tr className={styles.groupHeaderRow}><td colSpan="2">DESIGN TEAM</td></tr>
+                                        <tr><td>Shop Drawing (Initial)</td><td><strong>{viewingUpdate.shop_drawing}%</strong></td></tr>
+                                        <tr><td>Line Drawing</td><td>{viewingUpdate.line_drawing}%</td></tr>
+                                        <tr><td>Review & Revisions</td><td>{viewingUpdate.review_revisions}%</td></tr>
+                                        <tr><td>MRF Approval (Design Side)</td><td><strong>{viewingUpdate.mrf_approval}%</strong></td></tr>
+                                        <tr><td>Shop Drawing (Final)</td><td>{viewingUpdate.shop_drawing_final}%</td></tr>
+                                        <tr><td>Cutting Plan</td><td>{viewingUpdate.cutting_plan}%</td></tr>
+                                        <tr><td>Finishes List</td><td>{viewingUpdate.finishes_list}%</td></tr>
+
+                                        {/* Group: Purchase */}
+                                        <tr className={styles.groupHeaderRow}><td colSpan="2">PURCHASE TEAM</td></tr>
+                                        <tr><td>MRF Status (Against Approval)</td><td><strong>{viewingUpdate.mrf_status}%</strong></td></tr>
+                                        <tr><td>Raw Materials</td><td>{viewingUpdate.raw_materials}%</td></tr>
+                                        <tr><td>Long Lead Materials</td><td>{viewingUpdate.long_lead_materials}%</td></tr>
+                                        <tr><td>Finishes & Accessories</td><td>{viewingUpdate.finishes_accessories}%</td></tr>
+                                        <tr><td>Material Delivery</td><td>{viewingUpdate.material_delivery}%</td></tr>
+
+                                        {/* Group: Factory */}
+                                        <tr className={styles.groupHeaderRow}><td colSpan="2">FACTORY TEAM</td></tr>
+                                        <tr><td>Production Overall</td><td><strong>{viewingUpdate.production}%</strong></td></tr>
+                                        <tr><td className={styles.indented}>— Cutting/Panelling</td><td>{viewingUpdate.cutting_panelling}%</td></tr>
+                                        <tr><td className={styles.indented}>— Assembly</td><td>{viewingUpdate.assembly}%</td></tr>
+                                        <tr><td className={styles.indented}>— Polishing</td><td>{viewingUpdate.polishing}%</td></tr>
+                                        <tr><td className={styles.indented}>— Final Finishing</td><td>{viewingUpdate.final_finishing}%</td></tr>
+                                        <tr><td className={styles.indented}>— Packing & Forwarding</td><td>{viewingUpdate.packing_forwarding}%</td></tr>
+
+                                        {/* Group: Site */}
+                                        <tr className={styles.groupHeaderRow}><td colSpan="2">SITE ENGINEERS TEAM</td></tr>
+                                        <tr><td>Site Measurement</td><td>{viewingUpdate.site_measurement}%</td></tr>
+                                        <tr><td>Site Marking</td><td>{viewingUpdate.site_marking}%</td></tr>
+                                        <tr><td>Site Installation</td><td>{viewingUpdate.site_installation}%</td></tr>
+                                        <tr><td>Site Work Overall</td><td><strong>{viewingUpdate.site_work}%</strong></td></tr>
+                                        <tr><td className={styles.indented}>— Civil Work</td><td>{viewingUpdate.civil_work}%</td></tr>
+                                        <tr><td className={styles.indented}>— False Ceiling</td><td>{viewingUpdate.false_ceiling}%</td></tr>
+                                        <tr><td className={styles.indented}>— Carpentry Work</td><td>{viewingUpdate.carpentry_work}%</td></tr>
+                                        <tr><td className={styles.indented}>— Painting</td><td>{viewingUpdate.painting}%</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            {viewingUpdate.remarks && (
+                                <div className={styles.modalRemarks}>
+                                    <strong>Remarks:</strong>
+                                    <p>{viewingUpdate.remarks}</p>
+                                </div>
+                            )}
+
+                            {viewingUpdate.file_url && (
+                                <a href={viewingUpdate.file_url} target="_blank" rel="noreferrer" className={styles.modalAttachment}>
+                                    <LinkIcon size={16} /> View Achievement Attachment
+                                </a>
+                            )}
+
+                            <div className={styles.modalFooterInfo}>
+                                <span>Updated by: <strong>{viewingUpdate.username}</strong></span>
+                                <span>Time: {new Date(viewingUpdate.updated_at).toLocaleTimeString()}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

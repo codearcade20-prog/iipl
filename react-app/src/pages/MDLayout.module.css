@@ -152,9 +152,20 @@
     }
     .wrapper {
         display: block !important;
+        min-height: auto !important;
+        height: auto !important;
+        background: white !important;
+        visibility: visible !important;
     }
     .content {
         overflow: visible !important;
+        height: auto !important;
+        min-height: auto !important;
         padding-bottom: 0 !important;
+        visibility: visible !important;
+    }
+    #root, #root > * {
+        visibility: visible !important;
+        display: block !important;
     }
 }

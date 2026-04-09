@@ -669,9 +669,54 @@
 }
 
 @media print {
-    .container { padding: 0; background: white; }
-    .controlsBar, .headerActions, .detailsBtn { display: none !important; }
-    .tableCard { box-shadow: none; border: 1px solid #eee; }
+    /* CRITICAL FIX: Overriding global visibility: hidden leaks from other modules */
+    html, body, #root, #root * {
+        visibility: visible !important;
+    }
+
+    .container { 
+        padding: 0 !important; 
+        margin: 0 !important;
+        max-width: 100% !important;
+        background: white !important;
+        min-height: auto !important;
+    }
+    .header {
+        margin-bottom: 2rem !important;
+    }
+    .headerActions, .controlsBar, .detailsBtn, .viewBtn { 
+        display: none !important; 
+    }
+    .statsGrid {
+        display: grid !important;
+        grid-template-columns: repeat(4, 1fr) !important;
+        gap: 1rem !important;
+        margin-bottom: 2rem !important;
+    }
+    .statCard {
+        padding: 1rem !important;
+        border: 1px solid #e2e8f0 !important;
+        box-shadow: none !important;
+    }
+    .alertsSection {
+        margin-bottom: 2rem !important;
+    }
+    .tableCard { 
+        box-shadow: none !important; 
+        border: 1px solid #e2e8f0 !important;
+        overflow: visible !important;
+        border-radius: 0 !important;
+    }
+    .tableWrapper {
+        overflow: visible !important;
+    }
+    .table th {
+        background: #f1f5f9 !important;
+        -webkit-print-color-adjust: exact;
+    }
+    .matrixRow:hover, .tableRow:hover {
+        background: none !important;
+    }
 }
 
 /* Popover/Overlay styles */
