@@ -40,5 +40,5 @@ The project is organized in a modular `react-app` directory structure to keep co
 
 ## ✨ Key Technical Features
 - **Component-Based Architecture**: Code is split into small, reusable pieces.
-- **Client-Side Routing**: Smooth page transitions without reloading the browser.
+- **Client-Side Routing**: Sm ooth page transitions without reloading the browser.
 - **Real-time Data**: Integration with Supabase allows for live data updates.
