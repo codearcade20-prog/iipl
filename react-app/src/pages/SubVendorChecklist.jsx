@@ -18,6 +18,7 @@ const SubVendorChecklist = () => {
         project_id: '',
         vendor_id: '',
         project_name: '',
+        project_coordinator: '',
         location: '',
         nature_of_work: '',
         vendor_company_name: '',
@@ -353,6 +354,21 @@ const SubVendorChecklist = () => {
                             </div>
                             <span className={styles.printValue}>{form.project_name}</span>
                         </div>
+                    <div className={styles.gridRow}>
+                        <div className={styles.label}>Project Coordinator</div>
+                        <div className={styles.value}>
+                            <div className={styles.inputWrapper}>
+                                <input 
+                                    type="text" 
+                                    className={styles.input} 
+                                    value={form.project_coordinator || ''} 
+                                    onChange={(e) => setForm({ ...form, project_coordinator: e.target.value })} 
+                                    placeholder="Enter coordinator name"
+                                />
+                            </div>
+                            <span className={styles.printValue}>{form.project_coordinator || 'N/A'}</span>
+                        </div>
+                    </div>
                     </div>
                     <div className={styles.gridRow}>
                         <div className={styles.label}>Location</div>
