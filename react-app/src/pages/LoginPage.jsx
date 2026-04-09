@@ -61,7 +61,7 @@ const LoginPage = () => {
             <div className={styles.loginCard}>
                 <div className={styles.header}>
                     <h1 className={styles.title}>Innovative Interiors</h1>
-                    <p className={styles.subtitle}>Vendor Management System Login</p>
+                    <p className={styles.subtitle}>IIPL Core Login</p>
                 </div>
 
                 <form onSubmit={handleLogin} className={styles.form}>

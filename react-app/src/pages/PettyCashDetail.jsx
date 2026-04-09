@@ -160,7 +160,7 @@ const PettyCashDetail = () => {
                 <header className={styles.voucherHeader}>
                     <div className={styles.companyInfo}>
                         <h1 className={styles.companyName}>Innovative Interiors</h1>
-                        <p className={styles.companyType}>Vendor Management System</p>
+                        <p className={styles.companyType}>IIPL Core</p>
                     </div>
                     <div className={styles.voucherTitle}>
                         <h1>PETTY CASH VOUCHER</h1>
