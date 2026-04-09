@@ -14,7 +14,8 @@ const Home = () => {
                     <button onClick={logout} className={styles.logoutBtn}>Logout 🚪</button>
                 </div>
                 <h1 className={styles.companyName}>Innovative Interiors</h1>
-                <div className={styles.dashboardLabel}>IIPL Team Dashboard</div>
+                <p className={styles.tagline}>IIPL Core</p>
+                <div className={styles.dashboardLabel}>Quantity Survey Team Dashboard</div>
             </header>
 
             <div className={styles.navGrid}>
