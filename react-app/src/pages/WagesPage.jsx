@@ -33,44 +33,75 @@ const TimePicker = ({ value, onChange, className }) => {
     let hour12 = hour24 % 12;
     if (hour12 === 0) hour12 = 12;
 
+    const [tempHour, setTempHour] = React.useState(hour12.toString());
+    const [tempMin, setTempMin] = React.useState(m);
+
+    React.useEffect(() => {
+        let h = parseInt(h24, 10) % 12;
+        if (h === 0) h = 12;
+        setTempHour(h.toString());
+        setTempMin(m);
+    }, [value]);
+
     const handleTimeChange = (h12, min, p) => {
-        let h24_new = parseInt(h12, 10);
+        let h24_new = parseInt(h12, 10) || 0;
+        let m_new = parseInt(min, 10) || 0;
+
         if (p === 'PM' && h24_new < 12) h24_new += 12;
         if (p === 'AM' && h24_new === 12) h24_new = 0;
 
         const formattedH24 = h24_new.toString().padStart(2, '0');
-        const formattedMin = min.toString().padStart(2, '0');
+        const formattedMin = m_new.toString().padStart(2, '0');
         onChange(`${formattedH24}:${formattedMin}`);
+    };
+
+    const flushHour = () => {
+        let val = parseInt(tempHour, 10);
+        if (isNaN(val) || val < 1) val = 12;
+        if (val > 12) val = 12;
+        setTempHour(val.toString());
+        handleTimeChange(val, tempMin, period);
+    };
+
+    const flushMin = () => {
+        let val = parseInt(tempMin, 10);
+        if (isNaN(val) || val < 0) val = 0;
+        if (val > 59) val = 59;
+        const formatted = val.toString().padStart(2, '0');
+        setTempMin(formatted);
+        handleTimeChange(tempHour, formatted, period);
     };
 
     return (
         <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-            <select
+            <input
+                type="number"
+                min="1"
+                max="12"
                 className={className}
-                style={{ width: '60px', padding: '8px 4px', textAlign: 'center' }}
-                value={hour12}
-                onChange={(e) => handleTimeChange(e.target.value, m, period)}
-            >
-                {Array.from({ length: 12 }, (_, i) => i + 1).map(h => (
-                    <option key={h} value={h}>{h}</option>
-                ))}
-            </select>
+                style={{ width: '45px', padding: '8px 4px', textAlign: 'center' }}
+                value={tempHour}
+                onChange={e => setTempHour(e.target.value)}
+                onBlur={flushHour}
+                onKeyDown={e => { if (e.key === 'Enter') flushHour(); }}
+            />
             <span style={{ fontWeight: 'bold' }}>:</span>
+            <input
+                type="number"
+                min="0"
+                max="59"
+                className={className}
+                style={{ width: '45px', padding: '8px 4px', textAlign: 'center' }}
+                value={tempMin}
+                onChange={e => setTempMin(e.target.value)}
+                onBlur={flushMin}
+                onKeyDown={e => { if (e.key === 'Enter') flushMin(); }}
+            />
             <select
                 className={className}
-                style={{ width: '60px', padding: '8px 4px', textAlign: 'center' }}
-                value={m}
-                onChange={(e) => handleTimeChange(hour12, e.target.value, period)}
-            >
-                {Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0')).map(min => (
-                    <option key={min} value={min}>{min}</option>
-                ))}
-            </select>
-            <select
-                className={className}
-                style={{ width: '65px', padding: '8px 4px', textAlign: 'center' }}
+                style={{ width: '65px', padding: '8px 4px', textAlign: 'center', cursor: 'pointer' }}
                 value={period}
-                onChange={(e) => handleTimeChange(hour12, m, e.target.value)}
+                onChange={(e) => handleTimeChange(tempHour, tempMin, e.target.value)}
             >
                 <option value="AM">AM</option>
                 <option value="PM">PM</option>
