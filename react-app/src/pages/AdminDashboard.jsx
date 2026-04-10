@@ -502,6 +502,53 @@ const AdminDashboard = () => {
     };
 
 
+    const clearPaidHistory = async () => {
+        const paidItems = history.filter(h => h.status === 'Paid');
+        if (!paidItems.length) {
+            await alert("No Paid records found to clear.");
+            return;
+        }
+
+        // Password Check
+        const pwd = await prompt("Enter Admin Password to Clear Paid History:");
+        if (pwd === null) return;
+        if (pwd !== 'sakthi207') {
+            await alert("Incorrect Password!");
+            return;
+        }
+
+        if (await confirm(`⚠ WARNING: You are about to clear ALL PAID history records (${paidItems.length} items).\nThey will be moved to the Bin.\n\nProceed?`)) {
+            try {
+                // 1. Backup all to Bin
+                const backupData = paidItems.map(h => ({
+                    original_table: 'payment_history',
+                    data: h
+                }));
+
+                const { error: binError } = await supabase.from('recycle_bin').insert(backupData);
+                if (binError) {
+                    console.error("Recycle Bin Error:", binError);
+                    await alert("Error saving to Bin. Operations aborted. Please check DB schema.");
+                    return;
+                }
+
+                // 2. Delete all records currently in state
+                setSaving(true);
+                const { error } = await supabase
+                    .from('payment_history')
+                    .delete()
+                    .in('id', paidItems.map(h => h.id));
+
+                if (error) throw error;
+                setHistory(history.filter(h => h.status !== 'Paid'));
+                toast('All Paid records moved to Bin.');
+            } catch (e) {
+                console.error(e);
+                await alert('Error clearing paid history: ' + e.message);
+            } finally { setSaving(false); }
+        }
+    };
+
     const openEditHistoryModal = (item) => {
         setEditingHistoryItem({ ...item });
         setEditHistoryModalOpen(true);
@@ -1035,6 +1082,27 @@ const AdminDashboard = () => {
                                 >
                                     🗑️
                                 </button>
+                                <button
+                                    onClick={clearPaidHistory}
+                                    title="Clear Paid Records"
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        width: '40px',
+                                        height: '40px',
+                                        border: '1px solid #fde047',
+                                        borderRadius: '8px',
+                                        background: '#fef08a',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s',
+                                        color: '#854d0e'
+                                    }}
+                                    onMouseOver={(e) => e.currentTarget.style.background = '#fde047'}
+                                    onMouseOut={(e) => e.currentTarget.style.background = '#fef08a'}
+                                >
+                                    🧹
+                                </button>
                                 <select
                                     className={styles.statusSelect}
                                     value={statusFilter}
@@ -1247,8 +1315,33 @@ const AdminDashboard = () => {
                     <div className={styles.card} style={{ borderColor: 'var(--accent)' }}>
                         <div className={styles.cardHeader} style={{ background: '#f0fdf4' }}>
                             <h3 className={styles.cardTitle} style={{ color: 'var(--accent)' }}>Clearance List (Paid Items)</h3>
-                            <div style={{ fontWeight: 'bold', color: 'var(--accent)' }}>
-                                Total Paid: ₹{clearanceTotal.toLocaleString('en-IN')}
+                            <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+                                <div style={{ fontWeight: 'bold', color: 'var(--accent)' }}>
+                                    Total Paid: ₹{clearanceTotal.toLocaleString('en-IN')}
+                                </div>
+                                <button
+                                    onClick={clearPaidHistory}
+                                    title="Clear Paid Records"
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        padding: '0 12px',
+                                        height: '36px',
+                                        border: '1px solid #fde047',
+                                        borderRadius: '8px',
+                                        background: '#fef08a',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s',
+                                        color: '#854d0e',
+                                        fontWeight: 'bold',
+                                        fontSize: '0.85rem'
+                                    }}
+                                    onMouseOver={(e) => e.currentTarget.style.background = '#fde047'}
+                                    onMouseOut={(e) => e.currentTarget.style.background = '#fef08a'}
+                                >
+                                    🧹 Clear Paid
+                                </button>
                             </div>
                         </div>
                         <div style={{ padding: '20px 30px', background: '#f0fdf4', borderBottom: '1px solid #dcfce7' }}>
