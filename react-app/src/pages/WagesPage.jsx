@@ -19,7 +19,8 @@ import {
     Briefcase,
     BarChart2,
     Printer,
-    Search
+    Search,
+    Check
 } from 'lucide-react';
 import styles from './WagesPage.module.css';
 
@@ -78,6 +79,75 @@ const TimePicker = ({ value, onChange, className }) => {
     );
 };
 
+const SearchableSelect = ({ value, onChange, options, placeholder, disabled }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [search, setSearch] = useState('');
+    const dropdownRef = React.useRef(null);
+
+    React.useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const filteredOptions = options.filter(opt =>
+        opt.label.toLowerCase().includes(search.toLowerCase())
+    );
+
+    const selectedLabel = options.find(opt => opt.value === value)?.label || placeholder;
+
+    return (
+        <div className={styles.searchableContainer} ref={dropdownRef}>
+            <div 
+                className={`${styles.dropdownTrigger} ${disabled ? styles.disabled : ''}`}
+                onClick={() => !disabled && setIsOpen(!isOpen)}
+            >
+                <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {selectedLabel}
+                </div>
+            </div>
+            
+            {isOpen && (
+                <div className={styles.dropdownMenu}>
+                    <div className={styles.searchBox}>
+                        <Search size={14} color="#94a3b8" />
+                        <input 
+                            autoFocus
+                            placeholder="Type to search..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                        />
+                    </div>
+                    <div className={styles.optionsList}>
+                        {filteredOptions.length > 0 ? (
+                            filteredOptions.map(opt => (
+                                <div 
+                                    key={opt.value}
+                                    className={`${styles.optionItem} ${opt.value === value ? styles.selectedOption : ''}`}
+                                    onClick={() => {
+                                        onChange({ target: { value: opt.value } });
+                                        setIsOpen(false);
+                                        setSearch('');
+                                    }}
+                                >
+                                    {opt.label}
+                                </div>
+                            ))
+                        ) : (
+                            <div className={styles.noResults}>No matches found.</div>
+                        )}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
 const WagesPage = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
@@ -87,6 +157,15 @@ const WagesPage = () => {
         if (!dateStr) return '-';
         const d = new Date(dateStr);
         return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    };
+
+    const customRound = (val) => {
+        if (!val || isNaN(val)) return 0;
+        const base = Math.floor(val / 100) * 100;
+        const remainder = val % 100;
+        if (remainder < 25) return base;
+        if (remainder < 75) return base + 50;
+        return base + 100;
     };
 
     const [activeTab, setActiveTab] = useState('attendance');
@@ -205,10 +284,13 @@ const WagesPage = () => {
 
                 // Only populate the entry for the current selected site AND category
                 if (rec.site_id == selectedSite && rec.wage_category === selectedCategory) {
+                    const laborObj = labors.find(l => l.id === rec.labor_id);
+                    const dailyRate = laborObj?.daily_rate || 0;
                     lookup[rec.labor_id] = {
                         time_in: rec.time_in || '',
                         time_out: rec.time_out || '',
                         attn_val: rec.attendance_value || 0,
+                        actual_wages: parseFloat((rec.attendance_value * dailyRate).toFixed(2)),
                         wages: rec.wages_amount,
                         remarks: rec.remarks,
                         id: rec.id
@@ -271,7 +353,8 @@ const WagesPage = () => {
 
                 // Auto-calculate wages based on attendance value
                 const dailyRate = labors.find(l => l.id === laborId)?.daily_rate || 0;
-                updated.wages = parseFloat((updated.attn_val * dailyRate).toFixed(2));
+                updated.actual_wages = parseFloat((updated.attn_val * dailyRate).toFixed(2));
+                updated.wages = customRound(updated.actual_wages);
             }
 
             return { ...prev, [laborId]: updated };
@@ -483,15 +566,20 @@ const WagesPage = () => {
     const openCorrectionModal = (report) => {
         setCorrectionLabor(report);
         // Transform records into an editable format
-        const editable = report.records.map(r => ({
-            ...r,
-            new_time_in: r.time_in ? r.time_in.substring(0, 5) : '',
-            new_time_out: r.time_out ? r.time_out.substring(0, 5) : '',
-            new_attn_val: r.attendance_value || 0,
-            new_wages: r.wages_amount || 0,
-            new_remarks: r.remarks || '',
-            new_category: r.wage_category || 'Direct wages'
-        }));
+        const editable = report.records.map(r => {
+            const laborObj = labors.find(l => l.id === r.labor_id);
+            const dailyRate = laborObj?.daily_rate || 0;
+            return {
+                ...r,
+                new_time_in: r.time_in ? r.time_in.substring(0, 5) : '',
+                new_time_out: r.time_out ? r.time_out.substring(0, 5) : '',
+                new_attn_val: r.attendance_value || 0,
+                new_actual_wages: parseFloat((r.attendance_value * dailyRate).toFixed(2)),
+                new_wages: r.wages_amount || 0,
+                new_remarks: r.remarks || '',
+                new_category: r.wage_category || 'Direct wages'
+            };
+        });
         setCorrectionRecords(editable);
         setCorrectionModalOpen(true);
     };
@@ -499,14 +587,17 @@ const WagesPage = () => {
     const handleCorrectionChange = (idx, field, value) => {
         setCorrectionRecords(prev => {
             const updated = [...prev];
-            updated[idx] = { ...updated[idx], [field]: value };
+            const record = updated[idx];
+            updated[idx] = { ...record, [field]: value };
 
             if (field === 'new_time_in' || field === 'new_time_out') {
                 updated[idx].new_attn_val = calculateAttendanceValue(updated[idx].new_time_in, updated[idx].new_time_out);
-                // Get daily rate of this labor
-                const laborObj = labors.find(l => l.id === updated[idx].labor_id);
-                const dailyRate = parseFloat(laborObj?.daily_rate) || 0;
-                updated[idx].new_wages = parseFloat((updated[idx].new_attn_val * dailyRate).toFixed(2));
+                
+                const laborObj = labors.find(l => l.id === record.labor_id);
+                const dailyRate = laborObj?.daily_rate || 0;
+                
+                updated[idx].new_actual_wages = parseFloat((updated[idx].new_attn_val * dailyRate).toFixed(2));
+                updated[idx].new_wages = customRound(updated[idx].new_actual_wages);
             }
             return updated;
         });
@@ -554,108 +645,198 @@ const WagesPage = () => {
 
     const renderAttendance = () => {
         let filteredLabors = labors.filter(l =>
-            l.status === 'Active' && (!selectedSubcontractor || l.subcontractor_id === selectedSubcontractor)
+            l.status === 'Active' && 
+            (selectedSubcontractor === 'ALL' || !selectedSubcontractor || l.subcontractor_id === selectedSubcontractor)
         );
 
         if (hideCompleted) {
             filteredLabors = filteredLabors.filter(l => !completedLaborIds.has(l.id));
         }
 
+        const isSiteSelected = selectedSite !== '';
+        const isSubSelected = selectedSubcontractor !== '';
+        const isCategorySelected = selectedCategory !== '';
+
+        if (!isSiteSelected || !isSubSelected || !isCategorySelected) {
+            return (
+                <div className={styles.card}>
+                    {renderFilterBar(isSiteSelected, isSubSelected, isCategorySelected)}
+                    <div className={styles.welcomeState}>
+                        <div className={styles.welcomeCircle}>
+                            <Briefcase size={36} color="#2563eb" />
+                        </div>
+                        <h2 className={styles.welcomeTitle}>Prepare Attendance Sheet</h2>
+                        <p className={styles.welcomeText}>Follow the 4 steps above to initialize the worker registry for today.</p>
+                    </div>
+                </div>
+            );
+        }
+
         return (
             <div className={styles.card}>
-                <div className={styles.formGrid}>
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>Project Site</label>
-                        <select className={styles.input} value={selectedSite} onChange={e => setSelectedSite(e.target.value)}>
-                            <option value="">-- Select Site --</option>
-                            {sites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                        </select>
-                    </div>
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>Subcontractor</label>
-                        <select className={styles.input} value={selectedSubcontractor} onChange={e => setSelectedSubcontractor(e.target.value)}>
-                            <option value="">-- All Subcontractors --</option>
-                            {subcontractors.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
-                        </select>
-                    </div>
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>Wage Category</label>
-                        <select className={styles.input} value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)}>
-                            {['Direct wages', 'NMR wages', 'Snag wages', 'Third party subvendor work', 'weekly payment agst order'].map(cat => (
-                                <option key={cat} value={cat}>{cat}</option>
-                            ))}
-                        </select>
-                    </div>
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>Attendance Date</label>
-                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                            <input type="date" className={styles.input} value={selectedDate} onChange={e => setSelectedDate(e.target.value)} />
-                            <button
-                                onClick={(e) => { e.preventDefault(); setHideCompleted(!hideCompleted); }}
-                                className={`${styles.tab} ${hideCompleted ? styles.activeTab : ''}`}
-                                style={{ margin: 0, padding: '10px 16px', fontSize: '0.85rem', border: '1px solid #e2e8f0', whiteSpace: 'nowrap' }}
-                            >
-                                {hideCompleted ? '🔥 Pending Only' : '👥 Show All'}
-                            </button>
+                {renderFilterBar(true, true, true)}
+                <div className={styles.tableSlideIn}>
+                    <div className={styles.tableHeader}>
+                        <div className={styles.tableTitle}>
+                            <div style={{ background: '#eff6ff', color: '#2563eb', padding: '10px', borderRadius: '12px' }}>
+                                <ClipboardList size={22} />
+                            </div>
+                            <div>
+                                <div className={styles.strong} style={{ fontSize: '1.25rem' }}>{sites.find(s => s.id == selectedSite)?.name}</div>
+                                <div className={styles.muted}>{selectedSubcontractor === 'ALL' ? 'All Partners' : subcontractors.find(s => s.id == selectedSubcontractor)?.name} • {selectedCategory}</div>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div className={styles.tableContainer}>
-                    <table className={styles.table}>
-                        <thead>
-                            <tr>
-                                <th>Labor Detail</th>
-                                <th>Working Hours (In - Out)</th>
-                                <th style={{ textAlign: 'center' }}>Attn. Value</th>
-                                <th>Calculated Wage</th>
-                                <th>Remarks</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredLabors.map(l => {
-                                const entry = attendanceEntry[l.id] || { time_in: '', time_out: '', attn_val: 0, wages: 0 };
-                                return (
-                                    <tr key={l.id}>
-                                        <td>
-                                            <div className={styles.strong}>{l.name}</div>
-                                            <div className={styles.muted}>Daily Rate: ₹{l.daily_rate}</div>
-                                        </td>
-                                        <td>
-                                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                                <TimePicker className={styles.input} value={entry.time_in || ''} onChange={val => handleAttendanceChange(l.id, 'time_in', val)} />
-                                                <span className={styles.muted}>to</span>
-                                                <TimePicker className={styles.input} value={entry.time_out || ''} onChange={val => handleAttendanceChange(l.id, 'time_out', val)} />
+                    <div className={styles.tableContainer}>
+                        <table className={styles.table}>
+                            <thead>
+                                <tr>
+                                    <th style={{ paddingLeft: '24px' }}>Worker Details</th>
+                                    <th>Attendance Hours</th>
+                                    <th style={{ textAlign: 'center' }}>Units</th>
+                                    <th>Raw Wage</th>
+                                    <th>Rounded Wage</th>
+                                    <th style={{ paddingRight: '24px' }}>Remarks</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filteredLabors.map(l => {
+                                    const entry = attendanceEntry[l.id] || { time_in: '', time_out: '', attn_val: 0, wages: 0 };
+                                    return (
+                                        <tr key={l.id}>
+                                            <td style={{ paddingLeft: '24px' }}>
+                                                <div className={styles.strong}>{l.name}</div>
+                                                <div className={styles.muted} style={{ fontSize: '0.75rem' }}>Rate: ₹{l.daily_rate}</div>
+                                            </td>
+                                            <td>
+                                                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                                                    <TimePicker className={styles.compactInput} value={entry.time_in || ''} onChange={val => handleAttendanceChange(l.id, 'time_in', val)} />
+                                                    <span className={styles.muted}>→</span>
+                                                    <TimePicker className={styles.compactInput} value={entry.time_out || ''} onChange={val => handleAttendanceChange(l.id, 'time_out', val)} />
+                                                </div>
+                                            </td>
+                                            <td style={{ textAlign: 'center' }}>
+                                                <span className={styles.attnUnit}>{entry.attn_val}</span>
+                                            </td>
+                                            <td>
+                                                <div className={styles.wageValue}>
+                                                    <span className={styles.currency}>₹</span>
+                                                    <input type="number" readOnly className={styles.minimalInput} style={{ width: '70px', color: '#94a3b8' }} value={entry.actual_wages || 0} />
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div className={styles.wageValue}>
+                                                    <span className={styles.currency} style={{ color: '#0f172a' }}>₹</span>
+                                                    <input type="number" className={styles.minimalInput} style={{ width: '80px', fontWeight: 800, color: '#0f172a' }} value={entry.wages} onChange={e => handleAttendanceChange(l.id, 'wages', e.target.value)} />
+                                                </div>
+                                            </td>
+                                            <td style={{ paddingRight: '24px' }}>
+                                                <input type="text" className={styles.minimalInput} style={{ width: '100%' }} placeholder="Remarks..." value={entry.remarks || ''} onChange={e => handleAttendanceChange(l.id, 'remarks', e.target.value)} />
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                                {filteredLabors.length === 0 && (
+                                    <tr>
+                                        <td colSpan="6">
+                                            <div className={styles.emptyIllustration} style={{ padding: '60px' }}>
+                                                <div className={styles.welcomeCircle} style={{ opacity: 0.5 }}>
+                                                    <Users size={32} color="#94a3b8" />
+                                                </div>
+                                                <p className={styles.muted}>No matching workers found for this selection.</p>
                                             </div>
-                                        </td>
-                                        <td style={{ textAlign: 'center' }}>
-                                            <span style={{ fontWeight: 800, color: '#2563eb', background: '#eff6ff', padding: '4px 12px', borderRadius: '6px' }}>{entry.attn_val}</span>
-                                        </td>
-                                        <td>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                <span className={styles.strong}>₹</span>
-                                                <input type="number" className={styles.input} style={{ width: '100px', fontWeight: 700 }} value={entry.wages} onChange={e => handleAttendanceChange(l.id, 'wages', e.target.value)} />
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <input type="text" className={styles.input} style={{ width: '100%' }} placeholder="Add note..." value={entry.remarks || ''} onChange={e => handleAttendanceChange(l.id, 'remarks', e.target.value)} />
                                         </td>
                                     </tr>
-                                )
-                            })}
-                        </tbody>
-                    </table>
-                </div>
-                {filteredLabors.length > 0 && (
-                    <div className={styles.actions}>
-                        <Button onClick={saveAttendance} className={styles.saveBtn}>
-                            <Save size={18} style={{ marginRight: 8 }} /> Confirm & Save Daily Log
-                        </Button>
+                                )}
+                            </tbody>
+                        </table>
                     </div>
-                )}
+                    {filteredLabors.length > 0 && (
+                        <div className={styles.actions} style={{ marginTop: '24px' }}>
+                            <Button onClick={saveAttendance} className={styles.saveBtn} style={{ padding: '12px 32px', borderRadius: '12px' }}>
+                                <Save size={18} style={{ marginRight: 8 }} /> Save Daily Log
+                            </Button>
+                        </div>
+                    )}
+                </div>
             </div>
         );
     };
+
+    const renderFilterBar = (isSiteSelected, isSubSelected, isCategorySelected) => (
+        <div className={styles.selectionStepper}>
+            {/* Step 1: Site */}
+            <div className={`${styles.step} ${!isSiteSelected ? styles.activeStep : styles.completedStep}`}>
+                <div className={styles.stepHeader}>
+                    <span className={styles.stepLabel}>Step 01 • Project Site</span>
+                    {isSiteSelected && <Check size={14} color="#10b981" strokeWidth={3} />}
+                </div>
+                <SearchableSelect 
+                    placeholder="Select Project Site..."
+                    value={selectedSite} 
+                    onChange={e => setSelectedSite(e.target.value)}
+                    options={sites.map(s => ({ value: s.id, label: s.name }))}
+                />
+            </div>
+
+            {/* Step 2: Subcontractor */}
+            <div className={`${styles.step} ${!isSiteSelected ? styles.disabledStep : (!isSubSelected ? styles.activeStep : styles.completedStep)}`}>
+                <div className={styles.stepHeader}>
+                    <span className={styles.stepLabel}>Step 02 • Subcontractor</span>
+                    {isSubSelected && <Check size={14} color="#10b981" strokeWidth={3} />}
+                </div>
+                <SearchableSelect 
+                    disabled={!isSiteSelected}
+                    placeholder="Select Partner..."
+                    value={selectedSubcontractor} 
+                    onChange={e => setSelectedSubcontractor(e.target.value)}
+                    options={[
+                        { value: 'ALL', label: 'All Subcontractors' },
+                        ...subcontractors.map(e => ({ value: e.id, label: e.name }))
+                    ]}
+                />
+            </div>
+
+            {/* Step 3: Category */}
+            <div className={`${styles.step} ${!isSubSelected ? styles.disabledStep : (!isCategorySelected ? styles.activeStep : styles.completedStep)}`}>
+                <div className={styles.stepHeader}>
+                    <span className={styles.stepLabel}>Step 03 • Wage Category</span>
+                    {isCategorySelected && <Check size={14} color="#10b981" strokeWidth={3} />}
+                </div>
+                <SearchableSelect 
+                    disabled={!isSubSelected}
+                    placeholder="Choose Category..."
+                    value={selectedCategory} 
+                    onChange={e => setSelectedCategory(e.target.value)}
+                    options={['Direct wages', 'NMR wages', 'Snag wages', 'Third party subvendor work', 'weekly payment agst order'].map(cat => ({ 
+                        value: cat, label: cat 
+                    }))}
+                />
+            </div>
+
+            {/* Step 4: Date */}
+            <div className={`${styles.step} ${!isCategorySelected ? styles.disabledStep : styles.activeStep}`}>
+                <div className={styles.stepHeader}>
+                    <span className={styles.stepLabel}>Step 04 • Work Date</span>
+                    <button
+                        onClick={() => setHideCompleted(!hideCompleted)}
+                        className={`${styles.pendingToggle} ${hideCompleted ? styles.pendingActive : ''}`}
+                        disabled={!isCategorySelected}
+                    >
+                        {hideCompleted ? '🔥 Pending' : 'All'}
+                    </button>
+                </div>
+                <input 
+                    type="date" 
+                    className={`${styles.stepInput} ${styles.filterDate}`}
+                    value={selectedDate} 
+                    onChange={e => setSelectedDate(e.target.value)}
+                    disabled={!isCategorySelected}
+                />
+            </div>
+        </div>
+    );
 
     const renderSubcontractors = () => {
         const filtered = subcontractors.filter(e =>
@@ -956,29 +1137,29 @@ const WagesPage = () => {
                         </div>
                         <div className={styles.formGroup}>
                             <label className={styles.label}>CATEGORY FILTER</label>
-                            <select
-                                className={styles.input}
+                            <SearchableSelect 
+                                placeholder="All Categories"
                                 value={searchCategoryReport}
                                 onChange={e => setSearchCategoryReport(e.target.value)}
-                            >
-                                <option value="All">All Categories</option>
-                                {['Direct wages', 'NMR wages', 'Snag wages', 'Third party subvendor work', 'weekly payment agst order'].map(cat => (
-                                    <option key={cat} value={cat}>{cat}</option>
-                                ))}
-                            </select>
+                                options={[
+                                    { value: 'All', label: 'All Categories' },
+                                    ...['Direct wages', 'NMR wages', 'Snag wages', 'Third party subvendor work', 'weekly payment agst order'].map(cat => ({ 
+                                        value: cat, label: cat 
+                                    }))
+                                ]}
+                            />
                         </div>
                         <div className={styles.formGroup}>
                             <label className={styles.label}>SUBVENDOR FILTER</label>
-                            <select
-                                className={styles.input}
+                            <SearchableSelect 
+                                placeholder="All Subvendors"
                                 value={searchSubcontractorReport}
                                 onChange={e => setSearchSubcontractorReport(e.target.value)}
-                            >
-                                <option value="All">All Subvendors</option>
-                                {subcontractors.map(s => (
-                                    <option key={s.id} value={s.id}>{s.name}</option>
-                                ))}
-                            </select>
+                                options={[
+                                    { value: 'All', label: 'All Subvendors' },
+                                    ...subcontractors.map(s => ({ value: s.id, label: s.name }))
+                                ]}
+                            />
                         </div>
                         <div className={styles.formGroup}>
                             <label className={styles.label}>DATE RANGE</label>
@@ -1100,7 +1281,8 @@ const WagesPage = () => {
                                             <th>Date</th>
                                             <th>Category</th>
                                             <th>Hours (In - Out)</th>
-                                            <th>Wages (₹)</th>
+                                            <th style={{ whiteSpace: 'nowrap' }}>Actual (₹)</th>
+                                            <th style={{ whiteSpace: 'nowrap' }}>Rounded (₹)</th>
                                             <th>Remarks</th>
                                             <th style={{ textAlign: 'right' }}>Actions</th>
                                         </tr>
@@ -1110,11 +1292,14 @@ const WagesPage = () => {
                                             <tr key={r.id}>
                                                 <td><div className={styles.strong}>{formatDate(r.work_date)}</div></td>
                                                 <td>
-                                                    <select className={styles.input} style={{ fontSize: '0.8rem', padding: '4px' }} value={r.new_category} onChange={e => handleCorrectionChange(idx, 'new_category', e.target.value)}>
-                                                        {['Direct wages', 'NMR wages', 'Snag wages', 'Third party subvendor work', 'weekly payment agst order'].map(cat => (
-                                                            <option key={cat} value={cat}>{cat}</option>
-                                                        ))}
-                                                    </select>
+                                                    <SearchableSelect 
+                                                        placeholder="Category"
+                                                        value={r.new_category} 
+                                                        onChange={e => handleCorrectionChange(idx, 'new_category', e.target.value)}
+                                                        options={['Direct wages', 'NMR wages', 'Snag wages', 'Third party subvendor work', 'weekly payment agst order'].map(cat => ({ 
+                                                            value: cat, label: cat 
+                                                        }))}
+                                                    />
                                                 </td>
                                                 <td>
                                                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -1124,7 +1309,10 @@ const WagesPage = () => {
                                                     </div>
                                                 </td>
                                                 <td>
-                                                    <input type="number" className={styles.input} style={{ width: '100px' }} value={r.new_wages} onChange={e => handleCorrectionChange(idx, 'new_wages', e.target.value)} />
+                                                    <input type="number" readOnly className={styles.input} style={{ width: '90px', background: '#f8fafc', color: '#64748b' }} value={r.new_actual_wages} />
+                                                </td>
+                                                <td>
+                                                    <input type="number" className={styles.input} style={{ width: '100px', fontWeight: 700 }} value={r.new_wages} onChange={e => handleCorrectionChange(idx, 'new_wages', e.target.value)} />
                                                 </td>
                                                 <td>
                                                     <input type="text" className={styles.input} style={{ width: '100%' }} value={r.new_remarks} onChange={e => handleCorrectionChange(idx, 'new_remarks', e.target.value)} />
