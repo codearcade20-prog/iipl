@@ -113,6 +113,19 @@
     transform: translateY(-2px);
 }
 
+.emptyBtn {
+    background: #fff7ed;
+    color: #c2410c;
+    border: 1px solid #ffedd5;
+}
+
+.emptyBtn:hover {
+    background: #ffedd5;
+    border-color: #f97316;
+    color: #ea580c;
+    transform: translateY(-2px);
+}
+
 .saveBtn {
     background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
     color: white;

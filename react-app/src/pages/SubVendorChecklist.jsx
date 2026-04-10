@@ -6,6 +6,77 @@ import { useMessage } from '../context/MessageContext';
 import SearchableSelect from '../components/ui/SearchableSelect';
 import styles from './SubVendorChecklist.module.css';
 
+const initialFormState = {
+    project_id: '',
+    vendor_id: '',
+    project_name: '',
+    project_coordinator_name: '',
+    location: '',
+    nature_of_work: '',
+    vendor_company_name: '',
+    vendor_name: '',
+    address: '',
+    phone_no: '',
+    aadhaar_no: '',
+    pan_no: '',
+    gst_no: '',
+    billing_address: '',
+
+    // Bank Details
+    bank_account_name: '',
+    bank_account_number: '',
+    bank_ifsc_code: '',
+    bank_branch: '',
+    bank_name: '',
+
+    // Budget Details
+    material_budget: '',
+    labour_budget: '',
+    total_budget: '',
+    final_material_amount: '',
+    final_labour_amount: '',
+    total_value: '',
+
+    // Purchase Details
+    purchase_details: {
+        "Material Purchase": { vendor: false, iipl: false },
+        "Office Purchase (PO No & Date)": { vendor: false, iipl: false },
+        "Site Purchase": { vendor: false, iipl: false },
+        "Inter Change in Site": { vendor: false, iipl: false },
+        "Factory Stock": { vendor: false, iipl: false },
+        "Loading &Unloading of Material": { vendor: false, iipl: false },
+        "Shifting of Material": { vendor: false, iipl: false },
+        "Accommodation for labour": { vendor: false, iipl: false },
+        "Food expenses": { vendor: false, iipl: false },
+        "Transport charges": { vendor: false, iipl: false },
+        "Scaffolding and other service provided": { vendor: false, iipl: false },
+        "Tools and Machine": { vendor: false, iipl: false }
+    },
+
+    // Payment Terms
+    payment_terms: {
+        "advance_pct": "",
+        "ra_bill_upto": "85%",
+        "final_bill_approval": "MD",
+        "work_done_other_vendor": "",
+        "housekeeping_deduction": "YES/NO",
+        "retention_5": "YES/NO",
+        "remarks": ""
+    },
+
+    // Terms and conditions
+    terms_and_conditions: [
+        "Work to be executed as per approved drawings",
+        "No extra work without written approval",
+        "Quality to be approved by site engineer",
+        "Running Bill Should be Certified by site engineer",
+        "All debits will be recovered from vendor bills",
+        "Vendor responsible for labour safety",
+        "If Any deduction recommended by Site In-charge",
+        "Sub Vendor is not permitted to take any work directly from the project client or any other vendor work in the same project"
+    ]
+};
+
 const SubVendorChecklist = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
@@ -14,76 +85,7 @@ const SubVendorChecklist = () => {
     const [loading, setLoading] = useState(false);
     const [projects, setProjects] = useState([]);
     const [vendors, setVendors] = useState([]);
-    const [form, setForm] = useState({
-        project_id: '',
-        vendor_id: '',
-        project_name: '',
-        project_coordinator_name: '',
-        location: '',
-        nature_of_work: '',
-        vendor_company_name: '',
-        vendor_name: '',
-        address: '',
-        phone_no: '',
-        aadhaar_no: '',
-        pan_no: '',
-        gst_no: '',
-        billing_address: '',
-
-        // Bank Details
-        bank_account_name: '',
-        bank_account_number: '',
-        bank_ifsc_code: '',
-        bank_branch: '',
-        bank_name: '',
-
-        // Budget Details
-        material_budget: '',
-        labour_budget: '',
-        total_budget: '',
-        final_material_amount: '',
-        final_labour_amount: '',
-        total_value: '',
-
-        // Purchase Details
-        purchase_details: {
-            "Material Purchase": { vendor: false, iipl: false },
-            "Office Purchase (PO No & Date)": { vendor: false, iipl: false },
-            "Site Purchase": { vendor: false, iipl: false },
-            "Inter Change in Site": { vendor: false, iipl: false },
-            "Factory Stock": { vendor: false, iipl: false },
-            "Loading &Unloading of Material": { vendor: false, iipl: false },
-            "Shifting of Material": { vendor: false, iipl: false },
-            "Accommodation for labour": { vendor: false, iipl: false },
-            "Food expenses": { vendor: false, iipl: false },
-            "Transport charges": { vendor: false, iipl: false },
-            "Scaffolding and other service provided": { vendor: false, iipl: false },
-            "Tools and Machine": { vendor: false, iipl: false }
-        },
-
-        // Payment Terms
-        payment_terms: {
-            "advance_pct": "",
-            "ra_bill_upto": "85%",
-            "final_bill_approval": "MD",
-            "work_done_other_vendor": "",
-            "housekeeping_deduction": "YES/NO",
-            "retention_5": "YES/NO",
-            "remarks": ""
-        },
-
-        // Terms and conditions
-        terms_and_conditions: [
-            "Work to be executed as per approved drawings",
-            "No extra work without written approval",
-            "Quality to be approved by site engineer",
-            "Running Bill Should be Certified by site engineer",
-            "All debits will be recovered from vendor bills",
-            "Vendor responsible for labour safety",
-            "If Any deduction recommended by Site In-charge",
-            "Sub Vendor is not permitted to take any work directly from the project client or any other vendor work in the same project"
-        ]
-    });
+    const [form, setForm] = useState(initialFormState);
     const [isSaved, setIsSaved] = useState(false);
 
     const [showFinalAmounts, setShowFinalAmounts] = useState(false);
@@ -300,6 +302,25 @@ const SubVendorChecklist = () => {
         window.print();
     };
 
+    const handleEmptyPrint = () => {
+        if (window.confirm("This will clear all current data to print a blank template. Do you want to continue?")) {
+            setForm({
+                ...initialFormState,
+                payment_terms: {
+                    ...initialFormState.payment_terms,
+                    ra_bill_upto: "",
+                    final_bill_approval: "",
+                    housekeeping_deduction: "YES/NO",
+                    retention_5: "YES/NO"
+                }
+            });
+            setIsSaved(true);
+            setTimeout(() => {
+                window.print();
+            }, 500);
+        }
+    };
+
     if (loading && projects.length === 0) return (
         <div className={styles.loadingScreen}>
             <div className={styles.loadingCard}>
@@ -321,6 +342,9 @@ const SubVendorChecklist = () => {
                         </button>
                         <button className={`${styles.actionBtn} ${styles.printBtn}`} onClick={handlePrint}>
                             <Printer size={18} /> PRINT
+                        </button>
+                        <button className={`${styles.actionBtn} ${styles.emptyBtn}`} onClick={handleEmptyPrint}>
+                            <Printer size={18} /> EMPTY PRINT
                         </button>
                         <button className={`${styles.actionBtn} ${styles.saveBtn}`} onClick={handleSubmit} disabled={loading}>
                             {loading ? <Loader2 className={`${styles.loadingSpinner} animate-spin`} size={18} /> : <Save size={18} />} SAVE
@@ -367,7 +391,7 @@ const SubVendorChecklist = () => {
                                     placeholder="Enter coordinator name"
                                 />
                             </div>
-                            <span className={styles.printValue}>{form.project_coordinator_name || 'N/A'}</span>
+                            <span className={styles.printValue}>{form.project_coordinator_name}</span>
                         </div>
                     </div>
                     <div className={styles.gridRow}>
@@ -693,7 +717,7 @@ const SubVendorChecklist = () => {
                                     <option value="NO">NO</option>
                                 </select>
                             </div>
-                            <span className={styles.printValue}>{form.payment_terms.housekeeping_deduction}</span>
+                            <span className={styles.printValue}>{form.payment_terms.housekeeping_deduction === 'YES/NO' ? '' : form.payment_terms.housekeeping_deduction}</span>
                         </div>
                     </div>
                     <div className={styles.gridRow}>
@@ -706,7 +730,7 @@ const SubVendorChecklist = () => {
                                     <option value="NO">NO</option>
                                 </select>
                             </div>
-                            <span className={styles.printValue}>{form.payment_terms.retention_5}</span>
+                            <span className={styles.printValue}>{form.payment_terms.retention_5 === 'YES/NO' ? '' : form.payment_terms.retention_5}</span>
                         </div>
                     </div>
                     <div className={styles.gridRow}>
@@ -721,7 +745,7 @@ const SubVendorChecklist = () => {
                                     placeholder="Enter additional payment remarks here..."
                                 />
                             </div>
-                            <span className={styles.printValue} style={{ whiteSpace: 'pre-wrap' }}>{form.payment_terms.remarks || 'N/A'}</span>
+                            <span className={styles.printValue} style={{ whiteSpace: 'pre-wrap' }}>{form.payment_terms.remarks}</span>
                         </div>
                     </div>
                 </div>
