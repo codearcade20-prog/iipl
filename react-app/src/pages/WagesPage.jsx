@@ -1483,37 +1483,35 @@ const WagesPage = () => {
                         </div>
                         <div style={{ padding: '24px', maxHeight: '60vh', overflowY: 'auto', fontSize: '0.95rem', color: '#334155', lineHeight: '1.6' }}>
                             
-                            <h4 style={{ color: '#0f172a', borderBottom: '2px solid #e2e8f0', paddingBottom: '6px', marginBottom: '12px' }}>1. Attendance Units Calculation (Direct Logic)</h4>
-                            <p>The system computes <strong>raw Attendance Units</strong> precisely based on the time of day worked, using specific multiplier coefficients. <strong>It does not round hours automatically.</strong></p>
+                            <h4 style={{ color: '#0f172a', borderBottom: '2px solid #e2e8f0', paddingBottom: '6px', marginBottom: '12px' }}>📌 Labour Attendance Calculation Logic</h4>
                             
-                            <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '12px', marginBottom: '12px', fontSize: '0.9rem', textAlign: 'left' }}>
-                                <thead>
-                                    <tr style={{ background: '#e2e8f0' }}>
-                                        <th style={{ padding: '8px', borderBottom: '1px solid #cbd5e1' }}>Time Slab</th>
-                                        <th style={{ padding: '8px', borderBottom: '1px solid #cbd5e1' }}>Rate per Hour</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td style={{ padding: '8px', borderBottom: '1px solid #e2e8f0' }}><strong>06:30 AM to 09:30 AM</strong> (Early / OT)</td>
-                                        <td style={{ padding: '8px', borderBottom: '1px solid #e2e8f0', color: '#ea580c', fontWeight: 'bold' }}>0.142 units / hr</td>
-                                    </tr>
-                                    <tr style={{ background: '#f8fafc' }}>
-                                        <td style={{ padding: '8px', borderBottom: '1px solid #e2e8f0' }}><strong>09:30 AM to 06:30 PM</strong> (Standard Shift)</td>
-                                        <td style={{ padding: '8px', borderBottom: '1px solid #e2e8f0', color: '#ea580c', fontWeight: 'bold' }}>0.111 units / hr</td>
-                                    </tr>
-                                    <tr>
-                                        <td style={{ padding: '8px', borderBottom: '1px solid #e2e8f0' }}><strong>06:30 PM to 12:00 AM</strong> (Evening / Night OT)</td>
-                                        <td style={{ padding: '8px', borderBottom: '1px solid #e2e8f0', color: '#ea580c', fontWeight: 'bold' }}>0.142 units / hr</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                            
-                            <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', borderLeft: '4px solid #64748b', marginBottom: '24px' }}>
-                                <strong>Example: Worker logs Time In at <span style={{ color: '#2563eb' }}>08:00 AM</span> and Time Out at <span style={{ color: '#2563eb' }}>06:30 PM</span></strong><br />
-                                • 08:00 AM to 09:30 AM (1.5 hours) &times; 0.142 = <strong>0.213 units</strong><br />
-                                • 09:30 AM to 06:30 PM (9.0 hours) &times; 0.111 = <strong>0.999 units</strong><br />
-                                • Total Attendance Value = 0.213 + 0.999 = <strong>1.212 Units</strong>.
+                            <h5 style={{ color: '#2563eb', marginBottom: '8px' }}>Time Slabs & Rates:</h5>
+                            <ul style={{ listStyleType: 'none', paddingLeft: '12px', marginBottom: '16px' }}>
+                                <li><strong>6:30 AM &ndash; 9:30 AM</strong> &rarr; <span style={{ color: '#ea580c' }}>0.142</span> per hour</li>
+                                <li><strong>9:30 AM &ndash; 6:30 PM</strong> &rarr; <span style={{ color: '#ea580c' }}>0.111</span> per hour</li>
+                                <li><strong>6:30 PM &ndash; 12:00 AM</strong> &rarr; <span style={{ color: '#ea580c' }}>0.142</span> per hour</li>
+                            </ul>
+
+                            <h5 style={{ color: '#2563eb', marginBottom: '8px' }}>Calculation Steps:</h5>
+                            <ol style={{ paddingLeft: '24px', marginBottom: '20px' }}>
+                                <li>Split working time based on above slabs.</li>
+                                <li>Multiply hours in each slab by its corresponding rate.</li>
+                                <li><strong>Add all values</strong> &rarr; This gives the <em>Attendance Value (Units)</em>.</li>
+                                <li>Multiply Attendance Value &times; Daily Salary to get the Raw Pay.</li>
+                            </ol>
+
+                            <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '8px', borderLeft: '4px solid #10b981', marginBottom: '24px' }}>
+                                <h5 style={{ margin: '0 0 8px 0', color: '#047857' }}>✅ Example</h5>
+                                <p style={{ margin: '4px 0' }}><strong>Time:</strong> 7:00 AM &ndash; 7:00 PM</p>
+                                <p style={{ margin: '4px 0', paddingLeft: '12px', color: '#475569' }}>
+                                    <em>Breakdown:</em><br />
+                                    &bull; 7:00 AM to 9:30 AM = 2.5 hrs &times; 0.142 = 0.355<br />
+                                    &bull; 9:30 AM to 6:30 PM = 9.0 hrs &times; 0.111 = 0.999<br />
+                                    &bull; 6:30 PM to 7:00 PM = 0.5 hrs &times; 0.142 = 0.071
+                                </p>
+                                <p style={{ margin: '8px 0 4px 0' }}><strong>Attendance value</strong> = 0.355 + 0.999 + 0.071 = <strong>1.425</strong></p>
+                                <p style={{ margin: '4px 0' }}><strong>If daily salary</strong> = ₹500</p>
+                                <p style={{ margin: '8px 0 0 0', fontWeight: 'bold' }}>Final Pay = 1.425 &times; 500 = ₹712.50</p>
                             </div>
 
                             <h4 style={{ color: '#0f172a', borderBottom: '2px solid #e2e8f0', paddingBottom: '6px', marginBottom: '12px' }}>2. Wages Calculation & Rounding</h4>
