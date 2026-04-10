@@ -471,6 +471,16 @@ const AdminDashboard = () => {
 
         if (await confirm('⚠ WARNING: You are about to clear ALL history records.\nThey will be moved to the Bin.\n\nProceed?')) {
             try {
+                // Download data as JSON before deleting
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(history, null, 2));
+                const downloadAnchorNode = document.createElement('a');
+                downloadAnchorNode.setAttribute("href", dataStr);
+                const dateSuffix = new Date().toISOString().split('T')[0];
+                downloadAnchorNode.setAttribute("download", `all_history_backup_${dateSuffix}.json`);
+                document.body.appendChild(downloadAnchorNode);
+                downloadAnchorNode.click();
+                downloadAnchorNode.remove();
+
                 // 1. Backup all to Bin
                 const backupData = history.map(h => ({
                     original_table: 'payment_history',
@@ -493,7 +503,7 @@ const AdminDashboard = () => {
 
                 if (error) throw error;
                 setHistory([]);
-                toast('All history records moved to Bin.');
+                toast('All history records moved to Bin and JSON backup downloaded.');
             } catch (e) {
                 console.error(e);
                 await alert('Error clearing history: ' + e.message);
@@ -519,6 +529,16 @@ const AdminDashboard = () => {
 
         if (await confirm(`⚠ WARNING: You are about to clear ALL PAID history records (${paidItems.length} items).\nThey will be moved to the Bin.\n\nProceed?`)) {
             try {
+                // Download data as JSON before deleting
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(paidItems, null, 2));
+                const downloadAnchorNode = document.createElement('a');
+                downloadAnchorNode.setAttribute("href", dataStr);
+                const dateSuffix = new Date().toISOString().split('T')[0]; // e.g., 2026-04-10
+                downloadAnchorNode.setAttribute("download", `paid_history_backup_${dateSuffix}.json`);
+                document.body.appendChild(downloadAnchorNode); // required for Firefox
+                downloadAnchorNode.click();
+                downloadAnchorNode.remove();
+
                 // 1. Backup all to Bin
                 const backupData = paidItems.map(h => ({
                     original_table: 'payment_history',
@@ -541,7 +561,7 @@ const AdminDashboard = () => {
 
                 if (error) throw error;
                 setHistory(history.filter(h => h.status !== 'Paid'));
-                toast('All Paid records moved to Bin.');
+                toast('All Paid records moved to Bin and JSON backup downloaded.');
             } catch (e) {
                 console.error(e);
                 await alert('Error clearing paid history: ' + e.message);
