@@ -1483,17 +1483,37 @@ const WagesPage = () => {
                         </div>
                         <div style={{ padding: '24px', maxHeight: '60vh', overflowY: 'auto', fontSize: '0.95rem', color: '#334155', lineHeight: '1.6' }}>
                             
-                            <h4 style={{ color: '#0f172a', borderBottom: '2px solid #e2e8f0', paddingBottom: '6px', marginBottom: '12px' }}>1. Attendance Units Calculation</h4>
-                            <p>The system automatically calculates <strong>Attendance Units</strong> based on the time-in and time-out duration entered for each worker.</p>
-                            <ul style={{ listStyleType: 'disc', paddingLeft: '20px', marginBottom: '20px' }}>
-                                <li><strong>Full Day (1 Unit):</strong> Exactly 9.5 hours duration limit setup (including standard breaks).</li>
-                                <li><strong>Half Day (0.5 Unit):</strong> 5.5 hours duration limit setup.</li>
-                                <li><strong>Overtime Setup:</strong> Calculated smoothly beyond 9.5 hours duration. You can calculate by putting additional values out there by dividing daily rate into 8 hrs properly setup.</li>
-                                <li><strong>Grace Time:</strong> The system automatically gives a 30-minute grace period automatically within calculations.</li>
-                            </ul>
+                            <h4 style={{ color: '#0f172a', borderBottom: '2px solid #e2e8f0', paddingBottom: '6px', marginBottom: '12px' }}>1. Attendance Units Calculation (Direct Logic)</h4>
+                            <p>The system computes <strong>raw Attendance Units</strong> precisely based on the time of day worked, using specific multiplier coefficients. <strong>It does not round hours automatically.</strong></p>
+                            
+                            <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '12px', marginBottom: '12px', fontSize: '0.9rem', textAlign: 'left' }}>
+                                <thead>
+                                    <tr style={{ background: '#e2e8f0' }}>
+                                        <th style={{ padding: '8px', borderBottom: '1px solid #cbd5e1' }}>Time Slab</th>
+                                        <th style={{ padding: '8px', borderBottom: '1px solid #cbd5e1' }}>Rate per Hour</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td style={{ padding: '8px', borderBottom: '1px solid #e2e8f0' }}><strong>06:30 AM to 09:30 AM</strong> (Early / OT)</td>
+                                        <td style={{ padding: '8px', borderBottom: '1px solid #e2e8f0', color: '#ea580c', fontWeight: 'bold' }}>0.142 units / hr</td>
+                                    </tr>
+                                    <tr style={{ background: '#f8fafc' }}>
+                                        <td style={{ padding: '8px', borderBottom: '1px solid #e2e8f0' }}><strong>09:30 AM to 06:30 PM</strong> (Standard Shift)</td>
+                                        <td style={{ padding: '8px', borderBottom: '1px solid #e2e8f0', color: '#ea580c', fontWeight: 'bold' }}>0.111 units / hr</td>
+                                    </tr>
+                                    <tr>
+                                        <td style={{ padding: '8px', borderBottom: '1px solid #e2e8f0' }}><strong>06:30 PM to 12:00 AM</strong> (Evening / Night OT)</td>
+                                        <td style={{ padding: '8px', borderBottom: '1px solid #e2e8f0', color: '#ea580c', fontWeight: 'bold' }}>0.142 units / hr</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            
                             <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', borderLeft: '4px solid #64748b', marginBottom: '24px' }}>
-                                <strong>Example:</strong> Time In <span style={{ color: '#2563eb' }}>09:00 AM</span> to Time Out <span style={{ color: '#2563eb' }}>06:30 PM</span> equals <strong>1 Unit (Full Day)</strong>.<br />
-                                Time In <span style={{ color: '#2563eb' }}>09:00 AM</span> to Time Out <span style={{ color: '#2563eb' }}>02:30 PM</span> equals <strong>0.5 Unit (Half Day)</strong>.
+                                <strong>Example: Worker logs Time In at <span style={{ color: '#2563eb' }}>08:00 AM</span> and Time Out at <span style={{ color: '#2563eb' }}>06:30 PM</span></strong><br />
+                                • 08:00 AM to 09:30 AM (1.5 hours) &times; 0.142 = <strong>0.213 units</strong><br />
+                                • 09:30 AM to 06:30 PM (9.0 hours) &times; 0.111 = <strong>0.999 units</strong><br />
+                                • Total Attendance Value = 0.213 + 0.999 = <strong>1.212 Units</strong>.
                             </div>
 
                             <h4 style={{ color: '#0f172a', borderBottom: '2px solid #e2e8f0', paddingBottom: '6px', marginBottom: '12px' }}>2. Wages Calculation & Rounding</h4>
