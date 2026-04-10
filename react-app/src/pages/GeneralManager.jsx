@@ -168,6 +168,8 @@ const GeneralManager = () => {
                                 <option value="Partial">Partial</option>
                                 <option value="Paid">Paid</option>
                                 <option value="Rejected">Rejected</option>
+                                <option value="Accounts">Accounts</option>
+                                <option value="Hold">Hold</option>
                             </select>
                         </div>
                     </div>

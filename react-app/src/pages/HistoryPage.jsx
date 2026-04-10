@@ -198,6 +198,8 @@ const HistoryPage = () => {
                             <option value="Partial">Partial</option>
                             <option value="Paid">Paid</option>
                             <option value="Rejected">Rejected</option>
+                            <option value="Accounts">Accounts</option>
+                            <option value="Hold">Hold</option>
                         </select>
                     </div>
                 </div>
@@ -306,7 +308,7 @@ const HistoryPage = () => {
                                                         overflow: 'hidden',
                                                         padding: '4px'
                                                     }}>
-                                                        {['Pending', 'Approved', 'Partial', 'Paid', 'Rejected'].map(statusOption => (
+                                                        {['Pending', 'Approved', 'Partial', 'Paid', 'Rejected', 'Accounts', 'Hold'].map(statusOption => (
                                                             <button
                                                                 key={statusOption}
                                                                 onClick={(e) => {
