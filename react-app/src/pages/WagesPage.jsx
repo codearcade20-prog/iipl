@@ -202,6 +202,7 @@ const WagesPage = () => {
     const [activeTab, setActiveTab] = useState('attendance');
     const [loading, setLoading] = useState(false);
     const [isInitialLoad, setIsInitialLoad] = useState(true);
+    const [guideModalOpen, setGuideModalOpen] = useState(false);
 
     // Data States
     const [sites, setSites] = useState([]);
@@ -1270,6 +1271,29 @@ const WagesPage = () => {
                 <div style={{ textAlign: 'right' }}>
                     <div className={styles.muted}>Innovative Interiors Pvt Ltd</div>
                     <div className={styles.strong} style={{ color: '#2563eb' }}>{new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
+                    <button 
+                        onClick={() => setGuideModalOpen(true)}
+                        style={{
+                            marginTop: '8px',
+                            background: '#eff6ff',
+                            border: '1px solid #bfdbfe',
+                            color: '#1d4ed8',
+                            padding: '4px 12px',
+                            borderRadius: '20px',
+                            fontSize: '0.8rem',
+                            fontWeight: 'bold',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            transition: 'all 0.2s ease',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                        }}
+                        onMouseOver={(e) => { e.currentTarget.style.background = '#dbeafe'; }}
+                        onMouseOut={(e) => { e.currentTarget.style.background = '#eff6ff'; }}
+                    >
+                        📖 Guide & Notes
+                    </button>
                 </div>
             </div>
 
@@ -1439,6 +1463,109 @@ const WagesPage = () => {
                         <div className={styles.modalActions}>
                             <Button variant="outline" onClick={() => setLaborModalOpen(false)}>Cancel</Button>
                             <Button onClick={saveLabor}>Confirm Save</Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Guide Modal */}
+            {guideModalOpen && (
+                <div className={styles.modalOverlay} onClick={() => setGuideModalOpen(false)}>
+                    <div className={styles.modal} style={{ maxWidth: '700px', cursor: 'default' }} onClick={(e) => e.stopPropagation()}>
+                        <div className={styles.modalHeader} style={{ background: '#eff6ff', padding: '20px', borderRadius: '16px 16px 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #bfdbfe' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <div style={{ background: '#2563eb', color: 'white', padding: '8px', borderRadius: '8px', display: 'flex' }}>
+                                    <ClipboardList size={24} />
+                                </div>
+                                <h3 style={{ margin: 0, color: '#1e3a8a', fontSize: '1.4rem' }}>Wages Module Guide</h3>
+                            </div>
+                            <button onClick={() => setGuideModalOpen(false)} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '1.5rem', lineHeight: '1' }}>&times;</button>
+                        </div>
+                        <div style={{ padding: '24px', maxHeight: '60vh', overflowY: 'auto', fontSize: '0.95rem', color: '#334155', lineHeight: '1.6' }}>
+                            
+                            <h4 style={{ color: '#0f172a', borderBottom: '2px solid #e2e8f0', paddingBottom: '6px', marginBottom: '12px' }}>1. Attendance Units Calculation</h4>
+                            <p>The system automatically calculates <strong>Attendance Units</strong> based on the time-in and time-out duration entered for each worker.</p>
+                            <ul style={{ listStyleType: 'disc', paddingLeft: '20px', marginBottom: '20px' }}>
+                                <li><strong>Full Day (1 Unit):</strong> Exactly 9.5 hours duration limit setup (including standard breaks).</li>
+                                <li><strong>Half Day (0.5 Unit):</strong> 5.5 hours duration limit setup.</li>
+                                <li><strong>Overtime Setup:</strong> Calculated smoothly beyond 9.5 hours duration. You can calculate by putting additional values out there by dividing daily rate into 8 hrs properly setup.</li>
+                                <li><strong>Grace Time:</strong> The system automatically gives a 30-minute grace period automatically within calculations.</li>
+                            </ul>
+                            <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', borderLeft: '4px solid #64748b', marginBottom: '24px' }}>
+                                <strong>Example:</strong> Time In <span style={{ color: '#2563eb' }}>09:00 AM</span> to Time Out <span style={{ color: '#2563eb' }}>06:30 PM</span> equals <strong>1 Unit (Full Day)</strong>.<br />
+                                Time In <span style={{ color: '#2563eb' }}>09:00 AM</span> to Time Out <span style={{ color: '#2563eb' }}>02:30 PM</span> equals <strong>0.5 Unit (Half Day)</strong>.
+                            </div>
+
+                            <h4 style={{ color: '#0f172a', borderBottom: '2px solid #e2e8f0', paddingBottom: '6px', marginBottom: '12px' }}>2. Wages Calculation & Rounding</h4>
+                            <p>Daily wages are computed by multiplying the <strong>Attendance Unit</strong> by the worker's <strong>Daily Wage Rate</strong>. The system automatically applies standard industry rounding rules to produce clean, whole numbers.</p>
+                            <ul style={{ listStyleType: 'decimal', paddingLeft: '20px', marginBottom: '20px' }}>
+                                <li><strong style={{ color: '#ea580c' }}>Raw Wage:</strong> Attendance Unit &times; Daily Rate</li>
+                                <li><strong style={{ color: '#16a34a' }}>Rounded Wage Final:</strong> Final payable amount automatically rounded using the 50 Rupee slab logic.</li>
+                            </ul>
+                            
+                            <div style={{ background: '#f0fdf4', padding: '12px', borderRadius: '8px', borderLeft: '4px solid #22c55e', marginBottom: '8px' }}>
+                                <strong>Rounding Logic (The 50 Rupee Slab):</strong><br/>
+                                • Ends in <strong>1 to 24</strong> &rarr; rounds DOWN to <strong>00</strong>.<br/>
+                                • Ends in <strong>25 to 74</strong> &rarr; rounds precisely to <strong>50</strong>.<br/>
+                                • Ends in <strong>75 to 99</strong> &rarr; rounds UP to next <strong>100</strong>.
+                            </div>
+                            
+                            <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '12px', marginBottom: '24px', fontSize: '0.9rem', textAlign: 'left' }}>
+                                <thead>
+                                    <tr style={{ background: '#e2e8f0' }}>
+                                        <th style={{ padding: '8px', borderBottom: '1px solid #cbd5e1' }}>Daily Rate (₹)</th>
+                                        <th style={{ padding: '8px', borderBottom: '1px solid #cbd5e1' }}>Unit</th>
+                                        <th style={{ padding: '8px', borderBottom: '1px solid #cbd5e1' }}>Raw Wage</th>
+                                        <th style={{ padding: '8px', borderBottom: '1px solid #cbd5e1' }}>Rounded Final</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td style={{ padding: '8px', borderBottom: '1px solid #e2e8f0' }}>₹800</td>
+                                        <td style={{ padding: '8px', borderBottom: '1px solid #e2e8f0' }}>0.5</td>
+                                        <td style={{ padding: '8px', borderBottom: '1px solid #e2e8f0' }}>₹400</td>
+                                        <td style={{ padding: '8px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold', color: '#16a34a' }}>₹400</td>
+                                    </tr>
+                                    <tr style={{ background: '#f8fafc' }}>
+                                        <td style={{ padding: '8px', borderBottom: '1px solid #e2e8f0' }}>₹650</td>
+                                        <td style={{ padding: '8px', borderBottom: '1px solid #e2e8f0' }}>1.0</td>
+                                        <td style={{ padding: '8px', borderBottom: '1px solid #e2e8f0' }}>₹650</td>
+                                        <td style={{ padding: '8px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold', color: '#16a34a' }}>₹650</td>
+                                    </tr>
+                                    <tr>
+                                        <td style={{ padding: '8px', borderBottom: '1px solid #e2e8f0' }}>₹714</td>
+                                        <td style={{ padding: '8px', borderBottom: '1px solid #e2e8f0' }}>1.0</td>
+                                        <td style={{ padding: '8px', borderBottom: '1px solid #e2e8f0' }}>₹714 (ends 14)</td>
+                                        <td style={{ padding: '8px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold', color: '#0ea5e9' }}>₹700</td>
+                                    </tr>
+                                    <tr style={{ background: '#f8fafc' }}>
+                                        <td style={{ padding: '8px', borderBottom: '1px solid #e2e8f0' }}>₹732</td>
+                                        <td style={{ padding: '8px', borderBottom: '1px solid #e2e8f0' }}>1.0</td>
+                                        <td style={{ padding: '8px', borderBottom: '1px solid #e2e8f0' }}>₹732 (ends 32)</td>
+                                        <td style={{ padding: '8px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold', color: '#0ea5e9' }}>₹750</td>
+                                    </tr>
+                                    <tr>
+                                        <td style={{ padding: '8px' }}>₹783</td>
+                                        <td style={{ padding: '8px' }}>1.0</td>
+                                        <td style={{ padding: '8px' }}>₹783 (ends 83)</td>
+                                        <td style={{ padding: '8px', fontWeight: 'bold', color: '#0ea5e9' }}>₹800</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <h4 style={{ color: '#0f172a', borderBottom: '2px solid #e2e8f0', paddingBottom: '6px', marginBottom: '12px' }}>3. How to Record Daily Logs</h4>
+                            <p style={{ marginBottom: '8px' }}>Step-by-step workflow for the <strong>Attendance Tab</strong>:</p>
+                            <ol style={{ paddingLeft: '20px', marginBottom: '0' }}>
+                                <li>Select the <strong>Project Site</strong>, <strong>Subcontractor</strong>, and <strong>Wage Category</strong> at the top bar.</li>
+                                <li>Select the appropriate <strong>Date</strong> for logging.</li>
+                                <li>For every active labor listed below, input their Time In and Time Out. The system auto-calculates units & limits.</li>
+                                <li>Add any optional text to the 'Remarks' field.</li>
+                                <li>Once all fields are prepared, hit the <strong>Save Daily Attendance</strong> button at the bottom. The laborers will vanish from the entry list for that date.</li>
+                            </ol>
+
+                        </div>
+                        <div className={styles.modalActions} style={{ padding: '16px 24px', background: '#f8fafc', borderRadius: '0 0 16px 16px', borderTop: '1px solid #e2e8f0' }}>
+                            <Button onClick={() => setGuideModalOpen(false)}>Close Guide</Button>
                         </div>
                     </div>
                 </div>
