@@ -142,6 +142,10 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
     const [selectedStatementWO, setSelectedStatementWO] = useState(null);
     const [siteStatementView, setSiteStatementView] = useState('detailed'); // detailed, simple
     const [balancePopup, setBalancePopup] = useState(null);
+    const [paymentHistoryPopup, setPaymentHistoryPopup] = useState(null);
+    const [historyPrintOrientation, setHistoryPrintOrientation] = useState('landscape');
+    const [statementSiteSearch, setStatementSiteSearch] = useState(''); // Search for sites within a vendor statement
+    const [statementVendorSearch, setStatementVendorSearch] = useState(''); // Search for vendors within a site statement // Default to landscape for wide tables
     const [masterVendors, setMasterVendors] = useState([]); // Master list from admin
     const [masterSites, setMasterSites] = useState([]); // Master list of sites
     const contentAreaRef = useRef(null); // Ref for scroll reset
@@ -842,7 +846,15 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                         </div>
                                     </div>
                                     <div style={{ marginTop: '1rem', borderTop: '1px solid #e2e8f0', paddingTop: '0.5rem' }}>
-                                        <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '0.5rem', fontWeight: 600 }}>Payment History</div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                            <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Payment History</div>
+                                            <button 
+                                                onClick={(e) => { e.stopPropagation(); setPaymentHistoryPopup(entry); }}
+                                                style={{ fontSize: '0.7rem', color: '#4f46e5', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, textDecoration: 'underline' }}
+                                            >
+                                                View Table
+                                            </button>
+                                        </div>
                                         {allAdvs.length > 0 ? allAdvs.map((a, i) => (
                                             <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '4px', padding: '4px', background: '#f8fafc', borderRadius: '4px' }}>
                                                 <div>
@@ -922,7 +934,15 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                         </div>
                                     </div>
                                     <div style={{ marginTop: '1rem', borderTop: '1px solid #e2e8f0', paddingTop: '0.5rem' }}>
-                                        <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '0.5rem', fontWeight: 600 }}>Payment History</div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                            <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Payment History</div>
+                                            <button 
+                                                onClick={(e) => { e.stopPropagation(); setPaymentHistoryPopup(entry); }}
+                                                style={{ fontSize: '0.7rem', color: '#4f46e5', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, textDecoration: 'underline' }}
+                                            >
+                                                View Table
+                                            </button>
+                                        </div>
                                         {allAdvs.length > 0 ? allAdvs.map((a, i) => (
                                             <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '4px', padding: '4px', background: '#f8fafc', borderRadius: '4px' }}>
                                                 <div>
@@ -1719,87 +1739,93 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
             // Site Statement Rendering
             const site = selectedStatementSite;
             const dateStr = new Date().toLocaleDateString();
+            const filteredEntries = site.entries.filter(entry => 
+                entry.vendor_name.toLowerCase().includes((statementVendorSearch || '').toLowerCase())
+            );
 
             let content;
             if (siteStatementView === 'detailed') {
                 let grandTotalCertified = 0;
                 let grandTotalDebit = 0;
 
-                content = (
-                    <div style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                        {site.entries.map((entry, idx) => {
-                            const billCertified = parseFloat(entry.bill_certified_value) || 0;
-                            const housekeeping = parseFloat(entry.housekeeping) || 0;
-                            const retention = parseFloat(entry.retention) || 0;
-                            const woValue = parseFloat(entry.wo_value) || 0;
-                            const advs = parseAdvances(entry.advance_details);
-                            const totalPaid = advs.reduce((sum, a) => sum + (parseFloat(a.amount) || 0), 0);
+                const entriesToRender = filteredEntries.map((entry, idx) => {
+                    const billCertified = parseFloat(entry.bill_certified_value) || 0;
+                    const housekeeping = parseFloat(entry.housekeeping) || 0;
+                    const retention = parseFloat(entry.retention) || 0;
+                    const woValue = parseFloat(entry.wo_value) || 0;
+                    const advs = parseAdvances(entry.advance_details);
+                    const totalPaid = advs.reduce((sum, a) => sum + (parseFloat(a.amount) || 0), 0);
 
-                            const finalBillValue = billCertified;
-                            const finalDebit = housekeeping + retention + totalPaid;
-                            const vendorBalance = finalBillValue - finalDebit;
+                    const finalBillValue = billCertified;
+                    const finalDebit = housekeeping + retention + totalPaid;
+                    const vendorBalance = finalBillValue - finalDebit;
 
-                            grandTotalCertified += finalBillValue;
-                            grandTotalDebit += finalDebit;
+                    grandTotalCertified += finalBillValue;
+                    grandTotalDebit += finalDebit;
 
-                            return (
-                                <div key={idx} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
-                                    <div style={{ padding: '1.25rem 1.5rem', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                        <div>
-                                            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1e293b', marginBottom: '0.25rem' }}>{entry.vendor_name}</h3>
-                                            <div style={{ color: '#64748b', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                <span style={{ fontWeight: 500 }}>WO No:</span> {entry.wo_no || 'N/A'}
-                                                <StatusBadge status={entry.bill_status} url={entry.wo_status_url} extraStyles={{ fontSize: '0.7rem', padding: '2px 6px' }} />
-                                                <span style={{ margin: '0', color: '#cbd5e1' }}>|</span>
-                                                <span style={{ fontWeight: 500 }}>Date:</span> {formatDate(entry.wo_date)}
-                                            </div>
-                                        </div>
-                                        <div style={{ textAlign: 'right' }}>
-                                            <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', fontWeight: 600 }}>Balance</div>
-                                            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: vendorBalance >= 0 ? '#10b981' : '#ef4444' }}>
-                                                {formatCurrency(vendorBalance)}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div style={{ padding: '0' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem 1.5rem' }}>
-                                            <span style={{ fontWeight: 600, color: '#334155' }}>Value (Certified/WO)</span>
-                                            <span style={{ fontWeight: 600, color: '#334155' }}>{formatCurrency(finalBillValue)}</span>
-                                        </div>
-
-                                        {(housekeeping > 0 || retention > 0) && (
-                                            <div style={{ padding: '0 1.5rem 1rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                                {housekeeping > 0 && (
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.95rem' }}>
-                                                        <span style={{ color: '#475569' }}>Less: Housekeeping</span>
-                                                        <span style={{ color: '#ef4444' }}>- {formatCurrency(housekeeping)}</span>
-                                                    </div>
-                                                )}
-                                                {retention > 0 && (
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.95rem' }}>
-                                                        <span style={{ color: '#475569' }}>Less: Retention</span>
-                                                        <span style={{ color: '#ef4444' }}>- {formatCurrency(retention)}</span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-
-                                        {advs.length > 0 && (
-                                            <div style={{ background: '#f8fafc', padding: '1rem 1.5rem', borderTop: '1px solid #e2e8f0' }}>
-                                                {advs.map((adv, i) => (
-                                                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
-                                                        <span style={{ color: '#64748b' }}>{adv.date} | Paid ({adv.payment_mode || 'M1'})</span>
-                                                        <span style={{ color: '#64748b' }}>- {formatCurrency(adv.amount)}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
+                    return (
+                        <div key={idx} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
+                            <div style={{ padding: '1.25rem 1.5rem', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <div>
+                                    <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1e293b', marginBottom: '0.25rem' }}>{entry.vendor_name}</h3>
+                                    <div style={{ color: '#64748b', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <span style={{ fontWeight: 500 }}>WO No:</span> {entry.wo_no || 'N/A'}
+                                        <StatusBadge status={entry.bill_status} url={entry.wo_status_url} extraStyles={{ fontSize: '0.7rem', padding: '2px 6px' }} />
+                                        <span style={{ margin: '0', color: '#cbd5e1' }}>|</span>
+                                        <span style={{ fontWeight: 500 }}>Date:</span> {formatDate(entry.wo_date)}
                                     </div>
                                 </div>
-                            );
-                        })}
+                                <div style={{ textAlign: 'right' }}>
+                                    <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', fontWeight: 600 }}>Balance</div>
+                                    <div style={{ fontSize: '1.5rem', fontWeight: 700, color: vendorBalance >= 0 ? '#10b981' : '#ef4444' }}>
+                                        {formatCurrency(vendorBalance)}
+                                    </div>
+                                </div>
+                            </div>
+                            <div style={{ padding: '0' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem 1.5rem' }}>
+                                    <span style={{ fontWeight: 600, color: '#334155' }}>Value (Certified/WO)</span>
+                                    <span style={{ fontWeight: 600, color: '#334155' }}>{formatCurrency(finalBillValue)}</span>
+                                </div>
+                                {(housekeeping > 0 || retention > 0) && (
+                                    <div style={{ padding: '0 1.5rem 1rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                        {housekeeping > 0 && (
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.95rem' }}>
+                                                <span style={{ color: '#475569' }}>Less: Housekeeping</span>
+                                                <span style={{ color: '#ef4444' }}>- {formatCurrency(housekeeping)}</span>
+                                            </div>
+                                        )}
+                                        {retention > 0 && (
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.95rem' }}>
+                                                <span style={{ color: '#475569' }}>Less: Retention</span>
+                                                <span style={{ color: '#ef4444' }}>- {formatCurrency(retention)}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                                {advs.length > 0 && (
+                                    <div style={{ background: '#f8fafc', padding: '1rem 1.5rem', borderTop: '1px solid #e2e8f0' }}>
+                                        {advs.map((adv, i) => (
+                                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
+                                                <span style={{ color: '#64748b' }}>{adv.date} | Paid ({adv.payment_mode || 'M1'})</span>
+                                                <span style={{ color: '#64748b' }}>- {formatCurrency(adv.amount)}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    );
+                });
 
+                content = (
+                    <div style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                        {filteredEntries.length > 0 ? entriesToRender : (
+                            <div style={{ textAlign: 'center', padding: '3rem', background: '#fff', borderRadius: '12px', color: '#64748b', border: '1px dashed #cbd5e1' }}>
+                                <div style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '0.5rem' }}>No Vendors Found</div>
+                                <p>No vendors matching "{statementVendorSearch}" for this site.</p>
+                            </div>
+                        )}
                         <div style={{ marginTop: '1rem', borderTop: '2px solid #0f172a', paddingTop: '1.5rem', display: 'flex', justifyContent: 'flex-end' }}>
                             <div style={{ width: '400px', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem' }}>
@@ -1839,7 +1865,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                             </tr>
                         </thead>
                         <tbody>
-                            {site.entries.map((entry, idx) => {
+                            {filteredEntries.map((entry, idx) => {
                                 const billCertified = parseFloat(entry.bill_certified_value) || 0;
                                 const woValue = parseFloat(entry.wo_value) || 0;
                                 const hsk = parseFloat(entry.housekeeping) || 0;
@@ -1870,10 +1896,17 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                     </tr>
                                 );
                             })}
+                            {filteredEntries.length === 0 && (
+                                <tr>
+                                    <td colSpan="100%" style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
+                                        No vendors matching "{statementVendorSearch}" found for this site.
+                                    </td>
+                                </tr>
+                            )}
                         </tbody>
                         <tfoot>
-                            <tr style={{ background: '#f8fafc', fontWeight: 'bold' }}>
-                                <td colSpan={[summaryColumns.index, true, summaryColumns.wo_no, summaryColumns.wo_date].filter(Boolean).length} style={{ textAlign: 'right' }}>Site Totals</td>
+                            <tr style={{ background: '#f8fafc', fontWeight: 'bold', fontSize: '1.1rem' }}>
+                                <td colSpan={[summaryColumns.index, true, summaryColumns.wo_no, summaryColumns.wo_date].filter(Boolean).length} style={{ textAlign: 'right' }}>Filtered Totals</td>
                                 {summaryColumns.wo_value && <td style={{ textAlign: 'right' }}>{formatCurrency(totalWoValue)}</td>}
                                 {summaryColumns.bill_certified && <td style={{ textAlign: 'right' }}>{formatCurrency(totalCertified)}</td>}
                                 {summaryColumns.deductions && <td style={{ textAlign: 'right' }}>{formatCurrency(totalDeductions)}</td>}
@@ -1889,9 +1922,18 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                 <div className={styles.statementContainer}>
                     <div className={styles.printHide} style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', padding: '1rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                            <Button variant="secondary" onClick={() => { setSelectedStatementSite(null); setSiteStatementView('detailed'); }}>
+                            <Button variant="secondary" onClick={() => { setSelectedStatementSite(null); setSiteStatementView('detailed'); setStatementVendorSearch(''); }}>
                                 <ArrowLeft size={16} /> Back to Selection
                             </Button>
+                            <div className={styles.searchBar} style={{ width: '250px', marginBottom: 0 }}>
+                                <Search size={16} />
+                                <input
+                                    type="text"
+                                    placeholder="Filter by Vendor..."
+                                    value={statementVendorSearch}
+                                    onChange={(e) => setStatementVendorSearch(e.target.value)}
+                                />
+                            </div>
                         </div>
                         <div style={{ display: 'flex', gap: '0.75rem', position: 'relative' }}>
                             {siteStatementView === 'simple' && (
@@ -2003,100 +2045,98 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
             // Vendor Statement Rendering
             const vendor = selectedStatementVendor;
             const dateStr = new Date().toLocaleDateString();
-
+            const filteredEntries = vendor.entries.filter(entry => 
+                entry.site_name.toLowerCase().includes((statementSiteSearch || '').toLowerCase())
+            );
+            
             let content;
             if (vendorStatementView === 'detailed') {
                 let grandTotalCredit = 0;
                 let grandTotalDebit = 0;
 
-                content = (
-                    <div style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                        {vendor.entries.map((entry, idx) => {
-                            const billCertified = parseFloat(entry.bill_certified_value) || 0;
-                            const housekeeping = parseFloat(entry.housekeeping) || 0;
-                            const retention = parseFloat(entry.retention) || 0;
-                            const woValue = parseFloat(entry.wo_value) || 0;
-                            const advs = parseAdvances(entry.advance_details);
-                            const totalPaid = advs.reduce((sum, a) => sum + (parseFloat(a.amount) || 0), 0);
+                const entriesToRender = filteredEntries.map((entry, idx) => {
+                    const billCertified = parseFloat(entry.bill_certified_value) || 0;
+                    const housekeeping = parseFloat(entry.housekeeping) || 0;
+                    const retention = parseFloat(entry.retention) || 0;
+                    const woValue = parseFloat(entry.wo_value) || 0;
+                    const advs = parseAdvances(entry.advance_details);
+                    const totalPaid = advs.reduce((sum, a) => sum + (parseFloat(a.amount) || 0), 0);
 
-                            const finalCredit = billCertified;
-                            const finalDebit = housekeeping + retention + totalPaid;
-                            const siteBalance = finalCredit - finalDebit;
+                    const finalCredit = billCertified;
+                    const finalDebit = housekeeping + retention + totalPaid;
+                    const siteBalance = finalCredit - finalDebit;
 
-                            grandTotalCredit += finalCredit;
-                            grandTotalDebit += finalDebit;
+                    grandTotalCredit += finalCredit;
+                    grandTotalDebit += finalDebit;
 
-                            return (
-                                <div key={idx} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
-                                    {/* Header */}
-                                    <div style={{ padding: '1.25rem 1.5rem', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                        <div>
-                                            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1e293b', marginBottom: '0.25rem' }}>{entry.site_name}</h3>
-                                            <div style={{ color: '#64748b', fontSize: '0.9rem' }}>
-                                                <span style={{ fontWeight: 500 }}>WO No:</span> {entry.wo_no || 'N/A'}
-                                                <span style={{ margin: '0 0.5rem', color: '#cbd5e1' }}>|</span>
-                                                <span style={{ fontWeight: 500 }}>Date:</span> {formatDate(entry.wo_date)}
-                                                <span style={{ margin: '0 0.5rem', color: '#cbd5e1' }}>|</span>
-                                                <span style={{ fontWeight: 500 }}>Limit:</span> {formatCurrency(woValue)}
-                                            </div>
-                                        </div>
-                                        <div style={{ textAlign: 'right' }}>
-                                            <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', fontWeight: 600 }}>Balance</div>
-                                            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: siteBalance >= 0 ? '#10b981' : '#ef4444' }}>
-                                                {formatCurrency(siteBalance)}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Content Body - List Style */}
-                                    <div style={{ padding: '0' }}>
-                                        {/* Bill Row */}
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem 1.5rem' }}>
-                                            <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                                <span style={{ fontWeight: 600, color: '#334155' }}>{billCertified > 0 ? 'Bill Certified Value' : 'Work Order Value (Assumed)'}</span>
-                                            </div>
-                                            <span style={{ fontWeight: 600, color: '#334155' }}>{formatCurrency(finalCredit)}</span>
-                                        </div>
-
-                                        {/* Deductions */}
-                                        {(housekeeping > 0 || retention > 0) && (
-                                            <div style={{ padding: '0 1.5rem 1rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                                {housekeeping > 0 && (
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.95rem' }}>
-                                                        <span style={{ color: '#475569', display: 'flex', alignItems: 'center' }}><span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#ef4444', marginRight: '8px' }}></span>Less: Housekeeping</span>
-                                                        <span style={{ color: '#ef4444' }}>- {formatCurrency(housekeeping)}</span>
-                                                    </div>
-                                                )}
-                                                {retention > 0 && (
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.95rem' }}>
-                                                        <span style={{ color: '#475569', display: 'flex', alignItems: 'center' }}><span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#ef4444', marginRight: '8px' }}></span>Less: Retention</span>
-                                                        <span style={{ color: '#ef4444' }}>- {formatCurrency(retention)}</span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-
-                                        {/* Payments Section */}
-                                        {advs.length > 0 && (
-                                            <div style={{ background: '#f8fafc', padding: '1rem 1.5rem', borderTop: '1px solid #e2e8f0' }}>
-                                                <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: '#64748b', marginBottom: '0.75rem' }}>Payments Received</div>
-                                                {advs.map((adv, i) => (
-                                                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
-                                                        <div style={{ display: 'flex', gap: '1rem' }}>
-                                                            <span style={{ color: '#64748b', width: '90px' }}>{adv.date}</span>
-                                                            <span style={{ color: '#334155' }}>Advance Paid ({adv.payment_mode || 'M1'})</span>
-                                                        </div>
-                                                        <span style={{ color: '#64748b', fontWeight: 500 }}>- {formatCurrency(adv.amount)}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
+                    return (
+                        <div key={idx} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
+                            <div style={{ padding: '1.25rem 1.5rem', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <div>
+                                    <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1e293b', marginBottom: '0.25rem' }}>{entry.site_name}</h3>
+                                    <div style={{ color: '#64748b', fontSize: '0.9rem' }}>
+                                        <span style={{ fontWeight: 500 }}>WO No:</span> {entry.wo_no || 'N/A'}
+                                        <span style={{ margin: '0 0.5rem', color: '#cbd5e1' }}>|</span>
+                                        <span style={{ fontWeight: 500 }}>Date:</span> {formatDate(entry.wo_date)}
+                                        <span style={{ margin: '0 0.5rem', color: '#cbd5e1' }}>|</span>
+                                        <span style={{ fontWeight: 500 }}>Limit:</span> {formatCurrency(woValue)}
                                     </div>
                                 </div>
-                            );
-                        })}
+                                <div style={{ textAlign: 'right' }}>
+                                    <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', fontWeight: 600 }}>Balance</div>
+                                    <div style={{ fontSize: '1.5rem', fontWeight: 700, color: siteBalance >= 0 ? '#10b981' : '#ef4444' }}>
+                                        {formatCurrency(siteBalance)}
+                                    </div>
+                                </div>
+                            </div>
+                            <div style={{ padding: '0' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem 1.5rem' }}>
+                                    <span style={{ fontWeight: 600, color: '#334155' }}>{billCertified > 0 ? 'Bill Certified Value' : 'Work Order Value (Assumed)'}</span>
+                                    <span style={{ fontWeight: 600, color: '#334155' }}>{formatCurrency(finalCredit)}</span>
+                                </div>
+                                {(housekeeping > 0 || retention > 0) && (
+                                    <div style={{ padding: '0 1.5rem 1rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                        {housekeeping > 0 && (
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.95rem' }}>
+                                                <span style={{ color: '#475569', display: 'flex', alignItems: 'center' }}><span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#ef4444', marginRight: '8px' }}></span>Less: Housekeeping</span>
+                                                <span style={{ color: '#ef4444' }}>- {formatCurrency(housekeeping)}</span>
+                                            </div>
+                                        )}
+                                        {retention > 0 && (
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.95rem' }}>
+                                                <span style={{ color: '#475569', display: 'flex', alignItems: 'center' }}><span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#ef4444', marginRight: '8px' }}></span>Less: Retention</span>
+                                                <span style={{ color: '#ef4444' }}>- {formatCurrency(retention)}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                                {advs.length > 0 && (
+                                    <div style={{ background: '#f8fafc', padding: '1rem 1.5rem', borderTop: '1px solid #e2e8f0' }}>
+                                        <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: '#64748b', marginBottom: '0.75rem' }}>Payments Received</div>
+                                        {advs.map((adv, i) => (
+                                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
+                                                <div style={{ display: 'flex', gap: '1rem' }}>
+                                                    <span style={{ color: '#64748b', width: '90px' }}>{adv.date}</span>
+                                                    <span style={{ color: '#334155' }}>Advance Paid ({adv.payment_mode || 'M1'})</span>
+                                                </div>
+                                                <span style={{ color: '#64748b', fontWeight: 500 }}>- {formatCurrency(adv.amount)}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    );
+                });
 
-                        {/* Grand Total Section */}
+                content = (
+                    <div style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                        {filteredEntries.length > 0 ? entriesToRender : (
+                            <div style={{ textAlign: 'center', padding: '3rem', background: '#fff', borderRadius: '12px', color: '#64748b', border: '1px dashed #cbd5e1' }}>
+                                <div style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '0.5rem' }}>No Sites Found</div>
+                                <p>No projects matching "{statementSiteSearch}" for this vendor.</p>
+                            </div>
+                        )}
                         <div style={{ marginTop: '1rem', borderTop: '2px solid #0f172a', paddingTop: '1.5rem', display: 'flex', justifyContent: 'flex-end' }}>
                             <div style={{ width: '400px', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem' }}>
@@ -2137,16 +2177,13 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                             </tr>
                         </thead>
                         <tbody>
-                            {vendor.entries.map((entry, idx) => {
+                            {filteredEntries.map((entry, idx) => {
                                 const advs = parseAdvances(entry.advance_details);
                                 const sitePaid = advs.reduce((sum, a) => sum + (parseFloat(a.amount) || 0), 0);
-
                                 const billCertified = parseFloat(entry.bill_certified_value) || 0;
                                 const housekeeping = parseFloat(entry.housekeeping) || 0;
                                 const retention = parseFloat(entry.retention) || 0;
                                 const woValue = parseFloat(entry.wo_value) || 0;
-
-                                // Use Bill Certified if > 0, else WO Value
                                 const finalBillValue = billCertified;
                                 const totalDed = housekeeping + retention;
                                 const bal = finalBillValue - totalDed - sitePaid;
@@ -2179,6 +2216,13 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                     </tr>
                                 );
                             })}
+                            {filteredEntries.length === 0 && (
+                                <tr>
+                                    <td colSpan="100%" style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
+                                        No projects matching "{statementSiteSearch}" found for this vendor.
+                                    </td>
+                                </tr>
+                            )}
                         </tbody>
                         <tfoot>
                             <tr style={{ background: '#f8fafc', fontWeight: 'bold', fontSize: '1.1rem' }}>
@@ -2198,9 +2242,18 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                 <div className={styles.statementContainer}>
                     <div className={styles.printHide} style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', padding: '1rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                            <Button variant="secondary" onClick={() => { setSelectedStatementVendor(null); setVendorStatementView('detailed'); }}>
+                            <Button variant="secondary" onClick={() => { setSelectedStatementVendor(null); setVendorStatementView('detailed'); setStatementSiteSearch(''); }}>
                                 <ArrowLeft size={16} /> Back to Selection
                             </Button>
+                            <div className={styles.searchBar} style={{ width: '250px', marginBottom: 0 }}>
+                                <Search size={16} />
+                                <input
+                                    type="text"
+                                    placeholder="Filter sites by name..."
+                                    value={statementSiteSearch}
+                                    onChange={(e) => setStatementSiteSearch(e.target.value)}
+                                />
+                            </div>
                         </div>
                         <div style={{ display: 'flex', gap: '0.75rem', position: 'relative' }}>
                             {vendorStatementView === 'simple' && (
@@ -2556,7 +2609,15 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                         </div>
 
                                         <div style={{ marginTop: '1.5rem' }}>
-                                            <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#64748b', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Payment History</div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                                                <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Payment History</div>
+                                                <button 
+                                                    onClick={() => setPaymentHistoryPopup(entry)}
+                                                    style={{ fontSize: '0.75rem', color: '#4f46e5', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700, textDecoration: 'underline' }}
+                                                >
+                                                    View Detailed Table
+                                                </button>
+                                            </div>
                                             {allAdvs.length > 0 ? (
                                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                                     {allAdvs.map((a, i) => (
@@ -2701,6 +2762,175 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                         }}>
                             Print Now
                         </Button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    const renderPaymentHistoryPopup = () => {
+        if (!paymentHistoryPopup) return null;
+        const entry = paymentHistoryPopup;
+        const allAdvs = parseAdvances(entry.advance_details || []);
+        
+        const totals = { m1: 0, m2: 0, m3: 0, m4: 0, m5: 0 };
+        
+        return (
+            <div className={`${styles.modalOverlay} history-popup-overlay`} onClick={() => setPaymentHistoryPopup(null)} style={{ alignItems: 'center', justifyContent: 'center', display: 'flex' }}>
+                <style>
+                    {`
+                    @media print {
+                        @page { size: ${historyPrintOrientation}; margin: 1cm; }
+                        
+                        /* Hide everything background including dashboard controls */
+                        .${styles.sidebar}, .${styles.topBar}, .${styles.mainContent}, .${styles.mobileOverlay}, .no-print-history {
+                            display: none !important;
+                        }
+                        
+                        /* Reset dashboard container for print */
+                        .${styles.dashboardContainer} {
+                            display: block !important;
+                            height: auto !important;
+                            overflow: visible !important;
+                            background: white !important;
+                            padding: 0 !important;
+                            margin: 0 !important;
+                        }
+                        
+                        /* Make overlay the new root for print */
+                        .history-popup-overlay {
+                            position: relative !important;
+                            display: block !important;
+                            background: white !important;
+                            backdrop-filter: none !important;
+                            padding: 0 !important;
+                            z-index: 1 !important;
+                        }
+                        
+                        .history-popup-content {
+                            position: static !important;
+                            width: 100% !important;
+                            max-width: none !important;
+                            box-shadow: none !important;
+                            border: none !important;
+                            padding: 0 !important;
+                            margin: 0 !important;
+                            background: white !important;
+                        }
+
+                        /* Header styling for print */
+                        .print-header {
+                            margin-bottom: 2rem !important;
+                            border-bottom: 2px solid #000 !important;
+                            padding-bottom: 1rem !important;
+                        }
+
+                        /* Force Table Borders */
+                        .${styles.adminTable} {
+                            width: 100% !important;
+                            border-collapse: collapse !important;
+                            border: 2px solid #000 !important;
+                            table-layout: fixed !important;
+                        }
+                        .${styles.adminTable} th, .${styles.adminTable} td {
+                            border: 1px solid #000 !important;
+                            padding: 8px !important;
+                            color: #000 !important;
+                            word-wrap: break-word !important;
+                        }
+                        .${styles.adminTable} th {
+                            background-color: #f1f5f9 !important;
+                            font-weight: bold !important;
+                            -webkit-print-color-adjust: exact !important;
+                        }
+                        .${styles.tableContainer} {
+                            max-height: none !important;
+                            overflow: visible !important;
+                        }
+                    }
+                    `}
+                </style>
+                <div className={`${styles.modalContent} history-popup-content`} onClick={e => e.stopPropagation()} style={{ maxWidth: '900px', width: '95%' }}>
+                    <div className="print-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem' }}>
+                        <div>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Detailed Payment History</h3>
+                            <p style={{ fontSize: '0.85rem', color: '#64748b' }}>{entry.vendor_name} | {entry.site_name} | {entry.wo_no}</p>
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center' }} className="no-print-history">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <label style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Layout:</label>
+                                <select 
+                                    value={historyPrintOrientation} 
+                                    onChange={(e) => setHistoryPrintOrientation(e.target.value)}
+                                    className={styles.formInput}
+                                    style={{ width: '110px', padding: '0.3rem 0.6rem', fontSize: '0.8rem' }}
+                                >
+                                    <option value="portrait">Portrait</option>
+                                    <option value="landscape">Landscape</option>
+                                </select>
+                            </div>
+                            <Button 
+                                variant="secondary"
+                                onClick={() => window.print()}
+                                style={{ display: 'flex', alignItems: 'center', gap: '6px', height: '36px' }}
+                            >
+                                <Printer size={16} /> Print
+                            </Button>
+                            <button onClick={() => setPaymentHistoryPopup(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#64748b' }}><X size={24} /></button>
+                        </div>
+                    </div>
+
+                    <div className={styles.tableContainer} style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+                        <table className={styles.adminTable} style={{ fontSize: '0.85rem' }}>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th style={{ textAlign: 'right' }}>M1 (Acc)</th>
+                                    <th style={{ textAlign: 'right' }}>M2 (Cash)</th>
+                                    <th style={{ textAlign: 'right' }}>M3 (Mat)</th>
+                                    <th style={{ textAlign: 'right' }}>M4 (Wag)</th>
+                                    <th style={{ textAlign: 'right' }}>M5 (Rent)</th>
+                                    <th style={{ textAlign: 'right' }}>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {allAdvs.map((a, i) => {
+                                    const amount = parseFloat(a.amount) || 0;
+                                    const mode = a.payment_mode;
+                                    const row = { m1: '-', m2: '-', m3: '-', m4: '-', m5: '-' };
+                                    if (mode === 'M1') { row.m1 = formatCurrency(amount); totals.m1 += amount; }
+                                    else if (mode === 'M2') { row.m2 = formatCurrency(amount); totals.m2 += amount; }
+                                    else if (mode === 'M3') { row.m3 = formatCurrency(amount); totals.m3 += amount; }
+                                    else if (mode === 'M4') { row.m4 = formatCurrency(amount); totals.m4 += amount; }
+                                    else if (mode === 'M5') { row.m5 = formatCurrency(amount); totals.m5 += amount; }
+                                    
+                                    return (
+                                        <tr key={i}>
+                                            <td>{formatDate(a.date)}</td>
+                                            <td style={{ textAlign: 'right' }}>{row.m1}</td>
+                                            <td style={{ textAlign: 'right' }}>{row.m2}</td>
+                                            <td style={{ textAlign: 'right' }}>{row.m3}</td>
+                                            <td style={{ textAlign: 'right' }}>{row.m4}</td>
+                                            <td style={{ textAlign: 'right' }}>{row.m5}</td>
+                                            <td style={{ textAlign: 'right', fontWeight: 600 }}>{formatCurrency(amount)}</td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                            <tfoot style={{ background: '#f8fafc', fontWeight: 700 }}>
+                                <tr>
+                                    <td>TOTAL</td>
+                                    <td style={{ textAlign: 'right' }}>{formatCurrency(totals.m1)}</td>
+                                    <td style={{ textAlign: 'right' }}>{formatCurrency(totals.m2)}</td>
+                                    <td style={{ textAlign: 'right' }}>{formatCurrency(totals.m3)}</td>
+                                    <td style={{ textAlign: 'right' }}>{formatCurrency(totals.m4)}</td>
+                                    <td style={{ textAlign: 'right' }}>{formatCurrency(totals.m5)}</td>
+                                    <td style={{ textAlign: 'right', color: '#4f46e5' }}>
+                                        {formatCurrency(totals.m1 + totals.m2 + totals.m3 + totals.m4 + totals.m5)}
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -2920,6 +3150,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
             </main>
 
             {renderBalancePopup()}
+            {renderPaymentHistoryPopup()}
             {renderPrintModal()}
         </div>
     );
