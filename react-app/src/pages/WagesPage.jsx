@@ -192,11 +192,7 @@ const WagesPage = () => {
 
     const customRound = (val) => {
         if (!val || isNaN(val)) return 0;
-        const base = Math.floor(val / 100) * 100;
-        const remainder = val % 100;
-        if (remainder < 25) return base;
-        if (remainder < 75) return base + 50;
-        return base + 100;
+        return Math.round(val);
     };
 
     const [activeTab, setActiveTab] = useState('attendance');
@@ -350,13 +346,19 @@ const WagesPage = () => {
         const [h1, m1] = timeIn.split(':').map(Number);
         const [h2, m2] = timeOut.split(':').map(Number);
         const t1 = h1 + m1 / 60;
-        const t2 = h2 + m2 / 60;
-        if (t2 <= t1) return 0;
+        let t2 = h2 + m2 / 60;
+        
+        // Handle midnight crossing
+        if (t2 < t1) t2 += 24;
+        if (t2 === t1) return 0;
 
         const slabs = [
-            { s: 6.5, e: 9.5, r: 0.142 },
-            { s: 9.5, e: 18.5, r: 0.111 },
-            { s: 18.5, e: 24.0, r: 0.142 }
+            // Morning Shift: 6:00 AM – 9:30 AM (3.5 hours, Pay = ₹500/₹1000 = 0.5 units)
+            { s: 6, e: 9.5, r: 0.5 / 3.5 },
+            // Day Shift: 9:30 AM – 6:00 PM (8.5 hours, Pay = ₹1000/₹1000 = 1.0 unit)
+            { s: 9.5, e: 18, r: 1 / 8.5 },
+            // Night Shift: 6:00 PM – 2:00 AM (8 hours, Pay = ₹1000/₹1000 = 1.0 unit)
+            { s: 18, e: 26, r: 1 / 8 }
         ];
 
         let val = 0;
@@ -365,6 +367,7 @@ const WagesPage = () => {
             const overlapE = Math.min(t2, slab.e);
             if (overlapE > overlapS) val += (overlapE - overlapS) * slab.r;
         });
+
         return parseFloat(val.toFixed(3));
     };
 
@@ -1485,47 +1488,45 @@ const WagesPage = () => {
                             
                             <h4 style={{ color: '#0f172a', borderBottom: '2px solid #e2e8f0', paddingBottom: '6px', marginBottom: '12px' }}>📌 Labour Attendance Calculation Logic</h4>
                             
-                            <h5 style={{ color: '#2563eb', marginBottom: '8px' }}>Time Slabs & Rates:</h5>
+                            <h5 style={{ color: '#2563eb', marginBottom: '8px' }}>Time Slabs & Hourly Rates:</h5>
+                            <p style={{ fontSize: '0.85rem', marginBottom: '12px', color: '#64748b' }}>Rates are calculated as <em>Multipliers</em> of the Daily Wage Rate.</p>
                             <ul style={{ listStyleType: 'none', paddingLeft: '12px', marginBottom: '16px' }}>
-                                <li><strong>6:30 AM &ndash; 9:30 AM</strong> &rarr; <span style={{ color: '#ea580c' }}>0.142</span> per hour</li>
-                                <li><strong>9:30 AM &ndash; 6:30 PM</strong> &rarr; <span style={{ color: '#ea580c' }}>0.111</span> per hour</li>
-                                <li><strong>6:30 PM &ndash; 12:00 AM</strong> &rarr; <span style={{ color: '#ea580c' }}>0.142</span> per hour</li>
+                                <li style={{ marginBottom: '4px' }}><strong>Morning Shift (6:00 AM – 9:30 AM):</strong> 3.5 hrs &rarr; <span style={{ color: '#ea580c', fontWeight: 600 }}>0.1428</span> / hr</li>
+                                <li style={{ marginBottom: '4px' }}><strong>Day Shift (9:30 AM – 6:00 PM):</strong> 8.5 hrs &rarr; <span style={{ color: '#ea580c', fontWeight: 600 }}>0.1176</span> / hr</li>
+                                <li style={{ marginBottom: '4px' }}><strong>Night Shift (6:00 PM – 2:00 AM):</strong> 8.0 hrs &rarr; <span style={{ color: '#ea580c', fontWeight: 600 }}>0.1250</span> / hr</li>
                             </ul>
 
                             <h5 style={{ color: '#2563eb', marginBottom: '8px' }}>Calculation Steps:</h5>
                             <ol style={{ paddingLeft: '24px', marginBottom: '20px' }}>
-                                <li>Split working time based on above slabs.</li>
-                                <li>Multiply hours in each slab by its corresponding rate.</li>
-                                <li><strong>Add all values</strong> &rarr; This gives the <em>Attendance Value (Units)</em>.</li>
-                                <li>Multiply Attendance Value &times; Daily Salary to get the Raw Pay.</li>
+                                <li>The system splits your Time In/Out into the above hourly slabs.</li>
+                                <li>Hours in each slab are multiplied by their specific rate (pro-rata).</li>
+                                <li>The sum gives the <strong>Attendance Value (Units)</strong>.</li>
+                                <li>Final Wage = Attendance Value &times; Daily Wage Rate.</li>
                             </ol>
 
                             <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '8px', borderLeft: '4px solid #10b981', marginBottom: '24px' }}>
-                                <h5 style={{ margin: '0 0 8px 0', color: '#047857' }}>✅ Example</h5>
-                                <p style={{ margin: '4px 0' }}><strong>Time:</strong> 7:00 AM &ndash; 7:00 PM</p>
-                                <p style={{ margin: '4px 0', paddingLeft: '12px', color: '#475569' }}>
-                                    <em>Breakdown:</em><br />
-                                    &bull; 7:00 AM to 9:30 AM = 2.5 hrs &times; 0.142 = 0.355<br />
-                                    &bull; 9:30 AM to 6:30 PM = 9.0 hrs &times; 0.111 = 0.999<br />
-                                    &bull; 6:30 PM to 7:00 PM = 0.5 hrs &times; 0.142 = 0.071
+                                <h5 style={{ margin: '0 0 8px 0', color: '#047857' }}>✅ Example Calculation</h5>
+                                <p style={{ margin: '4px 0' }}><strong>Time:</strong> 7:00 AM – 7:00 PM (12 hrs total)</p>
+                                <p style={{ margin: '4px 0', paddingLeft: '12px', color: '#475569', fontSize: '0.9rem' }}>
+                                    &bull; 7:00 AM to 9:30 AM (2.5 hrs) &times; 0.1428 = 0.357<br />
+                                    &bull; 9:30 AM to 6:00 PM (8.5 hrs) &times; 0.1176 = 1.000<br />
+                                    &bull; 6:00 PM to 7:00 PM (1.0 hrs) &times; 0.1250 = 0.125
                                 </p>
-                                <p style={{ margin: '8px 0 4px 0' }}><strong>Attendance value</strong> = 0.355 + 0.999 + 0.071 = <strong>1.425</strong></p>
-                                <p style={{ margin: '4px 0' }}><strong>If daily salary</strong> = ₹500</p>
-                                <p style={{ margin: '8px 0 0 0', fontWeight: 'bold' }}>Final Pay = 1.425 &times; 500 = ₹712.50</p>
+                                <p style={{ margin: '8px 0 4px 0' }}><strong>Sum of Units</strong> = 0.357 + 1.000 + 0.125 = <strong>1.482</strong></p>
+                                <p style={{ margin: '4px 0' }}><strong>If Daily Rate</strong> = ₹1000</p>
+                                <p style={{ margin: '8px 0 0 0', fontWeight: 'bold', fontSize: '1.1rem' }}>Final Wage = 1.482 &times; 1000 = ₹1482</p>
                             </div>
 
                             <h4 style={{ color: '#0f172a', borderBottom: '2px solid #e2e8f0', paddingBottom: '6px', marginBottom: '12px' }}>2. Wages Calculation & Rounding</h4>
-                            <p>Daily wages are computed by multiplying the <strong>Attendance Unit</strong> by the worker's <strong>Daily Wage Rate</strong>. The system automatically applies standard industry rounding rules to produce clean, whole numbers.</p>
+                            <p>Daily wages are computed by multiplying the <strong>Attendance Unit</strong> by the worker's <strong>Daily Wage Rate</strong>. The system rounds to the nearest whole rupee to ensure simple accounting.</p>
                             <ul style={{ listStyleType: 'decimal', paddingLeft: '20px', marginBottom: '20px' }}>
                                 <li><strong style={{ color: '#ea580c' }}>Raw Wage:</strong> Attendance Unit &times; Daily Rate</li>
-                                <li><strong style={{ color: '#16a34a' }}>Rounded Wage Final:</strong> Final payable amount automatically rounded using the 50 Rupee slab logic.</li>
+                                <li><strong style={{ color: '#16a34a' }}>Rounded Wage Final:</strong> Automatically rounded to the nearest Rupee.</li>
                             </ul>
                             
                             <div style={{ background: '#f0fdf4', padding: '12px', borderRadius: '8px', borderLeft: '4px solid #22c55e', marginBottom: '8px' }}>
-                                <strong>Rounding Logic (The 50 Rupee Slab):</strong><br/>
-                                • Ends in <strong>1 to 24</strong> &rarr; rounds DOWN to <strong>00</strong>.<br/>
-                                • Ends in <strong>25 to 74</strong> &rarr; rounds precisely to <strong>50</strong>.<br/>
-                                • Ends in <strong>75 to 99</strong> &rarr; rounds UP to next <strong>100</strong>.
+                                <strong>Rounding Rule:</strong><br/>
+                                Standard mathematical rounding is applied. For example, ₹1482.14 becomes <strong>₹1482</strong>.
                             </div>
                             
                             <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '12px', marginBottom: '24px', fontSize: '0.9rem', textAlign: 'left' }}>
@@ -1551,22 +1552,22 @@ const WagesPage = () => {
                                         <td style={{ padding: '8px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold', color: '#16a34a' }}>₹650</td>
                                     </tr>
                                     <tr>
-                                        <td style={{ padding: '8px', borderBottom: '1px solid #e2e8f0' }}>₹714</td>
-                                        <td style={{ padding: '8px', borderBottom: '1px solid #e2e8f0' }}>1.0</td>
-                                        <td style={{ padding: '8px', borderBottom: '1px solid #e2e8f0' }}>₹714 (ends 14)</td>
-                                        <td style={{ padding: '8px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold', color: '#0ea5e9' }}>₹700</td>
+                                        <td style={{ padding: '8px', borderBottom: '1px solid #e2e8f0' }}>₹1000</td>
+                                        <td style={{ padding: '8px', borderBottom: '1px solid #e2e8f0' }}>1.482</td>
+                                        <td style={{ padding: '8px', borderBottom: '1px solid #e2e8f0' }}>₹1482.14</td>
+                                        <td style={{ padding: '8px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold', color: '#0ea5e9' }}>₹1482</td>
                                     </tr>
                                     <tr style={{ background: '#f8fafc' }}>
-                                        <td style={{ padding: '8px', borderBottom: '1px solid #e2e8f0' }}>₹732</td>
-                                        <td style={{ padding: '8px', borderBottom: '1px solid #e2e8f0' }}>1.0</td>
-                                        <td style={{ padding: '8px', borderBottom: '1px solid #e2e8f0' }}>₹732 (ends 32)</td>
-                                        <td style={{ padding: '8px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold', color: '#0ea5e9' }}>₹750</td>
+                                        <td style={{ padding: '8px', borderBottom: '1px solid #e2e8f0' }}>₹500</td>
+                                        <td style={{ padding: '8px', borderBottom: '1px solid #e2e8f0' }}>0.75</td>
+                                        <td style={{ padding: '8px', borderBottom: '1px solid #e2e8f0' }}>₹375</td>
+                                        <td style={{ padding: '8px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold', color: '#0ea5e9' }}>₹375</td>
                                     </tr>
                                     <tr>
-                                        <td style={{ padding: '8px' }}>₹783</td>
-                                        <td style={{ padding: '8px' }}>1.0</td>
-                                        <td style={{ padding: '8px' }}>₹783 (ends 83)</td>
-                                        <td style={{ padding: '8px', fontWeight: 'bold', color: '#0ea5e9' }}>₹800</td>
+                                        <td style={{ padding: '8px' }}>₹600</td>
+                                        <td style={{ padding: '8px' }}>0.333</td>
+                                        <td style={{ padding: '8px' }}>₹199.80</td>
+                                        <td style={{ padding: '8px', fontWeight: 'bold', color: '#0ea5e9' }}>₹200</td>
                                     </tr>
                                 </tbody>
                             </table>

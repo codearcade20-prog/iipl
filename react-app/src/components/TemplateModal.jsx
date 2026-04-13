@@ -259,13 +259,9 @@ const TemplateModal = ({ record, onClose, gmSignatureUrl }) => {
 
                             <div className={styles.footerGrid}>
                                 <div className={styles.footerItem}>PREPARED</div>
-                                <div className={styles.footerItem}>
-                                    <div className={styles.signatureContainer}>
-                                        <span style={{ fontSize: '10pt' }}>GM</span>
-                                    </div>
-                                </div>
+                                <div className={styles.footerItem}>GM</div>
                                 <div className={styles.footerItem}>MD</div>
-                                <div className={styles.footerItem}>ACCOUNTS</div>
+                                <div className={styles.footerItem}>CEO</div>
                             </div>
                         </div>
                     )}
