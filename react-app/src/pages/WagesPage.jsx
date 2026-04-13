@@ -195,15 +195,22 @@ const WagesPage = () => {
         return Math.round(val);
     };
 
-    const getDriveThumbnail = (url) => {
+    const getPhotoUrl = (url) => {
         if (!url) return null;
+        
+        // 1. If it's a local/uploaded Supabase URL, return as is
+        if (url.includes('.supabase.co')) return url;
+
+        // 2. If it's a Google Drive link, convert to direct thumbnail
         if (url.includes('drive.google.com')) {
             let fileId = '';
             if (url.includes('/d/')) fileId = url.split('/d/')[1]?.split('/')[0];
             else if (url.includes('id=')) fileId = url.split('id=')[1]?.split('&')[0];
-            // Use cookie-less redirect for better browser compatibility
+            
+            // lh3.googleusercontent.com is cookie-less and bypasses most anti-tracking blocks
             if (fileId) return `https://lh3.googleusercontent.com/d/${fileId}=w400`;
         }
+        
         return url;
     };
 
@@ -1698,29 +1705,49 @@ const WagesPage = () => {
                     style={{
                         position: 'fixed',
                         left: mousePos.x + 20,
-                        top: mousePos.y - 100,
+                        top: mousePos.y - 120,
                         zIndex: 9999,
                         background: 'white',
-                        padding: '8px',
-                        borderRadius: '16px',
-                        boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
-                        border: '2px solid #2563eb',
+                        padding: '10px',
+                        borderRadius: '20px',
+                        boxShadow: '0 25px 60px rgba(0,0,0,0.4)',
+                        border: '3px solid #3b82f6',
                         pointerEvents: 'none',
-                        animation: 'fadeIn 0.2s ease-out'
+                        animation: 'fadeIn 0.2s ease-out',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center'
                     }}
                 >
-                    <img 
-                        src={getDriveThumbnail(hoveredLabor.photo_url)} 
-                        alt={hoveredLabor.name} 
-                        style={{ width: '200px', height: '200px', objectFit: 'cover', borderRadius: '10px' }} 
-                        referrerPolicy="no-referrer"
-                        crossOrigin="anonymous"
-                        onError={(e) => { e.target.src = 'https://via.placeholder.com/200?text=No+Preview'; }}
-                    />
-                    <div style={{ textAlign: 'center', marginTop: '8px', fontWeight: 800, fontSize: '13px', color: '#1e3a8a' }}>{hoveredLabor.name}</div>
+                    <div style={{ 
+                        width: '200px', 
+                        height: '200px', 
+                        borderRadius: '12px', 
+                        background: '#f1f5f9', 
+                        overflow: 'hidden',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        position: 'relative'
+                    }}>
+                        <img 
+                            src={getPhotoUrl(hoveredLabor.photo_url)} 
+                            alt={hoveredLabor.name} 
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                            referrerPolicy="no-referrer"
+                            crossOrigin="anonymous"
+                            onError={(e) => { e.target.src = 'https://via.placeholder.com/200?text=Permission+Required'; }}
+                        />
+                    </div>
+                    <div style={{ marginTop: '10px', textAlign: 'center' }}>
+                        <div style={{ fontWeight: 800, fontSize: '14px', color: '#1e3a8a' }}>{hoveredLabor.name}</div>
+                        <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>
+                            {hoveredLabor.photo_url.includes('drive.google') ? '⚠️ Check Drive Permissions' : 'Supabase Storage'}
+                        </div>
+                    </div>
                     <style>{`
                         @keyframes fadeIn {
-                            from { opacity: 0; transform: scale(0.95); }
+                            from { opacity: 0; transform: scale(0.9); }
                             to { opacity: 1; transform: scale(1); }
                         }
                     `}</style>
