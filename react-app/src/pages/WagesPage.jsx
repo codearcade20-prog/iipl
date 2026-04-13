@@ -271,6 +271,21 @@ const WagesPage = () => {
     const [isSavingCorrection, setIsSavingCorrection] = useState(false);
     const [hoveredLabor, setHoveredLabor] = useState(null);
     const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+    const [showPermissionGuide, setShowPermissionGuide] = useState(false);
+
+    useEffect(() => {
+        const hasSeen = localStorage.getItem('iipl_photo_permission_v1');
+        if (!hasSeen) {
+            // Show guide after a small delay for a smooth entrance
+            const timer = setTimeout(() => setShowPermissionGuide(true), 1500);
+            return () => clearTimeout(timer);
+        }
+    }, []);
+
+    const dismissPermissionGuide = () => {
+        localStorage.setItem('iipl_photo_permission_v1', 'true');
+        setShowPermissionGuide(false);
+    };
 
     const fetchInitialData = async (isSilent = false) => {
         if (!isSilent) setLoading(true);
@@ -1753,6 +1768,46 @@ const WagesPage = () => {
                             to { opacity: 1; transform: scale(1); }
                         }
                     `}</style>
+                </div>
+            )}
+
+            {/* Professional Permission Guide Modal */}
+            {showPermissionGuide && (
+                <div className={styles.modalOverlay} style={{ zIndex: 2000 }}>
+                    <div className={styles.modal} style={{ maxWidth: '450px', textAlign: 'center', padding: '40px 30px' }}>
+                        <div style={{ 
+                            width: '70px', 
+                            height: '70px', 
+                            background: '#eff6ff', 
+                            borderRadius: '20px', 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center',
+                            margin: '0 auto 24px auto'
+                        }}>
+                            <Users size={32} color="#2563eb" />
+                        </div>
+                        <h3 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', marginBottom: '12px' }}>
+                            Worker Photo Previews
+                        </h3>
+                        <p style={{ color: '#64748b', lineHeight: '1.6', fontSize: '0.95rem', marginBottom: '24px' }}>
+                            We have enabled <strong>instant photo previews</strong> for the attendance log. 
+                            To see worker photos smoothly:
+                        </p>
+                        <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', textAlign: 'left', marginBottom: '32px' }}>
+                            <div style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
+                                <div style={{ minWidth: '24px', height: '24px', background: '#3b82f6', color: 'white', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold' }}>1</div>
+                                <div style={{ fontSize: '0.85rem', color: '#334155' }}>If your browser asks for <strong>"Permission to load"</strong> or <strong>"Access devices"</strong>, please click <strong>ALLOW</strong>.</div>
+                            </div>
+                            <div style={{ display: 'flex', gap: '12px' }}>
+                                <div style={{ minWidth: '24px', height: '24px', background: '#3b82f6', color: 'white', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold' }}>2</div>
+                                <div style={{ fontSize: '0.85rem', color: '#334155' }}>Any "Browse Photo" button will automatically ask for camera/file access when clicked.</div>
+                            </div>
+                        </div>
+                        <Button onClick={dismissPermissionGuide} style={{ width: '100%', padding: '14px', borderRadius: '12px' }}>
+                            I Understand, Proceed
+                        </Button>
+                    </div>
                 </div>
             )}
         </div>
