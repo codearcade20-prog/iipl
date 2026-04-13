@@ -201,7 +201,8 @@ const WagesPage = () => {
             let fileId = '';
             if (url.includes('/d/')) fileId = url.split('/d/')[1]?.split('/')[0];
             else if (url.includes('id=')) fileId = url.split('id=')[1]?.split('&')[0];
-            if (fileId) return `https://drive.google.com/thumbnail?id=${fileId}&sz=w400`;
+            // Use cookie-less redirect for better browser compatibility
+            if (fileId) return `https://lh3.googleusercontent.com/d/${fileId}=w400`;
         }
         return url;
     };
@@ -1712,6 +1713,8 @@ const WagesPage = () => {
                         src={getDriveThumbnail(hoveredLabor.photo_url)} 
                         alt={hoveredLabor.name} 
                         style={{ width: '200px', height: '200px', objectFit: 'cover', borderRadius: '10px' }} 
+                        referrerPolicy="no-referrer"
+                        crossOrigin="anonymous"
                         onError={(e) => { e.target.src = 'https://via.placeholder.com/200?text=No+Preview'; }}
                     />
                     <div style={{ textAlign: 'center', marginTop: '8px', fontWeight: 800, fontSize: '13px', color: '#1e3a8a' }}>{hoveredLabor.name}</div>
