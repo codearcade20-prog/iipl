@@ -819,6 +819,15 @@ const WagesPage = () => {
                                                         setMousePos({ x: e.clientX, y: e.clientY });
                                                     }}
                                                     onMouseLeave={() => setHoveredLabor(null)}
+                                                    onTouchStart={(e) => {
+                                                        // For mobile: Toggle preview on tap
+                                                        if (hoveredLabor?.id === l.id) setHoveredLabor(null);
+                                                        else {
+                                                            setHoveredLabor(l);
+                                                            const touch = e.touches[0];
+                                                            setMousePos({ x: touch.clientX, y: touch.clientY });
+                                                        }
+                                                    }}
                                                 >
                                                     {l.name}
                                                 </div>
