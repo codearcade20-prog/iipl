@@ -1735,8 +1735,10 @@ const WagesPage = () => {
                             alt={hoveredLabor.name} 
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
                             referrerPolicy="no-referrer"
-                            crossOrigin="anonymous"
-                            onError={(e) => { e.target.src = 'https://via.placeholder.com/200?text=Permission+Required'; }}
+                            onError={(e) => { 
+                                // Use an inline SVG instead of an external placeholder to avoid "Local Network Access" prompts
+                                e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23f1f5f9'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='14' fill='%2364748b'%3EPhoto Unavailable%3C/text%3E%3C/svg%3E";
+                            }}
                         />
                     </div>
                     <div style={{ marginTop: '10px', textAlign: 'center' }}>
