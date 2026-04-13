@@ -195,6 +195,17 @@ const WagesPage = () => {
         return Math.round(val);
     };
 
+    const getDriveThumbnail = (url) => {
+        if (!url) return null;
+        if (url.includes('drive.google.com')) {
+            let fileId = '';
+            if (url.includes('/d/')) fileId = url.split('/d/')[1]?.split('/')[0];
+            else if (url.includes('id=')) fileId = url.split('id=')[1]?.split('&')[0];
+            if (fileId) return `https://drive.google.com/thumbnail?id=${fileId}&sz=w400`;
+        }
+        return url;
+    };
+
     const [activeTab, setActiveTab] = useState('attendance');
     const [loading, setLoading] = useState(false);
     const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -218,8 +229,10 @@ const WagesPage = () => {
     const [laborModalOpen, setLaborModalOpen] = useState(false);
     const [editingLabor, setEditingLabor] = useState(null);
     const [laborForm, setLaborForm] = useState({
-        name: '', phone: '', subcontractor_id: '', role: '', designation: '', daily_rate: 0, status: 'Active'
+        name: '', phone: '', subcontractor_id: '', role: '', designation: '', daily_rate: 0, status: 'Active', photo_url: ''
     });
+    const [selectedLaborFile, setSelectedLaborFile] = useState(null);
+    const [uploadingLaborPhoto, setUploadingLaborPhoto] = useState(false);
 
     // Subcontractor Management States
     const [subModalOpen, setSubModalOpen] = useState(false);
@@ -248,6 +261,8 @@ const WagesPage = () => {
     const [correctionLabor, setCorrectionLabor] = useState(null);
     const [correctionRecords, setCorrectionRecords] = useState([]);
     const [isSavingCorrection, setIsSavingCorrection] = useState(false);
+    const [hoveredLabor, setHoveredLabor] = useState(null);
+    const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
     const fetchInitialData = async (isSilent = false) => {
         if (!isSilent) setLoading(true);
@@ -446,12 +461,14 @@ const WagesPage = () => {
                 role: lab.role || '',
                 designation: lab.designation || '',
                 daily_rate: lab.daily_rate || 0,
-                status: lab.status || 'Active'
+                status: lab.status || 'Active',
+                photo_url: lab.photo_url || ''
             });
         } else {
             setEditingLabor(null);
-            setLaborForm({ name: '', phone: '', subcontractor_id: '', role: '', designation: '', daily_rate: 0, status: 'Active' });
+            setLaborForm({ name: '', phone: '', subcontractor_id: '', role: '', designation: '', daily_rate: 0, status: 'Active', photo_url: '' });
         }
+        setSelectedLaborFile(null);
         setLaborModalOpen(true);
     };
 
@@ -459,7 +476,29 @@ const WagesPage = () => {
         if (!laborForm.name) return alert('Name is required');
         setLoading(true);
         try {
-            const payload = { ...laborForm };
+            let photoUrl = laborForm.photo_url;
+
+            // Handle File Upload if selected
+            if (selectedLaborFile) {
+                setUploadingLaborPhoto(true);
+                const fileExt = selectedLaborFile.name.split('.').pop();
+                const fileName = `${laborForm.name.replace(/\s+/g, '_')}_${Date.now()}.${fileExt}`;
+                const filePath = `${fileName}`;
+
+                const { error: uploadError } = await supabase.storage
+                    .from('labors')
+                    .upload(filePath, selectedLaborFile, { upsert: true });
+
+                if (uploadError) throw uploadError;
+
+                const { data: { publicUrl } } = supabase.storage
+                    .from('labors')
+                    .getPublicUrl(filePath);
+                
+                photoUrl = publicUrl;
+            }
+
+            const payload = { ...laborForm, photo_url: photoUrl };
             if (!payload.subcontractor_id) payload.subcontractor_id = null;
 
             if (editingLabor) await supabase.from('labors').update(payload).eq('id', editingLabor);
@@ -468,8 +507,13 @@ const WagesPage = () => {
             setLaborModalOpen(false);
             fetchInitialData(true);
             toast('Labor saved!');
-        } catch (error) { alert(error.message); }
-        finally { setLoading(false); }
+        } catch (error) { 
+            console.error('Save Labor Error:', error);
+            alert('Save failed: ' + error.message); 
+        } finally { 
+            setLoading(false); 
+            setUploadingLaborPhoto(false);
+        }
     };
 
     // --- SUBCONTRACTOR CRUD ---
@@ -741,7 +785,20 @@ const WagesPage = () => {
                                     return (
                                         <tr key={l.id}>
                                             <td style={{ paddingLeft: '24px' }}>
-                                                <div className={styles.strong}>{l.name}</div>
+                                                <div 
+                                                    className={styles.strong} 
+                                                    style={{ cursor: 'pointer', display: 'inline-block' }}
+                                                    onMouseEnter={(e) => {
+                                                        setHoveredLabor(l);
+                                                        setMousePos({ x: e.clientX, y: e.clientY });
+                                                    }}
+                                                    onMouseMove={(e) => {
+                                                        setMousePos({ x: e.clientX, y: e.clientY });
+                                                    }}
+                                                    onMouseLeave={() => setHoveredLabor(null)}
+                                                >
+                                                    {l.name}
+                                                </div>
                                                 <div className={styles.muted} style={{ fontSize: '0.75rem' }}>Rate: ₹{l.daily_rate}</div>
                                             </td>
                                             <td>
@@ -995,9 +1052,23 @@ const WagesPage = () => {
                                     </td>
                                     <td><span className={styles.price}>₹{l.daily_rate}</span></td>
                                     <td>
-                                        <span className={`${styles.badge} ${l.status === 'Active' ? styles.badgePaid : styles.badgePending}`}>
-                                            {l.status}
-                                        </span>
+                                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                            <span className={`${styles.badge} ${l.status === 'Active' ? styles.badgePaid : styles.badgePending}`}>
+                                                {l.status}
+                                            </span>
+                                            {l.photo_url && (
+                                                <a 
+                                                    href={l.photo_url} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer" 
+                                                    className={styles.attnBtn}
+                                                    title="View Photos"
+                                                    style={{ padding: '4px 8px', fontSize: '0.7rem' }}
+                                                >
+                                                    🖼️ Photos
+                                                </a>
+                                            )}
+                                        </div>
                                     </td>
                                     <td style={{ textAlign: 'right' }}>
                                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
@@ -1462,6 +1533,37 @@ const WagesPage = () => {
                                     <input className={styles.input} placeholder="e.g. Senior, Junior" value={laborForm.designation} onChange={e => setLaborForm({ ...laborForm, designation: e.target.value })} />
                                 </div>
                             </div>
+                            <div className={styles.formGroup} style={{ marginTop: '12px' }}>
+                                <label className={styles.label}>Labor Photo (Upload or URL)</label>
+                                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                    <input 
+                                        type="file" 
+                                        accept="image/*"
+                                        id="laborPhotoInput"
+                                        style={{ display: 'none' }}
+                                        onChange={(e) => setSelectedLaborFile(e.target.files[0])}
+                                    />
+                                    <Button 
+                                        variant="secondary" 
+                                        style={{ flexShrink: 0, padding: '8px 12px', fontSize: '13px' }}
+                                        onClick={() => document.getElementById('laborPhotoInput').click()}
+                                    >
+                                        {selectedLaborFile ? 'Change Photo' : 'Browse Photo'}
+                                    </Button>
+                                    <input 
+                                        className={styles.input} 
+                                        placeholder="Or paste Drive URL link here" 
+                                        value={selectedLaborFile ? selectedLaborFile.name : laborForm.photo_url} 
+                                        onChange={e => setLaborForm({ ...laborForm, photo_url: e.target.value })} 
+                                        readOnly={!!selectedLaborFile}
+                                    />
+                                </div>
+                                {selectedLaborFile && (
+                                    <div style={{ fontSize: '12px', color: '#2563eb', marginTop: '4px', fontWeight: 600 }}>
+                                        ✓ Ready to upload: {selectedLaborFile.name}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                         <div className={styles.modalActions}>
                             <Button variant="outline" onClick={() => setLaborModalOpen(false)}>Cancel</Button>
@@ -1587,6 +1689,38 @@ const WagesPage = () => {
                             <Button onClick={() => setGuideModalOpen(false)}>Close Guide</Button>
                         </div>
                     </div>
+                </div>
+            )}
+
+            {hoveredLabor && hoveredLabor.photo_url && (
+                <div 
+                    style={{
+                        position: 'fixed',
+                        left: mousePos.x + 20,
+                        top: mousePos.y - 100,
+                        zIndex: 9999,
+                        background: 'white',
+                        padding: '8px',
+                        borderRadius: '16px',
+                        boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
+                        border: '2px solid #2563eb',
+                        pointerEvents: 'none',
+                        animation: 'fadeIn 0.2s ease-out'
+                    }}
+                >
+                    <img 
+                        src={getDriveThumbnail(hoveredLabor.photo_url)} 
+                        alt={hoveredLabor.name} 
+                        style={{ width: '200px', height: '200px', objectFit: 'cover', borderRadius: '10px' }} 
+                        onError={(e) => { e.target.src = 'https://via.placeholder.com/200?text=No+Preview'; }}
+                    />
+                    <div style={{ textAlign: 'center', marginTop: '8px', fontWeight: 800, fontSize: '13px', color: '#1e3a8a' }}>{hoveredLabor.name}</div>
+                    <style>{`
+                        @keyframes fadeIn {
+                            from { opacity: 0; transform: scale(0.95); }
+                            to { opacity: 1; transform: scale(1); }
+                        }
+                    `}</style>
                 </div>
             )}
         </div>
