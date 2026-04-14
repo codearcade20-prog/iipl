@@ -65,9 +65,13 @@ const AdminDashboard = () => {
         username: '',
         password: '',
         is_admin: false,
+        is_approved: true,
+        is_pending: false,
         permissions: [],
         team_role: ''
     });
+    const [userSearch, setUserSearch] = useState('');
+    const [userFilter, setUserFilter] = useState('all'); // all, pending, approved
 
     // --- SITES STATE ---
     const [sites, setSites] = useState([]);
@@ -671,14 +675,40 @@ const AdminDashboard = () => {
                 username: u.username,
                 password: u.password,
                 is_admin: u.is_admin,
+                is_approved: u.is_approved ?? true,
+                is_pending: u.is_pending ?? false,
                 permissions: u.permissions || [],
                 team_role: u.team_role || ''
             });
         } else {
             setEditingUserId(null);
-            setUserForm({ username: '', password: '', is_admin: false, permissions: [], team_role: '' });
+            setUserForm({ 
+                username: '', 
+                password: '', 
+                is_admin: false, 
+                is_approved: true, 
+                is_pending: false, 
+                permissions: [], 
+                team_role: '' 
+            });
         }
         setUserModalOpen(true);
+    };
+
+    const approveUser = async (user) => {
+        if (await confirm(`Approve user "${user.username}"?`)) {
+            setSaving(true);
+            try {
+                const { error } = await supabase
+                    .from('app_users')
+                    .update({ is_approved: true, is_pending: false })
+                    .eq('id', user.id);
+                if (error) throw error;
+                fetchUsers();
+                toast(`User "${user.username}" approved!`);
+            } catch (e) { await alert(e.message); }
+            finally { setSaving(false); }
+        }
     };
 
     const togglePermission = (perm) => {
@@ -967,8 +997,23 @@ const AdminDashboard = () => {
     const totalPagesSites = Math.ceil(filteredSites.length / ROWS_PER_PAGE);
     const paginatedSites = filteredSites.slice((currentPage - 1) * ROWS_PER_PAGE, currentPage * ROWS_PER_PAGE);
 
-    const totalPagesUsers = Math.ceil(appUsers.length / ROWS_PER_PAGE);
-    const paginatedUsers = appUsers.slice((currentPage - 1) * ROWS_PER_PAGE, currentPage * ROWS_PER_PAGE);
+    // --- FILTERED DATA ---
+    const filteredUsers = useMemo(() => {
+        return appUsers.filter(u => {
+            const matchesSearch = !userSearch || 
+                                 u.username?.toLowerCase().includes(userSearch.toLowerCase()) || 
+                                 u.team_role?.toLowerCase().includes(userSearch.toLowerCase());
+            
+            const matchesFilter = userFilter === 'all' || 
+                                 (userFilter === 'pending' && u.is_pending) || 
+                                 (userFilter === 'approved' && !u.is_pending && u.is_approved);
+            
+            return matchesSearch && matchesFilter;
+        });
+    }, [appUsers, userSearch, userFilter]);
+
+    const totalPagesUsers = Math.max(1, Math.ceil(filteredUsers.length / ROWS_PER_PAGE));
+    const paginatedUsers = filteredUsers.slice((currentPage - 1) * ROWS_PER_PAGE, currentPage * ROWS_PER_PAGE);
 
     const totalPagesBin = Math.ceil(binItems.length / ROWS_PER_PAGE);
     const paginatedBin = binItems.slice((currentPage - 1) * ROWS_PER_PAGE, currentPage * ROWS_PER_PAGE);
@@ -1603,41 +1648,104 @@ const AdminDashboard = () => {
                 {currentView === 'users' && isSuperAdmin && (
                     <div className={styles.card}>
                         <div className={styles.cardHeader}>
-                            <h3 className={styles.cardTitle}>App User Management</h3>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                <h3 className={styles.cardTitle}>App User Management</h3>
+                                <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '10px' }}>
+                                    <button 
+                                        onClick={() => setUserFilter('all')}
+                                        className={`${styles.filterBtn} ${userFilter === 'all' ? styles.active : ''}`}
+                                        style={{ border: 'none', padding: '6px 12px', fontSize: '0.8rem', borderRadius: '8px', cursor: 'pointer', background: userFilter === 'all' ? 'white' : 'transparent', boxShadow: userFilter === 'all' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none', fontWeight: 600 }}
+                                    >
+                                        All
+                                    </button>
+                                    <button 
+                                        onClick={() => setUserFilter('pending')}
+                                        className={`${styles.filterBtn} ${userFilter === 'pending' ? styles.active : ''}`}
+                                        style={{ border: 'none', padding: '6px 12px', fontSize: '0.8rem', borderRadius: '8px', cursor: 'pointer', background: userFilter === 'pending' ? 'white' : 'transparent', boxShadow: userFilter === 'pending' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none', fontWeight: 600, color: userFilter === 'pending' ? '#ef4444' : '#64748b' }}
+                                    >
+                                        Pending Approval
+                                    </button>
+                                    <button 
+                                        onClick={() => setUserFilter('approved')}
+                                        className={`${styles.filterBtn} ${userFilter === 'approved' ? styles.active : ''}`}
+                                        style={{ border: 'none', padding: '6px 12px', fontSize: '0.8rem', borderRadius: '8px', cursor: 'pointer', background: userFilter === 'approved' ? 'white' : 'transparent', boxShadow: userFilter === 'approved' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none', fontWeight: 600, color: userFilter === 'approved' ? '#10b981' : '#64748b' }}
+                                    >
+                                        Approved
+                                    </button>
+                                </div>
+                            </div>
                             <Button onClick={() => openUserModal()}>+ Add User</Button>
                         </div>
+                        
+                        <div style={{ padding: '15px 30px', background: '#f8fafc', borderBottom: '1px solid var(--border-color)' }}>
+                            <div style={{ display: 'flex', gap: '15px' }}>
+                                <div style={{ flex: 1, position: 'relative' }}>
+                                    <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}>🔍</span>
+                                    <input
+                                        type="text"
+                                        placeholder="Search users by name or department..."
+                                        value={userSearch}
+                                        onChange={(e) => setUserSearch(e.target.value)}
+                                        style={{ width: '100%', padding: '10px 10px 10px 35px', border: '1px solid var(--border-color)', borderRadius: '10px', fontSize: '0.9rem' }}
+                                    />
+                                </div>
+                                {userSearch && (
+                                    <button 
+                                        onClick={() => setUserSearch('')}
+                                        style={{ padding: '0 12px', background: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.8rem', cursor: 'pointer' }}
+                                    >
+                                        Clear
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
                         <div className={styles.tableWrapper}>
                             <table className={styles.table}>
                                 <thead>
                                     <tr>
                                         <th>Username</th>
-                                        <th>Type</th>
+                                        <th>Role / Department</th>
                                         <th>Permissions</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {paginatedUsers.map(u => (
-                                        <tr key={u.id}>
-                                            <td style={{ fontWeight: 600 }}>{u.username}</td>
+                                        <tr key={u.id} style={u.is_pending ? { backgroundColor: '#fdf2f2' } : {}}>
+                                            <td style={{ fontWeight: 600 }}>
+                                                {u.username}
+                                                {u.is_pending && <span style={{ marginLeft: '8px', fontSize: '0.7rem', color: '#ef4444', border: '1px solid #ef4444', padding: '1px 4px', borderRadius: '4px' }}>NEW REQUEST</span>}
+                                            </td>
                                             <td>
-                                                <span className={`${styles.badge} ${u.is_admin ? styles.badgeInvoice : styles.badgeBoth}`}>
-                                                    {u.is_admin ? 'Admin' : 'Operator'}
-                                                </span>
+                                                <div className="flex flex-col gap-1">
+                                                    <span className={`${styles.badge} ${u.is_admin ? styles.badgeInvoice : styles.badgeBoth}`} style={{ width: 'fit-content' }}>
+                                                        {u.is_admin ? 'Admin' : 'Operator'}
+                                                    </span>
+                                                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>{u.team_role || 'No Department'}</span>
+                                                </div>
                                             </td>
                                             <td style={{ fontSize: '0.8rem' }}>
                                                 {u.is_admin ? 'ALL' : (u.permissions?.join(', ') || 'None')}
                                             </td>
                                             <td>
                                                 <div className="flex gap-2">
+                                                    {u.is_pending && (
+                                                        <Button 
+                                                            style={{ background: '#10b981', padding: '4px 10px', fontSize: '0.8rem' }} 
+                                                            onClick={() => approveUser(u)}
+                                                        >
+                                                            Approve
+                                                        </Button>
+                                                    )}
                                                     <Button variant="secondary" onClick={() => openUserModal(u)}>Edit</Button>
                                                     <Button variant="danger" onClick={() => deleteAppUser(u.id)}>Del</Button>
                                                 </div>
                                             </td>
                                         </tr>
                                     ))}
-                                    {appUsers.length === 0 && (
-                                        <tr><td colSpan="4" style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>No users found.</td></tr>
+                                    {filteredUsers.length === 0 && (
+                                        <tr><td colSpan="4" style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>No users found matching your criteria.</td></tr>
                                     )}
                                 </tbody>
                             </table>
@@ -2192,19 +2300,36 @@ const AdminDashboard = () => {
                                     <p style={{ marginTop: '4px', fontSize: '0.75rem', color: '#64748b' }}>Members will only be able to edit fields belonging to their assigned team.</p>
                                 </div>
 
-                                <div style={{ marginTop: '24px', padding: '16px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
-                                        <input
-                                            type="checkbox"
-                                            style={{ width: '20px', height: '20px', cursor: 'pointer' }}
-                                            checked={userForm.is_admin}
-                                            onChange={e => setUserForm({ ...userForm, is_admin: e.target.checked })}
-                                        />
-                                        <div>
-                                            <div style={{ fontWeight: 700, color: '#1e293b' }}>Admin Access</div>
-                                            <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Grant all permissions and full system access</div>
-                                        </div>
-                                    </label>
+                                <div style={{ marginTop: '24px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                    <div style={{ padding: '16px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                                            <input
+                                                type="checkbox"
+                                                style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                                                checked={userForm.is_admin}
+                                                onChange={e => setUserForm({ ...userForm, is_admin: e.target.checked })}
+                                            />
+                                            <div>
+                                                <div style={{ fontWeight: 700, color: '#1e293b' }}>Admin Access</div>
+                                                <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Grant all permissions</div>
+                                            </div>
+                                        </label>
+                                    </div>
+
+                                    <div style={{ padding: '16px', background: userForm.is_approved ? '#f0fdf4' : '#fff7ed', borderRadius: '12px', border: `1px solid ${userForm.is_approved ? '#bbf7d0' : '#ffedd5'}` }}>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                                            <input
+                                                type="checkbox"
+                                                style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                                                checked={userForm.is_approved}
+                                                onChange={e => setUserForm({ ...userForm, is_approved: e.target.checked, is_pending: e.target.checked ? false : userForm.is_pending })}
+                                            />
+                                            <div>
+                                                <div style={{ fontWeight: 700, color: userForm.is_approved ? '#166534' : '#9a3412' }}>Approved</div>
+                                                <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Allow user to log in</div>
+                                            </div>
+                                        </label>
+                                    </div>
                                 </div>
 
                                 {!userForm.is_admin && (

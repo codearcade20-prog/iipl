@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui';
+import QuoteBot from '../components/QuoteBot';
 import styles from './LoginPage.module.css';
 
 const LoginPage = () => {
@@ -20,7 +21,6 @@ const LoginPage = () => {
         setLoading(true);
 
         try {
-            // First check if app_users table exists and has the user
             const { data, error: fetchError } = await supabase
                 .from('app_users')
                 .select('*')
@@ -28,8 +28,6 @@ const LoginPage = () => {
                 .single();
 
             if (fetchError || !data) {
-                // Fallback for first time if table doesn't exist or no data
-                // This is a safety measure to allow initial admin setup
                 if (username === 'admin' && password === 'boss207') {
                     const fallbackUser = {
                         username: 'admin',
@@ -45,6 +43,10 @@ const LoginPage = () => {
 
             if (data.password !== password) {
                 throw new Error('Invalid username or password');
+            }
+
+            if (data.is_approved === false) {
+                throw new Error('Your account is pending administrator approval.');
             }
 
             login(data);
@@ -93,9 +95,11 @@ const LoginPage = () => {
                 </form>
 
                 <div className={styles.footer}>
+                    <p>New user? <Link to="/signup">Register here</Link> for approval.</p>
                     <p>© 2026 Innovative Interiors</p>
                 </div>
             </div>
+            <QuoteBot />
         </div>
     );
 };

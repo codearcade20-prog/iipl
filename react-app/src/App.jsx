@@ -39,6 +39,7 @@ import ProjectStatusUpdate from './pages/ProjectStatusUpdate';
 import ProjectPersonnel from './pages/ProjectPersonnel';
 import SubVendorChecklist from './pages/SubVendorChecklist';
 import SubVendorChecklistHistory from './pages/SubVendorChecklistHistory';
+import SignUpPage from './pages/SignUpPage';
 import { MessageProvider } from './context/MessageContext';
 
 function App() {
@@ -48,6 +49,7 @@ function App() {
         <Router>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<SignUpPage />} />
             <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute module="admin"><AdminDashboard /></ProtectedRoute>} />
             <Route path="/payment-request" element={<ProtectedRoute module="payment"><PaymentRequest /></ProtectedRoute>} />
