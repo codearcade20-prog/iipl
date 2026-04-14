@@ -20,17 +20,15 @@ const Home = () => {
             <div className={styles.navGrid}>
                 {hasPermission('invoice') && (
                     <Link to="/invoice-generator" className={styles.navCard}>
-                        <div className={styles.icon}>📄</div>
+                        <div className={styles.icon}><span role="img" aria-label="invoice">📄</span></div>
                         <h3 className={styles.cardTitle}>Invoice Generator</h3>
                         <p className={styles.cardText}>Create and print professional vendor invoices with auto-fill technology.</p>
                     </Link>
                 )}
 
-
-
                 {hasPermission('payment') && (
                     <Link to="/payment-request" className={styles.navCard}>
-                        <div className={styles.icon}>💸</div>
+                        <div className={styles.icon}><span role="img" aria-label="payment">💸</span></div>
                         <h3 className={styles.cardTitle}>Payment Request</h3>
                         <p className={styles.cardText}>Generate standardized sub-vendor payment request forms with cloud autofill.</p>
                     </Link>
@@ -38,7 +36,7 @@ const Home = () => {
 
                 {hasPermission('history') && (
                     <Link to="/history" className={styles.navCard}>
-                        <div className={styles.icon}>📜</div>
+                        <div className={styles.icon}><span role="img" aria-label="history">📜</span></div>
                         <h3 className={styles.cardTitle}>Payment & Invoice History</h3>
                         <p className={styles.cardText}>View and track the status of all vendor invoices and payment requests.</p>
                     </Link>
@@ -46,7 +44,7 @@ const Home = () => {
 
                 {hasPermission('workorders') && (
                     <Link to="/work-orders" className={styles.navCard}>
-                        <div className={styles.icon}>📁</div>
+                        <div className={styles.icon}><span role="img" aria-label="work orders">📁</span></div>
                         <h3 className={styles.cardTitle}>Work Orders</h3>
                         <p className={styles.cardText}>Access and view all project work orders directly via Google Drive repository.</p>
                     </Link>
@@ -54,7 +52,7 @@ const Home = () => {
 
                 {hasPermission('admin') && (
                     <Link to="/admin" className={styles.navCard}>
-                        <div className={styles.icon}>⚙️</div>
+                        <div className={styles.icon}><span role="img" aria-label="admin">⚙️</span></div>
                         <h3 className={styles.cardTitle}>Admin Control</h3>
                         <p className={styles.cardText}>Manage cloud records, update bank details, PAN numbers, and vendor profiles.</p>
                     </Link>
@@ -62,7 +60,7 @@ const Home = () => {
 
                 {hasPermission('overview') && (
                     <Link to="/project-overview" className={styles.navCard}>
-                        <div className={styles.icon}>📋</div>
+                        <div className={styles.icon}><span role="img" aria-label="overview">📋</span></div>
                         <h3 className={styles.cardTitle}>Project Overview</h3>
                         <p className={styles.cardText}>View project status, site management, and vendor lists in read-only mode.</p>
                     </Link>
@@ -70,7 +68,7 @@ const Home = () => {
 
                 {hasPermission('vendor') && (
                     <Link to="/vendor-dashboard" className={styles.navCard}>
-                        <div className={styles.icon}>📊</div>
+                        <div className={styles.icon}><span role="img" aria-label="dashboard">📊</span></div>
                         <h3 className={styles.cardTitle}>Vendor & Site Dashboard</h3>
                         <p className={styles.cardText}>Access the external vendor and site management dashboard.</p>
                     </Link>
@@ -78,7 +76,7 @@ const Home = () => {
 
                 {(hasPermission('invoice') || hasPermission('bill')) && (
                     <Link to="/bill-generator" className={styles.navCard}>
-                        <div className={styles.icon}>📝</div>
+                        <div className={styles.icon}><span role="img" aria-label="bill">📝</span></div>
                         <h3 className={styles.cardTitle}>Bill Preparation</h3>
                         <p className={styles.cardText}>Prepare Running Account Bills (RAB) and Final Bills with detailed tracking.</p>
                     </Link>
@@ -86,7 +84,7 @@ const Home = () => {
 
                 {(hasPermission('md') || hasPermission('admin')) && (
                     <Link to="/md" className={styles.navCard}>
-                        <div className={styles.icon}>👔</div>
+                        <div className={styles.icon}><span role="img" aria-label="managing director">👔</span></div>
                         <h3 className={styles.cardTitle}>Managing Director</h3>
                         <p className={styles.cardText}>Review and approve petty cash payments with digital signatures and amount adjustment.</p>
                     </Link>
@@ -94,7 +92,7 @@ const Home = () => {
 
                 {(hasPermission('gm') || hasPermission('admin')) && (
                     <Link to="/gm" className={styles.navCard}>
-                        <div className={styles.icon}>👔</div>
+                        <div className={styles.icon}><span role="img" aria-label="general manager">👔</span></div>
                         <h3 className={styles.cardTitle}>General Manager</h3>
                         <p className={styles.cardText}>Review payment and invoice history with approval workflows and digital signatures.</p>
                     </Link>
@@ -102,7 +100,7 @@ const Home = () => {
 
                 {(hasPermission('approved_payments') || hasPermission('admin')) && (
                     <Link to="/approved-payments" className={styles.navCard}>
-                        <div className={styles.icon}>✅</div>
+                        <div className={styles.icon}><span role="img" aria-label="approved">✅</span></div>
                         <h3 className={styles.cardTitle}>Approved Payments</h3>
                         <p className={styles.cardText}>View and print GM-approved payments and invoices with digital signatures.</p>
                     </Link>
@@ -110,42 +108,47 @@ const Home = () => {
 
                 {(hasPermission('hr') || hasPermission('admin')) && (
                     <Link to="/hr-dashboard" className={styles.navCard}>
-                        <div className={styles.icon}>👥</div>
+                        <div className={styles.icon}><span role="img" aria-label="hr">👥</span></div>
                         <h3 className={styles.cardTitle}>HR Module</h3>
                         <p className={styles.cardText}>Manage employee registrations, details, and payroll information.</p>
                     </Link>
                 )}
+
                 {(hasPermission('wages') || hasPermission('admin')) && (
                     <Link to="/wages" className={styles.navCard}>
-                        <div className={styles.icon}>💰</div>
+                        <div className={styles.icon}><span role="img" aria-label="wages">💰</span></div>
                         <h3 className={styles.cardTitle}>Wages</h3>
                         <p className={styles.cardText}>Calculate and manage daily/weekly wages for site workers and labor.</p>
                     </Link>
                 )}
+
                 {(hasPermission('accounts') || hasPermission('admin')) && (
                     <Link to="/accounts" className={styles.navCard}>
-                        <div className={styles.icon}>🏦</div>
+                        <div className={styles.icon}><span role="img" aria-label="accounts">🏦</span></div>
                         <h3 className={styles.cardTitle}>Accounts</h3>
                         <p className={styles.cardText}>Financial management, generalized ledger, and profit & loss reporting.</p>
                     </Link>
                 )}
+
                 {hasPermission('project_entry') && (
                     <Link to="/project-status/entry" className={styles.navCard}>
-                        <div className={styles.icon}>🏗️</div>
+                        <div className={styles.icon}><span role="img" aria-label="project entry">🏗️</span></div>
                         <h3 className={styles.cardTitle}>Project Entry</h3>
                         <p className={styles.cardText}>Create and manage new interior projects, assign coordinators, designers, and site engineers.</p>
                     </Link>
                 )}
+
                 {hasPermission('project_status') && (
                     <Link to="/project-status/update" className={styles.navCard}>
-                        <div className={styles.icon}>📊</div>
+                        <div className={styles.icon}><span role="img" aria-label="project status">📊</span></div>
                         <h3 className={styles.cardTitle}>Project Status Update</h3>
                         <p className={styles.cardText}>Track project progress, completion percentages, and log daily status updates.</p>
                     </Link>
                 )}
+
                 {hasPermission('sub_vendor_checklist') && (
                     <Link to="/sub-vendor-checklist" className={styles.navCard}>
-                        <div className={styles.icon}>📋</div>
+                        <div className={styles.icon}><span role="img" aria-label="checklist">📋</span></div>
                         <h3 className={styles.cardTitle}>Sub Vendor Checklist</h3>
                         <p className={styles.cardText}>Create and manage detailed sub-vendor agreements and project checklists.</p>
                     </Link>
