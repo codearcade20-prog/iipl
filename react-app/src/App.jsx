@@ -40,6 +40,7 @@ import ProjectPersonnel from './pages/ProjectPersonnel';
 import SubVendorChecklist from './pages/SubVendorChecklist';
 import SubVendorChecklistHistory from './pages/SubVendorChecklistHistory';
 import SignUpPage from './pages/SignUpPage';
+import DesignTeamWorkflow from './pages/DesignTeamWorkflow';
 import { MessageProvider } from './context/MessageContext';
 
 function App() {
@@ -94,6 +95,7 @@ function App() {
             </Route>
             <Route path="/sub-vendor-checklist" element={<ProtectedRoute module="sub_vendor_checklist"><SubVendorChecklist /></ProtectedRoute>} />
             <Route path="/sub-vendor-checklist/history" element={<ProtectedRoute module="sub_vendor_checklist"><SubVendorChecklistHistory /></ProtectedRoute>} />
+            <Route path="/design-team" element={<ProtectedRoute module="design_team_workflow"><DesignTeamWorkflow /></ProtectedRoute>} />
           </Routes>
 
         </Router>

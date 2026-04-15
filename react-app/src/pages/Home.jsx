@@ -153,6 +153,14 @@ const Home = () => {
                         <p className={styles.cardText}>Create and manage detailed sub-vendor agreements and project checklists.</p>
                     </Link>
                 )}
+
+                {hasPermission('design_team_workflow') && (
+                    <Link to="/design-team" className={styles.navCard}>
+                        <div className={styles.icon}><span role="img" aria-label="design">🖌️</span></div>
+                        <h3 className={styles.cardTitle}>Design Team</h3>
+                        <p className={styles.cardText}>Track 11-day design phase workflows, assignments, and approvals.</p>
+                    </Link>
+                )}
             </div>
 
             <footer className={styles.footer}>

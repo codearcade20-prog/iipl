@@ -2472,6 +2472,16 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                 <span className={styles.receiptBalanceValue}>{formatCurrency(balance)}</span>
                             </div>
 
+                            {wo.remarks && (
+                                <>
+                                    <div className={styles.receiptDivider}></div>
+                                    <div className={styles.receiptSection}>
+                                        <div className={styles.receiptLabel}>Remarks</div>
+                                        <div className={styles.receiptValue} style={{ fontStyle: 'italic', color: '#64748b' }}>{wo.remarks}</div>
+                                    </div>
+                                </>
+                            )}
+
                             <div className={styles.receiptHistorySection}>
                                 <h4 className={styles.receiptHistoryTitle}>PAYMENT HISTORY</h4>
                                 {advancesList.length > 0 ? (
@@ -2855,6 +2865,9 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                         <div>
                             <h3 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Detailed Payment History</h3>
                             <p style={{ fontSize: '0.85rem', color: '#64748b' }}>{entry.vendor_name} | {entry.site_name} | {entry.wo_no}</p>
+                            {entry.remarks && (
+                                <p style={{ fontSize: '0.85rem', color: '#475569', fontStyle: 'italic', marginTop: '4px' }}>Remarks: {entry.remarks}</p>
+                            )}
                         </div>
                         <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center' }} className="no-print-history">
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

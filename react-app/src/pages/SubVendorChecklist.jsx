@@ -412,7 +412,7 @@ const SubVendorChecklist = () => {
                             <span className={styles.printValue}>{form.nature_of_work}</span>
                         </div>
                     </div>
-                    <div className={styles.gridRow}>
+                    <div className={`${styles.gridRow} ${styles.noPrint}`}>
                         <div className={styles.label}>Select Vendor (Autofill)</div>
                         <div className={styles.value}>
                             <div className={styles.inputWrapper}>

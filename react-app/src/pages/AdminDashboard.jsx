@@ -2346,7 +2346,8 @@ const AdminDashboard = () => {
                                                         { id: 'project_status', label: 'Project Status' },
                                                         { id: 'overview', label: 'Project Overview' },
                                                         { id: 'workorders', label: 'Work Orders' },
-                                                        { id: 'sub_vendor_checklist', label: 'Sub Vendor Checklist' }
+                                                        { id: 'sub_vendor_checklist', label: 'Sub Vendor Checklist' },
+                                                        { id: 'design_team_workflow', label: 'Design Team Workflow' }
                                                     ]
                                                 },
                                                 {
