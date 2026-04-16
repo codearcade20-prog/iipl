@@ -333,7 +333,7 @@ const WagesPage = () => {
         try {
             const { data, error } = await supabase
                 .from('labor_attendance_wages')
-                .select('id, labor_id, site_id, time_in, time_out, attendance_value, wages_amount, remarks, payment_status, subcontractor_id, wage_category')
+                .select('id, labor_id, site_id, time_in, time_out, attendance_value, calculated_attendance_value, wages_amount, raw_wages_amount, remarks, payment_status, subcontractor_id, wage_category')
                 .eq('work_date', selectedDate);
 
             if (error) throw error;
@@ -355,8 +355,9 @@ const WagesPage = () => {
                     lookup[rec.labor_id] = {
                         time_in: rec.time_in || '',
                         time_out: rec.time_out || '',
+                        calc_attn_val: rec.calculated_attendance_value != null ? rec.calculated_attendance_value : calculateAttendanceValue(rec.time_in, rec.time_out),
                         attn_val: rec.attendance_value || 0,
-                        actual_wages: parseFloat((rec.attendance_value * dailyRate).toFixed(2)),
+                        actual_wages: rec.raw_wages_amount != null ? rec.raw_wages_amount : parseFloat(((rec.attendance_value || 0) * dailyRate).toFixed(2)),
                         wages: rec.wages_amount,
                         remarks: rec.remarks,
                         id: rec.id
@@ -422,9 +423,17 @@ const WagesPage = () => {
 
             // Re-calculate attendance value if times change
             if (field === 'time_in' || field === 'time_out') {
-                updated.attn_val = calculateAttendanceValue(updated.time_in, updated.time_out);
+                const newVal = calculateAttendanceValue(updated.time_in, updated.time_out);
+                updated.calc_attn_val = newVal;
+                updated.attn_val = newVal;
 
                 // Auto-calculate wages based on attendance value
+                const dailyRate = labors.find(l => l.id === laborId)?.daily_rate || 0;
+                updated.actual_wages = parseFloat((updated.attn_val * dailyRate).toFixed(2));
+                updated.wages = customRound(updated.actual_wages);
+            } else if (field === 'attn_val') {
+                updated.attn_val = parseFloat(value) || 0;
+                // Auto-calculate wages based on manual attendance value
                 const dailyRate = labors.find(l => l.id === laborId)?.daily_rate || 0;
                 updated.actual_wages = parseFloat((updated.attn_val * dailyRate).toFixed(2));
                 updated.wages = customRound(updated.actual_wages);
@@ -457,7 +466,9 @@ const WagesPage = () => {
                     time_in: entry.time_in || null,
                     time_out: entry.time_out || null,
                     attendance_value: entry.attn_val || 0,
+                    calculated_attendance_value: entry.calc_attn_val !== undefined ? entry.calc_attn_val : calculateAttendanceValue(entry.time_in, entry.time_out),
                     wages_amount: parseFloat(entry.wages) || 0,
+                    raw_wages_amount: parseFloat(entry.actual_wages) || 0,
                     remarks: entry.remarks || '',
                     wage_category: selectedCategory,
                     payment_week: selectedDate
@@ -700,6 +711,14 @@ const WagesPage = () => {
                 
                 updated[idx].new_actual_wages = parseFloat((updated[idx].new_attn_val * dailyRate).toFixed(2));
                 updated[idx].new_wages = customRound(updated[idx].new_actual_wages);
+            } else if (field === 'new_attn_val') {
+                updated[idx].new_attn_val = parseFloat(value) || 0;
+                
+                const laborObj = labors.find(l => l.id === record.labor_id);
+                const dailyRate = laborObj?.daily_rate || 0;
+                
+                updated[idx].new_actual_wages = parseFloat((updated[idx].new_attn_val * dailyRate).toFixed(2));
+                updated[idx].new_wages = customRound(updated[idx].new_actual_wages);
             }
             return updated;
         });
@@ -713,7 +732,9 @@ const WagesPage = () => {
                     time_in: r.new_time_in,
                     time_out: r.new_time_out,
                     attendance_value: r.new_attn_val,
+                    calculated_attendance_value: calculateAttendanceValue(r.new_time_in, r.new_time_out),
                     wages_amount: parseFloat(r.new_wages) || 0,
+                    raw_wages_amount: parseFloat(r.new_actual_wages) || 0,
                     remarks: r.new_remarks,
                     wage_category: r.new_category
                 }).eq('id', r.id)
@@ -796,7 +817,7 @@ const WagesPage = () => {
                                 <tr>
                                     <th style={{ paddingLeft: '24px' }}>Worker Details</th>
                                     <th>Attendance Hours</th>
-                                    <th style={{ textAlign: 'center' }}>Units</th>
+                                    <th style={{ textAlign: 'center' }}>Units (Calc / Edit)</th>
                                     <th>Raw Wage</th>
                                     <th>Rounded Wage</th>
                                     <th style={{ paddingRight: '24px' }}>Remarks</th>
@@ -841,7 +862,21 @@ const WagesPage = () => {
                                                 </div>
                                             </td>
                                             <td style={{ textAlign: 'center' }}>
-                                                <span className={styles.attnUnit}>{entry.attn_val}</span>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
+                                                    <span style={{ color: '#64748b', fontSize: '0.85rem' }} title="Calculated Units">
+                                                        {(entry.calc_attn_val !== undefined ? entry.calc_attn_val : calculateAttendanceValue(entry.time_in, entry.time_out)).toFixed(2)}
+                                                    </span>
+                                                    <input
+                                                        type="number"
+                                                        step="0.01"
+                                                        min="0"
+                                                        className={styles.minimalInput}
+                                                        style={{ width: '60px', padding: '6px', textAlign: 'center', fontWeight: 'bold', backgroundColor: '#f1f5f9', borderRadius: '4px' }}
+                                                        value={entry.attn_val}
+                                                        onChange={(e) => handleAttendanceChange(l.id, 'attn_val', e.target.value)}
+                                                        title="Final Edited Units"
+                                                    />
+                                                </div>
                                             </td>
                                             <td>
                                                 <div className={styles.wageValue}>
@@ -1255,6 +1290,123 @@ const WagesPage = () => {
             doc.close();
         };
 
+        const uniqueLabors = [...new Set(filteredData.map(r => r.labor_id))];
+        const isSingleLabor = uniqueLabors.length === 1;
+        const matchedLaborObj = isSingleLabor ? labors.find(l => l.id === uniqueLabors[0]) : null;
+
+        const printLaborStatement = (laborObj) => {
+            if (!laborObj) return;
+            const iframe = document.createElement('iframe');
+            iframe.style.position = 'fixed';
+            iframe.style.right = '0';
+            iframe.style.bottom = '0';
+            iframe.style.width = '0';
+            iframe.style.height = '0';
+            iframe.style.border = '0';
+            document.body.appendChild(iframe);
+
+            const doc = iframe.contentWindow.document;
+            doc.open();
+            doc.write(`
+                <html>
+                    <head>
+                        <title>Labor Statement: ${laborObj.name}</title>
+                        <style>
+                            @page { size: portrait; margin: 15mm; }
+                            body { font-family: 'Outfit', sans-serif; padding: 10px; color: #0f172a; margin: 0; }
+                            .header { display: flex; align-items: flex-start; justify-content: space-between; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 20px; margin-top: 10px; }
+                            .company-info h1 { margin: 0 0 5px 0; color: #1e3a8a; font-size: 26px; }
+                            .company-info p { margin: 0; color: #64748b; font-size: 14px; }
+                            .labor-info { display: flex; align-items: center; gap: 20px; background: #f8fafc; padding: 15px; border-radius: 12px; margin-bottom: 20px; }
+                            .labor-photo { width: 100px; height: 100px; object-fit: cover; border-radius: 8px; border: 2px solid #cbd5e1; }
+                            .labor-details h2 { margin: 0 0 8px 0; color: #0f172a; }
+                            .labor-details p { margin: 0 0 4px 0; font-size: 14px; color: #475569; }
+                            .statement-meta { text-align: right; margin-bottom: 20px; font-size: 14px; color: #475569; }
+                            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 12px; }
+                            th, td { border: 1px solid #e2e8f0; padding: 10px; }
+                            th { background: #f1f5f9; text-align: left; font-weight: 700; color: #475569; }
+                            .total-row td { font-weight: 800; background: #eff6ff; font-size: 14px; color: #1e3a8a; }
+                            .signatures { display: flex; justify-content: space-between; margin-top: 60px; padding-top: 20px; }
+                            .sig-box { text-align: center; border-top: 1px solid #cbd5e1; width: 220px; padding-top: 10px; font-weight: 600; color: #475569; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="header">
+                            <div class="company-info">
+                                <h1>Innovative Interiors Pvt Ltd</h1>
+                                <p>Official Labor Payment Statement</p>
+                            </div>
+                            <div style="text-align: right;">
+                                <h2 style="margin:0; color:#0f172a;">STATEMENT</h2>
+                                <p style="margin:5px 0 0 0; color:#64748b; font-size:12px;">Generated: ${new Date().toLocaleDateString('en-IN')}</p>
+                            </div>
+                        </div>
+
+                        <div class="statement-meta">
+                            <strong>Statement Period:</strong> ${new Date(reportStartDate).toLocaleDateString('en-GB')} to ${new Date(reportEndDate).toLocaleDateString('en-GB')}<br/>
+                        </div>
+
+                        <div class="labor-info">
+                            ${laborObj.photo_url ? `<img src="${getPhotoUrl(laborObj.photo_url)}" class="labor-photo" alt="Photo" />` : `<div class="labor-photo" style="background:#e2e8f0; display:flex; align-items:center; justify-content:center; color:#94a3b8; font-size:12px; text-align:center;">No Photo</div>`}
+                            <div class="labor-details">
+                                <h2>${laborObj.name}</h2>
+                                <p><strong>Contact:</strong> ${laborObj.phone || 'N/A'}</p>
+                                <p><strong>Subcontractor/Team:</strong> ${laborObj.subcontractors?.name || 'Independent'}</p>
+                                <p><strong>Role / Designation:</strong> ${laborObj.role || '-'} / ${laborObj.designation || '-'}</p>
+                                <p><strong>Daily Rate:</strong> ₹${laborObj.daily_rate}</p>
+                            </div>
+                        </div>
+
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="width: 40px;">#</th>
+                                    <th>Date</th>
+                                    <th>Site / Project</th>
+                                    <th>Time In</th>
+                                    <th>Time Out</th>
+                                    <th style="text-align: center;">Units</th>
+                                    <th style="text-align: right;">Amount (₹)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${filteredData.map((r, i) => `
+                                    <tr>
+                                        <td>${i + 1}</td>
+                                        <td>${new Date(r.work_date).toLocaleDateString('en-GB')}</td>
+                                        <td><strong>${r.sites?.name || '-'}</strong></td>
+                                        <td>${formatTime12h(r.time_in)}</td>
+                                        <td>${formatTime12h(r.time_out)}</td>
+                                        <td style="text-align: center;">${r.attendance_value}</td>
+                                        <td style="text-align: right;">₹${parseFloat(r.wages_amount).toLocaleString('en-IN')}</td>
+                                    </tr>
+                                `).join('')}
+                                <tr class="total-row">
+                                    <td colspan="6" style="text-align: right; text-transform: uppercase;">Total Payable Amount:</td>
+                                    <td style="text-align: right;">₹${filteredData.reduce((sum, r) => sum + (parseFloat(r.wages_amount) || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div class="signatures">
+                            <div class="sig-box">Labor Signature / Fingerprint</div>
+                            <div class="sig-box">Authorized Manager</div>
+                        </div>
+
+                        <script>
+                            window.onload = function() { 
+                                setTimeout(() => {
+                                    window.print(); 
+                                    setTimeout(() => { window.frameElement.remove(); }, 500); 
+                                }, 500);
+                            };
+                        </script>
+                    </body>
+                </html>
+            `);
+            doc.close();
+        };
+
         return (
             <div className={styles.card}>
                 <div className={styles.header} style={{ flexDirection: 'column', alignItems: 'stretch', gap: '20px' }}>
@@ -1308,9 +1460,14 @@ const WagesPage = () => {
                             </div>
                         </div>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                        {isSingleLabor && matchedLaborObj && (
+                            <Button onClick={() => printLaborStatement(matchedLaborObj)} style={{ background: '#0f172a', color: 'white', borderColor: '#0f172a' }}>
+                                <Printer size={16} style={{ marginRight: 8 }} /> Print Labor Statement (Bill)
+                            </Button>
+                        )}
                         <Button onClick={printSummary} variant="outline" size="sm">
-                            <Printer size={16} style={{ marginRight: 8 }} /> Print Analytics
+                            <Printer size={16} style={{ marginRight: 8 }} /> Print Analytics (All)
                         </Button>
                     </div>
                 </div>
@@ -1442,6 +1599,7 @@ const WagesPage = () => {
                                             <th>Date</th>
                                             <th>Category</th>
                                             <th>Hours (In - Out)</th>
+                                            <th style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>Units (Calc / Edit)</th>
                                             <th style={{ whiteSpace: 'nowrap' }}>Actual (₹)</th>
                                             <th style={{ whiteSpace: 'nowrap' }}>Rounded (₹)</th>
                                             <th>Remarks</th>
@@ -1467,6 +1625,23 @@ const WagesPage = () => {
                                                         <TimePicker className={styles.input} value={r.new_time_in} onChange={val => handleCorrectionChange(idx, 'new_time_in', val)} />
                                                         <span>to</span>
                                                         <TimePicker className={styles.input} value={r.new_time_out} onChange={val => handleCorrectionChange(idx, 'new_time_out', val)} />
+                                                    </div>
+                                                </td>
+                                                <td style={{ textAlign: 'center' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
+                                                        <span style={{ color: '#64748b', fontSize: '0.85rem' }} title="Calculated Units">
+                                                            {calculateAttendanceValue(r.new_time_in, r.new_time_out).toFixed(2)}
+                                                        </span>
+                                                        <input
+                                                            type="number"
+                                                            step="0.01"
+                                                            min="0"
+                                                            className={styles.input}
+                                                            style={{ width: '60px', padding: '6px', textAlign: 'center', fontWeight: 'bold' }}
+                                                            value={r.new_attn_val}
+                                                            onChange={(e) => handleCorrectionChange(idx, 'new_attn_val', e.target.value)}
+                                                            title="Final Edited Units"
+                                                        />
                                                     </div>
                                                 </td>
                                                 <td>
