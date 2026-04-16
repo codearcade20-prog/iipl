@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useMessage } from '../context/MessageContext';
-import { Clock, CheckSquare, Save, AlertTriangle } from 'lucide-react';
+import { Clock, CheckSquare, Save, AlertTriangle, TableProperties, FileText, Printer, Search, Download } from 'lucide-react';
 import LoadingScreen from '../components/LoadingScreen';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import styles from './DesignTeamWorkflow.module.css';
 
 const DEFAULT_STATE = {
@@ -24,6 +26,77 @@ const DesignTeamWorkflow = () => {
     const [workflow, setWorkflow] = useState(JSON.parse(JSON.stringify(DEFAULT_STATE)));
     const [elapsedDays, setElapsedDays] = useState(0);
 
+    const [viewMode, setViewMode] = useState('single');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [allWorkflows, setAllWorkflows] = useState([]);
+
+    const fetchMasterData = async (projectsData) => {
+        try {
+            const { data, error } = await supabase.from('design_workflow').select('*');
+            if (error) throw error;
+            
+            const enrichWorkflow = (workflowItem) => {
+                const project = projectsData.find(p => p.id === workflowItem.project_id);
+                let diffDays = 0;
+                let start_date = null;
+                if (project && project.start_date) {
+                    start_date = project.start_date;
+                    const start = new Date(project.start_date);
+                    const now = new Date();
+                    diffDays = Math.ceil(Math.abs(now - start) / (1000 * 60 * 60 * 24));
+                }
+                
+                const calculateProgressForSteps = () => {
+                    const steps = [
+                        workflowItem.step_1_concept, workflowItem.step_2_development,
+                        workflowItem.step_3_material, workflowItem.step_4_production,
+                        workflowItem.step_5_installation
+                    ];
+                    let totalScore = 0; let totalKeys = 0;
+                    steps.forEach(stepObj => {
+                        if (!stepObj) return;
+                        const keys = Object.keys(stepObj);
+                        totalKeys += keys.length;
+                        keys.forEach(k => {
+                            if (stepObj[k] === true || stepObj[k] === 'completed') totalScore += 100;
+                            else if (stepObj[k] === 'process') totalScore += 50;
+                        });
+                    });
+                    return totalKeys ? Math.round(totalScore / totalKeys) : 0;
+                };
+
+                const calcStepProgress = (stepObj) => {
+                    if (!stepObj) return 0;
+                    const keys = Object.keys(stepObj);
+                    let score = 0;
+                    keys.forEach(k => {
+                        if (stepObj[k] === true || stepObj[k] === 'completed') score += 100;
+                        else if (stepObj[k] === 'process') score += 50;
+                    });
+                    return keys.length ? Math.round(score / keys.length) : 0;
+                };
+
+                return {
+                    ...workflowItem,
+                    project_name: project ? project.name : 'Unknown Project',
+                    start_date: start_date,
+                    elapsedDays: diffDays,
+                    overallProgress: calculateProgressForSteps(),
+                    p1: calcStepProgress(workflowItem.step_1_concept),
+                    p2: calcStepProgress(workflowItem.step_2_development),
+                    p3: calcStepProgress(workflowItem.step_3_material),
+                    p4: calcStepProgress(workflowItem.step_4_production),
+                    p5: calcStepProgress(workflowItem.step_5_installation)
+                };
+            };
+            
+            const processed = data ? data.map(enrichWorkflow) : [];
+            setAllWorkflows(processed.sort((a,b) => b.overallProgress - a.overallProgress));
+        } catch (error) {
+            console.error("Error fetching master data:", error);
+        }
+    };
+
     // Initial Fetch (Projects)
     useEffect(() => {
         const fetchProjects = async () => {
@@ -32,6 +105,7 @@ const DesignTeamWorkflow = () => {
                 const { data, error } = await supabase.from('projects').select('id, name, start_date').order('name');
                 if (error) throw error;
                 setProjects(data || []);
+                await fetchMasterData(data || []);
             } catch (err) {
                 console.error("Error fetching projects:", err);
                 alert("Failed to load projects.");
@@ -194,6 +268,39 @@ const DesignTeamWorkflow = () => {
         return styles.timerRed;
     };
 
+    const handleExportPDF = () => {
+        const doc = new jsPDF('landscape');
+        doc.setFontSize(16);
+        doc.text('Design Team Workflow Master View', 14, 15);
+        
+        const tableColumn = ["Project Name", "Start Date", "Days", "Phase 1", "Phase 2", "Phase 3", "Phase 4", "Phase 5", "Overall"];
+        
+        const filteredWorkflows = allWorkflows.filter(w => w.project_name.toLowerCase().includes(searchQuery.toLowerCase()));
+        
+        const tableRows = filteredWorkflows.map(w => [
+            w.project_name,
+            w.start_date || 'N/A',
+            `${w.elapsedDays}d`,
+            `${w.p1}%`,
+            `${w.p2}%`,
+            `${w.p3}%`,
+            `${w.p4}%`,
+            `${w.p5}%`,
+            `${w.overallProgress}%`
+        ]);
+
+        autoTable(doc, {
+            head: [tableColumn],
+            body: tableRows,
+            startY: 20,
+            styles: { fontSize: 10 },
+            headStyles: { fillColor: [37, 99, 235] }
+        });
+
+        doc.save('design_workflow.pdf');
+        toast("Download started!");
+    };
+
     if (loading && !projects.length) return <LoadingScreen message="Loading Design Module..." />;
 
     // Security Check: MD role should not access
@@ -229,13 +336,33 @@ const DesignTeamWorkflow = () => {
             </header>
 
             <div className={styles.card}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
-                    <select 
-                        className={styles.projectSelect} 
-                        value={selectedProject} 
-                        onChange={e => setSelectedProject(e.target.value)}
-                        style={{ marginBottom: 0 }}
+                <div className={`${styles.viewToggleContainer} printHide`}>
+                    <button 
+                        className={`${styles.viewToggleBtn} ${viewMode === 'single' ? styles.viewToggleBtnActive : ''}`}
+                        onClick={() => setViewMode('single')}
                     >
+                        <CheckSquare size={16} /> Detailed View
+                    </button>
+                    <button 
+                        className={`${styles.viewToggleBtn} ${viewMode === 'master' ? styles.viewToggleBtnActive : ''}`}
+                        onClick={() => {
+                            setViewMode('master');
+                            fetchMasterData(projects);
+                        }}
+                    >
+                        <TableProperties size={16} /> Master View
+                    </button>
+                </div>
+
+                {viewMode === 'single' && (
+                  <>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+                        <select 
+                            className={styles.projectSelect} 
+                            value={selectedProject} 
+                            onChange={e => setSelectedProject(e.target.value)}
+                            style={{ marginBottom: 0 }}
+                        >
                         <option value="">-- Select Project --</option>
                         {projects.map(p => (
                             <option key={p.id} value={p.id}>{p.name}</option>
@@ -425,6 +552,84 @@ const DesignTeamWorkflow = () => {
                             {loading ? 'Saving...' : 'Save Progress'}
                         </button>
                     </div>
+                )}
+                  </>
+                )}
+
+                {viewMode === 'master' && (
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }} className="printHide">
+                        <div className={styles.searchBar}>
+                            <Search size={18} color="#94a3b8" />
+                            <input
+                                type="text"
+                                placeholder="Search by project name..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                        </div>
+                        <button 
+                            className={`${styles.viewToggleBtn} ${styles.printBtn}`} 
+                            onClick={handleExportPDF}
+                        >
+                            <Download size={16} /> Export PDF
+                        </button>
+                    </div>
+
+                    <div className={styles.tableWrapper}>
+                        <table className={styles.table}>
+                            <thead>
+                                <tr>
+                                    <th>Project Name</th>
+                                    <th>Start Date</th>
+                                    <th>Days</th>
+                                    <th>Phase 1</th>
+                                    <th>Phase 2</th>
+                                    <th>Phase 3</th>
+                                    <th>Phase 4</th>
+                                    <th>Phase 5</th>
+                                    <th>Overall</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {allWorkflows
+                                    .filter(w => w.project_name.toLowerCase().includes(searchQuery.toLowerCase()))
+                                    .map(w => (
+                                    <tr key={w.project_id}>
+                                        <td style={{ fontWeight: 600 }}>{w.project_name}</td>
+                                        <td>{w.start_date || 'N/A'}</td>
+                                        <td>
+                                            <span style={{ 
+                                                color: w.elapsedDays > 11 ? '#dc2626' : (w.elapsedDays > 7 ? '#d97706' : '#16a34a'),
+                                                fontWeight: 'bold'
+                                            }}>
+                                                {w.elapsedDays}d
+                                            </span>
+                                        </td>
+                                        <td>{w.p1}%</td>
+                                        <td>{w.p2}%</td>
+                                        <td>{w.p3}%</td>
+                                        <td>{w.p4}%</td>
+                                        <td>{w.p5}%</td>
+                                        <td>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <div style={{ flex: 1, backgroundColor: '#e2e8f0', height: '6px', borderRadius: '4px' }}>
+                                                    <div style={{ width: `${w.overallProgress}%`, backgroundColor: '#3b82f6', height: '100%', borderRadius: '4px' }}></div>
+                                                </div>
+                                                <span style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>{w.overallProgress}%</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {allWorkflows.length === 0 && (
+                                    <tr>
+                                        <td colSpan="9" style={{ textAlign: 'center', padding: '2rem' }}>No progression data found</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                  </div>
                 )}
             </div>
         </div>

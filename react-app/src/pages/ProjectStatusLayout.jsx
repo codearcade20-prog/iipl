@@ -1,13 +1,13 @@
 import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, FilePlus, ClipboardCheck, ArrowLeft, UserCog, Briefcase, HardHat } from 'lucide-react';
+import { LayoutDashboard, FilePlus, ClipboardCheck, ArrowLeft, UserCog, Briefcase, HardHat, ListChecks } from 'lucide-react';
 import styles from './ProjectStatusLayout.module.css';
 
 const ProjectStatusLayout = () => {
     const location = useLocation();
 
     // Determine the active module title and icon based on the current path
-    const isEntry = location.pathname.includes('/entry') || location.pathname.includes('/personnel');
+    const isEntry = location.pathname.includes('/entry') || location.pathname.includes('/personnel') || location.pathname.includes('/finishes');
     const isUpdate = location.pathname.includes('/update');
     
     const moduleInfo = {
@@ -20,6 +20,7 @@ const ProjectStatusLayout = () => {
         { to: '/project-status/personnel/coordinator', icon: <UserCog size={18} />, label: 'Coordinators' },
         { to: '/project-status/personnel/designer', icon: <Briefcase size={18} />, label: 'Designers' },
         { to: '/project-status/personnel/site-engineer', icon: <HardHat size={18} />, label: 'Site Engineers' },
+        { to: '/project-status/finishes', icon: <ListChecks size={18} />, label: 'Finishes List' },
     ];
 
     return (

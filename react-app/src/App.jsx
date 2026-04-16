@@ -41,6 +41,7 @@ import SubVendorChecklist from './pages/SubVendorChecklist';
 import SubVendorChecklistHistory from './pages/SubVendorChecklistHistory';
 import SignUpPage from './pages/SignUpPage';
 import DesignTeamWorkflow from './pages/DesignTeamWorkflow';
+import FinishesList from './pages/FinishesList';
 import { MessageProvider } from './context/MessageContext';
 
 function App() {
@@ -92,6 +93,7 @@ function App() {
               <Route path="entry" element={<ProtectedRoute module="project_entry"><ProjectEntry /></ProtectedRoute>} />
               <Route path="update" element={<ProtectedRoute module="project_status"><ProjectStatusUpdate /></ProtectedRoute>} />
               <Route path="personnel/:role" element={<ProtectedRoute module="project_entry"><ProjectPersonnel /></ProtectedRoute>} />
+              <Route path="finishes" element={<ProtectedRoute module="project_entry"><FinishesList /></ProtectedRoute>} />
             </Route>
             <Route path="/sub-vendor-checklist" element={<ProtectedRoute module="sub_vendor_checklist"><SubVendorChecklist /></ProtectedRoute>} />
             <Route path="/sub-vendor-checklist/history" element={<ProtectedRoute module="sub_vendor_checklist"><SubVendorChecklistHistory /></ProtectedRoute>} />

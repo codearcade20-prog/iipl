@@ -263,3 +263,119 @@
         grid-template-columns: 1fr;
     }
 }
+
+.tableWrapper {
+    overflow-x: auto;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    margin-bottom: 2rem;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 800px;
+}
+
+.table th {
+    background-color: #f1f5f9;
+    color: #475569;
+    font-weight: 600;
+    text-align: left;
+    padding: 1rem;
+    font-size: 0.9rem;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.table td {
+    padding: 1rem;
+    border-bottom: 1px solid #e2e8f0;
+    color: #334155;
+    font-size: 0.95rem;
+}
+
+.table tbody tr:hover {
+    background-color: #f8fafc;
+}
+
+.searchBar {
+    display: flex;
+    align-items: center;
+    background: white;
+    border: 1px solid #e2e8f0;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    width: 300px;
+    margin-right: 1rem;
+}
+
+.searchBar input {
+    border: none;
+    outline: none;
+    width: 100%;
+    margin-left: 0.5rem;
+    font-size: 0.95rem;
+}
+
+.viewToggleContainer {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.viewToggleBtn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid #e2e8f0;
+    background: white;
+    color: #64748b;
+}
+
+.viewToggleBtnActive {
+    background: #eef2ff;
+    color: #4f46e5;
+    border-color: #4f46e5;
+}
+
+.printBtn {
+    background: #10b981;
+    color: white;
+    border: none;
+}
+
+.printBtn:hover {
+    background: #059669;
+}
+
+@media print {
+    .printHide {
+        display: none !important;
+    }
+    
+    .container {
+        padding: 0 !important;
+        margin: 0 !important;
+        max-width: 100% !important;
+        box-shadow: none !important;
+    }
+
+    body {
+        background-color: white !important;
+    }
+
+    .tableWrapper {
+        box-shadow: none;
+    }
+    
+    .table th {
+        background-color: #f1f5f9 !important;
+        -webkit-print-color-adjust: exact;
+    }
+}
