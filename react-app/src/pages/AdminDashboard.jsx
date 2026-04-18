@@ -10,6 +10,7 @@ import TemplateModal from '../components/TemplateModal';
 import { useMessage } from '../context/MessageContext';
 import { formatDate } from '../utils';
 import SignatureImage from '../components/SignatureImage';
+import VendorPrintTemplate from '../components/VendorPrintTemplate';
 
 
 const AdminDashboard = () => {
@@ -29,9 +30,9 @@ const AdminDashboard = () => {
 
     // --- VENDORS STATE ---
     const [vendors, setVendors] = useState([]);
-    // eslint-disable-next-line
     const [loadingVendors, setLoadingVendors] = useState(false);
     const [vendorModalOpen, setVendorModalOpen] = useState(false);
+    const [printVendor, setPrintVendor] = useState(null);
     const [editingVendorId, setEditingVendorId] = useState(null);
     const [vendorForm, setVendorForm] = useState({
         name: '', holderName: '', pan: '', phone: '', address: '', acc: '', bank: '', ifsc: '', vendorType: 'both',
@@ -1561,6 +1562,7 @@ const AdminDashboard = () => {
                                             <td style={{ fontFamily: 'monospace' }}>{v.account_number}</td>
                                             <td>
                                                 <div className={styles.actions}>
+                                                    <Button variant="outline" style={{ padding: '4px 8px', fontSize: '0.8rem', marginRight: '6px', borderColor: 'var(--primary)', color: 'var(--primary)' }} onClick={() => setPrintVendor(v)}>Share</Button>
                                                     <Button variant="secondary" style={{ padding: '4px 8px', fontSize: '0.8rem' }} onClick={() => openVendorModal(v)}>Edit</Button>
                                                     <Button variant="danger" style={{ padding: '4px 8px', fontSize: '0.8rem' }} onClick={() => deleteVendor(v.id)}>Del</Button>
                                                 </div>
@@ -2036,9 +2038,9 @@ const AdminDashboard = () => {
                         <div className={styles.modalContent}>
                             <h3 className={styles.modalTitle}>{editingVendorId ? 'Edit Vendor' : 'Add Vendor'}</h3>
                             <div className="flex flex-col gap-3">
-                                <Input placeholder="Vendor Name" value={vendorForm.name} onChange={e => setVendorForm({ ...vendorForm, name: e.target.value })} />
-                                <Input placeholder="Vendor Company Name" value={vendorForm.vendorCompany} onChange={e => setVendorForm({ ...vendorForm, vendorCompany: e.target.value })} />
-                                <Input placeholder="Account Holder Name" value={vendorForm.holderName} onChange={e => setVendorForm({ ...vendorForm, holderName: e.target.value })} />
+                                <Input label="Vendor Name" value={vendorForm.name} onChange={e => setVendorForm({ ...vendorForm, name: e.target.value })} />
+                                <Input label="Vendor Company Name" value={vendorForm.vendorCompany} onChange={e => setVendorForm({ ...vendorForm, vendorCompany: e.target.value })} />
+                                <Input label="Account Holder Name" value={vendorForm.holderName} onChange={e => setVendorForm({ ...vendorForm, holderName: e.target.value })} />
                                 <div style={{ marginBottom: '12px' }}>
                                     <label style={{ display: 'block', marginBottom: '6px', fontWeight: 500, fontSize: '0.9rem' }}>Vendor Type</label>
                                     <select
@@ -2053,20 +2055,20 @@ const AdminDashboard = () => {
                                     </select>
                                 </div>
                                 <div className={styles.formGrid}>
-                                    <Input placeholder="PAN Number" value={vendorForm.pan} onChange={e => setVendorForm({ ...vendorForm, pan: e.target.value })} />
-                                    <Input placeholder="GST Number" value={vendorForm.gst} onChange={e => setVendorForm({ ...vendorForm, gst: e.target.value })} />
+                                    <Input label="PAN Number" value={vendorForm.pan} onChange={e => setVendorForm({ ...vendorForm, pan: e.target.value })} />
+                                    <Input label="GST Number" value={vendorForm.gst} onChange={e => setVendorForm({ ...vendorForm, gst: e.target.value })} />
                                 </div>
                                 <div className={styles.formGrid}>
-                                    <Input placeholder="Aadhaar Number" value={vendorForm.aadhaar} onChange={e => setVendorForm({ ...vendorForm, aadhaar: e.target.value })} />
-                                    <Input placeholder="Phone Number" value={vendorForm.phone} onChange={e => setVendorForm({ ...vendorForm, phone: e.target.value })} />
+                                    <Input label="Aadhaar Number" value={vendorForm.aadhaar} onChange={e => setVendorForm({ ...vendorForm, aadhaar: e.target.value })} />
+                                    <Input label="Phone Number" value={vendorForm.phone} onChange={e => setVendorForm({ ...vendorForm, phone: e.target.value })} />
                                 </div>
-                                <Input placeholder="Address" multiline={true} rows={3} value={vendorForm.address} onChange={e => setVendorForm({ ...vendorForm, address: e.target.value })} />
-                                <Input placeholder="Account Number" value={vendorForm.acc} onChange={e => setVendorForm({ ...vendorForm, acc: e.target.value })} />
+                                <Input label="Address" multiline={true} rows={3} value={vendorForm.address} onChange={e => setVendorForm({ ...vendorForm, address: e.target.value })} />
+                                <Input label="Account Number" value={vendorForm.acc} onChange={e => setVendorForm({ ...vendorForm, acc: e.target.value })} />
                                 <div className={styles.formGrid}>
-                                    <Input placeholder="Bank Name" value={vendorForm.bank} onChange={e => setVendorForm({ ...vendorForm, bank: e.target.value })} />
-                                    <Input placeholder="Bank Branch" value={vendorForm.bankBranch} onChange={e => setVendorForm({ ...vendorForm, bankBranch: e.target.value })} />
+                                    <Input label="Bank Name" value={vendorForm.bank} onChange={e => setVendorForm({ ...vendorForm, bank: e.target.value })} />
+                                    <Input label="Bank Branch" value={vendorForm.bankBranch} onChange={e => setVendorForm({ ...vendorForm, bankBranch: e.target.value })} />
                                 </div>
-                                <Input placeholder="IFSC Code" value={vendorForm.ifsc} onChange={e => setVendorForm({ ...vendorForm, ifsc: e.target.value })} />
+                                <Input label="IFSC Code" value={vendorForm.ifsc} onChange={e => setVendorForm({ ...vendorForm, ifsc: e.target.value })} />
                             </div>
                             <div className={styles.modalActions}>
                                 <Button variant="secondary" onClick={() => setVendorModalOpen(false)}>Cancel</Button>
@@ -2431,6 +2433,12 @@ const AdminDashboard = () => {
                 <TemplateModal
                     record={viewItem}
                     onClose={() => setViewItem(null)}
+                />
+            )}
+            {printVendor && (
+                <VendorPrintTemplate
+                    vendor={printVendor}
+                    onClose={() => setPrintVendor(null)}
                 />
             )}
         </div >

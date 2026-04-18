@@ -266,6 +266,7 @@ const WagesPage = () => {
     const [searchCategoryReport, setSearchCategoryReport] = useState('All');
     const [searchSubcontractorReport, setSearchSubcontractorReport] = useState('All');
     const [showRawData, setShowRawData] = useState(false);
+    const [searchPaymentLabor, setSearchPaymentLabor] = useState('');
 
 
     // Correction Modal States
@@ -278,6 +279,8 @@ const WagesPage = () => {
     const [showPermissionGuide, setShowPermissionGuide] = useState(false);
 
     useEffect(() => {
+        window.scrollTo(0, 0);
+        
         const hasSeen = localStorage.getItem('iipl_photo_permission_v1');
         if (!hasSeen) {
             // Show guide after a small delay for a smooth entrance
@@ -624,7 +627,7 @@ const WagesPage = () => {
             data.forEach(rec => {
                 const lid = rec.labor_id;
                 if (!grouped[lid]) {
-                    grouped[lid] = { name: rec.labors?.name || 'Unknown', phone: rec.labors?.phone || '-', total_wages: 0, days_present: 0, records: [], status: 'Paid' };
+                    grouped[lid] = { labor_id: lid, name: rec.labors?.name || 'Unknown', phone: rec.labors?.phone || '-', total_wages: 0, days_present: 0, records: [], status: 'Paid' };
                 }
                 grouped[lid].total_wages += parseFloat(rec.wages_amount) || 0;
                 if (rec.attendance !== 'Absent') grouped[lid].days_present += (rec.attendance === 'Half Day' ? 0.5 : 1);
@@ -1161,10 +1164,31 @@ const WagesPage = () => {
         );
     };
 
-    const renderReports = () => (
+    const renderReports = () => {
+        const filteredReports = weeklyReports.filter(r => 
+            r.name.toLowerCase().includes(searchPaymentLabor.toLowerCase()) || 
+            r.phone?.toLowerCase().includes(searchPaymentLabor.toLowerCase())
+        );
+
+        return (
         <div className={styles.card}>
             <div className={styles.header} style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', borderRadius: '12px 12px 0 0', padding: '20px' }}>
-                <div className={styles.filterMenuBar} style={{ margin: 0, width: '100%', maxWidth: '500px' }}>
+                <div className={styles.filterMenuBar} style={{ margin: 0, width: '100%', maxWidth: '800px' }}>
+                    <div className={styles.filterMenuItem}>
+                        <label className={styles.filterMenuItemLabel}>Search Labor</label>
+                        <div style={{ position: 'relative' }}>
+                            <input
+                                type="text"
+                                className={styles.filterMenuInput}
+                                placeholder="Type name or phone..."
+                                value={searchPaymentLabor}
+                                onChange={e => setSearchPaymentLabor(e.target.value)}
+                                style={{ paddingLeft: '24px' }}
+                            />
+                            <Search size={14} style={{ position: 'absolute', left: '2px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                        </div>
+                    </div>
+                    <div className={styles.filterMenuDivider}></div>
                     <div className={styles.filterMenuItem}>
                         <label className={styles.filterMenuItemLabel}>Period Selection</label>
                         <div className={styles.dateFilterGroup}>
@@ -1187,10 +1211,35 @@ const WagesPage = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {weeklyReports.map((r, i) => (
+                        {filteredReports.map((r, i) => {
+                            const laborObj = labors.find(l => l.id === r.labor_id);
+                            return (
                             <tr key={i}>
                                 <td>
-                                    <div className={styles.strong}>{r.name}</div>
+                                    <div 
+                                        className={styles.strong}
+                                        style={{ cursor: 'pointer', display: 'inline-block' }}
+                                        onMouseEnter={(e) => {
+                                            if (laborObj) {
+                                                setHoveredLabor(laborObj);
+                                                setMousePos({ x: e.clientX, y: e.clientY });
+                                            }
+                                        }}
+                                        onMouseMove={(e) => {
+                                            setMousePos({ x: e.clientX, y: e.clientY });
+                                        }}
+                                        onMouseLeave={() => setHoveredLabor(null)}
+                                        onTouchStart={(e) => {
+                                            if (hoveredLabor?.id === laborObj?.id) setHoveredLabor(null);
+                                            else if (laborObj) {
+                                                setHoveredLabor(laborObj);
+                                                const touch = e.touches[0];
+                                                setMousePos({ x: touch.clientX, y: touch.clientY });
+                                            }
+                                        }}
+                                    >
+                                        {r.name}
+                                    </div>
                                     <div className={styles.muted}>{r.phone}</div>
                                 </td>
                                 <td>
@@ -1222,11 +1271,12 @@ const WagesPage = () => {
                                     </div>
                                 </td>
                             </tr>
-                        ))}
-                        {weeklyReports.length === 0 && (
+                            );
+                        })}
+                        {filteredReports.length === 0 && (
                             <tr>
                                 <td colSpan="5" style={{ textAlign: 'center', padding: 48 }}>
-                                    <div className={styles.muted}>No payment records found for the selected week.</div>
+                                    <div className={styles.muted}>No payment records found for your search.</div>
                                 </td>
                             </tr>
                         )}
@@ -1234,7 +1284,8 @@ const WagesPage = () => {
                 </table>
             </div>
         </div>
-    );
+        );
+    };
     // Format Time to 12h (AM/PM)
     const formatTime12h = (time24) => {
         if (!time24) return '---';
