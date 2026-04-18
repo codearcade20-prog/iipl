@@ -384,11 +384,11 @@ const DriveManager = () => {
                                 placeholder="Search Work Order..."
                                 options={workOrdersList.map(wo => ({
                                     value: wo.id,
-                                    label: `${wo.wo_no} - ${wo.vendors?.vendor_name} (${wo.sites?.name})`
+                                    label: `${wo.wo_pdf_url ? '✅ ' : ''}${wo.wo_no} - ${wo.vendors?.vendor_name} (${wo.sites?.name})${wo.wo_pdf_url ? ' [Linked]' : ''}`
                                 }))}
                                 value={workOrdersList.map(wo => ({
                                     value: wo.id,
-                                    label: `${wo.wo_no} - ${wo.vendors?.vendor_name} (${wo.sites?.name})`
+                                    label: `${wo.wo_pdf_url ? '✅ ' : ''}${wo.wo_no} - ${wo.vendors?.vendor_name} (${wo.sites?.name})${wo.wo_pdf_url ? ' [Linked]' : ''}`
                                 })).find(opt => opt.value === selectedWoId) || null}
                                 onChange={(opt) => {
                                     setSelectedWoId(opt ? opt.value : null);
