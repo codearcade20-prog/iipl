@@ -313,12 +313,12 @@ const InvoiceGenerator = () => {
         try {
             const { data: woData, error: woError } = await supabase
                 .from('work_orders')
-                .select('id, wo_value, wo_pdf_url, bill_certified_value, remarks')
+                .select('id, wo_value, wo_pdf_url, bill_certified_value, remarks, bill_status, wo_status_url')
                 .eq('wo_no', formData.woNumber)
                 .single();
                 
             if (woError || !woData) {
-                setWoHistoryData({ history: [], woValue: 0, billCertified: 0, remarks: '', totalPaid: 0, remaining: 0, driveUrl: null });
+                setWoHistoryData({ history: [], woValue: 0, billCertified: 0, remarks: '', totalPaid: 0, remaining: 0, driveUrl: null, billStatus: 'N/A', statusUrl: null });
                 return;
             }
 
@@ -340,7 +340,9 @@ const InvoiceGenerator = () => {
                 remarks: woData.remarks || '',
                 totalPaid: totalPaid,
                 remaining: woVal - totalPaid,
-                driveUrl: woData.wo_pdf_url || null
+                driveUrl: woData.wo_pdf_url || null,
+                billStatus: woData.bill_status || 'N/A',
+                statusUrl: woData.wo_status_url || null
             });
         } catch (e) {
             console.error("Error fetching WO history", e);
@@ -815,6 +817,25 @@ const InvoiceGenerator = () => {
                                         title="View Work Order PDF"
                                     >
                                         <FileText size={14} /> PDF
+                                    </button>
+                                )}
+                                {woHistoryData.statusUrl && woHistoryData.billStatus && woHistoryData.billStatus !== 'N/A' && (
+                                    <button 
+                                        onClick={() => {
+                                            let url = woHistoryData.statusUrl;
+                                            if (url && url.includes('/view')) url = url.replace('/view', '/preview');
+                                            setPreviewUrl(url);
+                                        }}
+                                        style={{ 
+                                            display: 'flex', alignItems: 'center', gap: '6px', 
+                                            background: woHistoryData.billStatus === 'FINAL' ? '#f0fdf4' : (woHistoryData.billStatus.startsWith('RAB') ? '#fffbeb' : '#fef2f2'), 
+                                            color: woHistoryData.billStatus === 'FINAL' ? '#166534' : (woHistoryData.billStatus.startsWith('RAB') ? '#92400e' : '#b91c1c'), 
+                                            border: `1px solid ${woHistoryData.billStatus === 'FINAL' ? '#bbf7d0' : (woHistoryData.billStatus.startsWith('RAB') ? '#fde68a' : '#fecaca')}`, 
+                                            padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 
+                                        }}
+                                        title="View Bill Status Document"
+                                    >
+                                        {woHistoryData.billStatus}
                                     </button>
                                 )}
                             </div>
