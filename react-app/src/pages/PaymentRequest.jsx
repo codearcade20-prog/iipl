@@ -268,12 +268,12 @@ const PaymentRequest = () => {
         try {
             const { data: woData, error: woError } = await supabase
                 .from('work_orders')
-                .select('id, wo_value, wo_pdf_url')
+                .select('id, wo_value, wo_pdf_url, bill_certified_value, remarks')
                 .eq('wo_no', formData.invoiceNo)
                 .single();
                 
             if (woError || !woData) {
-                setWoHistoryData({ history: [], woValue: parseFloat(formData.woValue) || 0, totalPaid: 0, remaining: parseFloat(formData.woValue) || 0, driveUrl: null });
+                setWoHistoryData({ history: [], woValue: parseFloat(formData.woValue) || 0, billCertified: 0, remarks: '', totalPaid: 0, remaining: parseFloat(formData.woValue) || 0, driveUrl: null });
                 return;
             }
 
@@ -291,6 +291,8 @@ const PaymentRequest = () => {
             setWoHistoryData({
                 history: advData || [],
                 woValue: woVal,
+                billCertified: parseFloat(woData.bill_certified_value) || 0,
+                remarks: woData.remarks || '',
                 totalPaid: totalPaid,
                 remaining: woVal - totalPaid,
                 driveUrl: woData.wo_pdf_url || null
@@ -767,6 +769,12 @@ const PaymentRequest = () => {
                                 <span style={{ color: '#475569', fontSize: '0.9rem' }}>Work Order Value:</span>
                                 <span style={{ fontWeight: 600, color: '#0f172a' }}>₹{woHistoryData.woValue.toLocaleString('en-IN')}</span>
                             </div>
+                            {woHistoryData.billCertified > 0 && (
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                                    <span style={{ color: '#475569', fontSize: '0.9rem' }}>Bill Certified:</span>
+                                    <span style={{ fontWeight: 600, color: '#0f172a' }}>₹{woHistoryData.billCertified.toLocaleString('en-IN')}</span>
+                                </div>
+                            )}
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                                 <span style={{ color: '#475569', fontSize: '0.9rem' }}>Total Paid:</span>
                                 <span style={{ fontWeight: 600, color: '#059669' }}>₹{woHistoryData.totalPaid.toLocaleString('en-IN')}</span>
@@ -815,6 +823,11 @@ const PaymentRequest = () => {
                                         )}
                                     </tbody>
                                 </table>
+                            </div>
+                        )}
+                        {woHistoryData.remarks && (
+                            <div style={{ marginTop: '12px', padding: '10px 12px', background: '#fef9c3', borderLeft: '4px solid #eab308', borderRadius: '4px', fontSize: '0.85rem', color: '#854d0e', fontStyle: 'italic' }}>
+                                <strong>Remarks:</strong> {woHistoryData.remarks}
                             </div>
                         )}
                         <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
