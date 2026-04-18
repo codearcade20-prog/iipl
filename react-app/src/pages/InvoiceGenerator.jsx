@@ -34,8 +34,9 @@ const InvoiceGenerator = () => {
 
     // WO History Modal
     const [woHistoryModalOpen, setWoHistoryModalOpen] = useState(false);
-    const [woHistoryData, setWoHistoryData] = useState({ history: [], woValue: 0, totalPaid: 0, remaining: 0 });
+    const [woHistoryData, setWoHistoryData] = useState({ history: [], woValue: 0, totalPaid: 0, remaining: 0, driveUrl: null });
     const [woHistoryLoading, setWoHistoryLoading] = useState(false);
+    const [previewUrl, setPreviewUrl] = useState(null);
 
     const [loading, setLoading] = useState(false);
     const [showWoDate, setShowWoDate] = useState(false);
@@ -312,12 +313,12 @@ const InvoiceGenerator = () => {
         try {
             const { data: woData, error: woError } = await supabase
                 .from('work_orders')
-                .select('id, wo_value')
+                .select('id, wo_value, wo_pdf_url')
                 .eq('wo_no', formData.woNumber)
                 .single();
                 
             if (woError || !woData) {
-                setWoHistoryData({ history: [], woValue: 0, totalPaid: 0, remaining: 0 });
+                setWoHistoryData({ history: [], woValue: 0, totalPaid: 0, remaining: 0, driveUrl: null });
                 return;
             }
 
@@ -336,7 +337,8 @@ const InvoiceGenerator = () => {
                 history: advData || [],
                 woValue: woVal,
                 totalPaid: totalPaid,
-                remaining: woVal - totalPaid
+                remaining: woVal - totalPaid,
+                driveUrl: woData.wo_pdf_url || null
             });
         } catch (e) {
             console.error("Error fetching WO history", e);
@@ -798,7 +800,22 @@ const InvoiceGenerator = () => {
                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
                     <div style={{ background: 'white', padding: 24, borderRadius: 16, width: 600, maxWidth: '90%', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                            <h3 className={styles.title} style={{ margin: 0 }}>Work Order Payment History</h3>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <h3 className={styles.title} style={{ margin: 0 }}>Work Order Payment History</h3>
+                                {woHistoryData.driveUrl && (
+                                    <button 
+                                        onClick={() => {
+                                            let url = woHistoryData.driveUrl;
+                                            if (url && url.includes('/view')) url = url.replace('/view', '/preview');
+                                            setPreviewUrl(url);
+                                        }}
+                                        style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#fee2e2', color: '#ef4444', border: '1px solid #f87171', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}
+                                        title="View Work Order PDF"
+                                    >
+                                        <FileText size={14} /> PDF
+                                    </button>
+                                )}
+                            </div>
                             <button onClick={() => setWoHistoryModalOpen(false)} style={{ border: 'none', background: 'none', fontSize: '1.5rem', cursor: 'pointer', color: 'var(--text-muted)' }}>&times;</button>
                         </div>
                         
@@ -864,6 +881,24 @@ const InvoiceGenerator = () => {
                         <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
                             <Button variant="secondary" onClick={() => setWoHistoryModalOpen(false)}>Close</Button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Document Preview Modal */}
+            {previewUrl && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 3000, padding: '20px' }}>
+                    <div style={{ background: '#fff', borderRadius: '12px', width: '100%', maxWidth: '1000px', height: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
+                        <div style={{ padding: '12px 20px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc' }}>
+                            <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#1e293b', margin: 0 }}>Work Order Document</h3>
+                            <Button variant="secondary" onClick={() => setPreviewUrl(null)} style={{ padding: '6px 12px', fontSize: '0.85rem' }}>Close</Button>
+                        </div>
+                        <iframe 
+                            src={previewUrl} 
+                            style={{ flex: 1, width: '100%', border: 'none', backgroundColor: '#e2e8f0' }}
+                            title="Document Preview"
+                            allow="autoplay"
+                        />
                     </div>
                 </div>
             )}
