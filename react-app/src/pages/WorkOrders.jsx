@@ -4,7 +4,7 @@ import Select from 'react-select';
 import { supabase } from '../lib/supabase';
 import { useMessage } from '../context/MessageContext';
 import { Button } from '../components/ui/Button';
-import { Folder, Upload, FolderPlus, FileText, LogIn, LogOut, Loader2, RefreshCw, ChevronRight, ArrowLeft } from 'lucide-react';
+import { Folder, Upload, FolderPlus, FileText, LogIn, LogOut, Loader2, RefreshCw, ChevronRight, ArrowLeft, Copy, Paperclip } from 'lucide-react';
 import { GoogleOAuthProvider, useGoogleLogin } from '@react-oauth/google';
 import styles from './WorkOrders.module.css';
 
@@ -225,6 +225,20 @@ const DriveManager = () => {
         e.target.value = null;
     };
 
+    const handleCopyLink = (e, link) => {
+        e.preventDefault();
+        e.stopPropagation();
+        navigator.clipboard.writeText(link);
+        toast("Link copied to clipboard!");
+    };
+
+    const handleAttachToWo = (e, link) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setDriveLink(link);
+        setShowLinkModal(true);
+    };
+
     return (
         <div className={styles.container}>
             <div className={styles.header}>
@@ -308,14 +322,14 @@ const DriveManager = () => {
                             return (
                                 <div 
                                     key={file.id} 
-                                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem', border: '1px solid #e5e7eb', borderRadius: '8px', backgroundColor: '#fff', transition: 'all 0.2s', ':hover': { backgroundColor: '#f9fafb', borderColor: '#d1d5db' } }}
+                                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', border: '1px solid #e5e7eb', borderRadius: '8px', backgroundColor: '#fff', transition: 'all 0.2s', ':hover': { backgroundColor: '#f9fafb', borderColor: '#d1d5db' } }}
                                 >
                                     <a 
                                         href={isFolder ? '#' : file.webViewLink} 
                                         target={isFolder ? '_self' : '_blank'} 
                                         rel="noopener noreferrer"
                                         onClick={(e) => isFolder ? handleFolderClick(e, file) : null}
-                                        style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none', color: 'inherit', flex: 1, minWidth: 0 }}
+                                        style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none', color: 'inherit', flex: 1, minWidth: 0, marginRight: '0.5rem' }}
                                     >
                                         {isFolder ? (
                                             <Folder size={24} color="#3b82f6" style={{ flexShrink: 0 }} />
@@ -326,6 +340,25 @@ const DriveManager = () => {
                                             {file.name}
                                         </span>
                                     </a>
+                                    
+                                    {!isFolder && (
+                                        <div style={{ display: 'flex', gap: '0.25rem', flexShrink: 0 }}>
+                                            <button 
+                                                onClick={(e) => handleCopyLink(e, file.webViewLink)} 
+                                                style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer', color: '#6b7280', borderRadius: '4px' }}
+                                                title="Copy Link"
+                                            >
+                                                <Copy size={16} />
+                                            </button>
+                                            <button 
+                                                onClick={(e) => handleAttachToWo(e, file.webViewLink)} 
+                                                style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer', color: '#3b82f6', borderRadius: '4px' }}
+                                                title="Attach to Work Order"
+                                            >
+                                                <Paperclip size={16} />
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })}
