@@ -30,6 +30,7 @@ const DriveManager = () => {
     const [selectedWoId, setSelectedWoId] = useState(null);
     const [driveLink, setDriveLink] = useState('');
     const [isUpdatingLink, setIsUpdatingLink] = useState(false);
+    const [previewUrl, setPreviewUrl] = useState(null);
     const { toast } = useMessage();
 
     useEffect(() => {
@@ -239,6 +240,16 @@ const DriveManager = () => {
         setShowLinkModal(true);
     };
 
+    const handleFilePreview = (e, file) => {
+        e.preventDefault();
+        e.stopPropagation();
+        let url = file.webViewLink;
+        if (url && url.includes('/view')) {
+            url = url.replace('/view', '/preview');
+        }
+        setPreviewUrl(url);
+    };
+
     return (
         <div className={styles.container}>
             <div className={styles.header}>
@@ -325,10 +336,10 @@ const DriveManager = () => {
                                     style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', border: '1px solid #e5e7eb', borderRadius: '8px', backgroundColor: '#fff', transition: 'all 0.2s', ':hover': { backgroundColor: '#f9fafb', borderColor: '#d1d5db' } }}
                                 >
                                     <a 
-                                        href={isFolder ? '#' : file.webViewLink} 
-                                        target={isFolder ? '_self' : '_blank'} 
+                                        href="#" 
+                                        target="_self" 
                                         rel="noopener noreferrer"
-                                        onClick={(e) => isFolder ? handleFolderClick(e, file) : null}
+                                        onClick={(e) => isFolder ? handleFolderClick(e, file) : handleFilePreview(e, file)}
                                         style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none', color: 'inherit', flex: 1, minWidth: 0, marginRight: '0.5rem' }}
                                     >
                                         {isFolder ? (
@@ -429,6 +440,24 @@ const DriveManager = () => {
                                 {isUpdatingLink ? 'Updating...' : 'Update Link'}
                             </Button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Document Preview Modal */}
+            {previewUrl && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1100, padding: '20px' }}>
+                    <div style={{ background: '#fff', borderRadius: '12px', width: '100%', maxWidth: '1000px', height: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
+                        <div style={{ padding: '12px 20px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc' }}>
+                            <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#1e293b', margin: 0 }}>Document Preview</h3>
+                            <Button variant="secondary" onClick={() => setPreviewUrl(null)} style={{ padding: '6px 12px', fontSize: '0.85rem' }}>Close</Button>
+                        </div>
+                        <iframe 
+                            src={previewUrl} 
+                            style={{ flex: 1, width: '100%', border: 'none', backgroundColor: '#e2e8f0' }}
+                            title="Document Preview"
+                            allow="autoplay"
+                        />
                     </div>
                 </div>
             )}
