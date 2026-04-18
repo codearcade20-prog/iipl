@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Select from 'react-select';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useMessage } from '../context/MessageContext';
@@ -1752,27 +1753,28 @@ const WagesPage = () => {
                                             <tr key={r.id}>
                                                 <td><div className={styles.strong}>{formatDate(r.work_date)}</div></td>
                                                 <td>
-                                                    <select
-                                                        className={styles.input}
-                                                        style={{ padding: '6px', minWidth: '120px' }}
-                                                        value={r.new_site_id || ''}
-                                                        onChange={e => handleCorrectionChange(idx, 'new_site_id', e.target.value)}
-                                                    >
-                                                        <option value="" disabled>Select Site...</option>
-                                                        {sites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                                                    </select>
+                                                    <div style={{ minWidth: '180px' }}>
+                                                        <Select
+                                                            menuPortalTarget={document.body}
+                                                            styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }}
+                                                            placeholder="Select Site..."
+                                                            value={sites.map(s => ({ value: s.id, label: s.name })).find(opt => opt.value == r.new_site_id) || null}
+                                                            onChange={opt => handleCorrectionChange(idx, 'new_site_id', opt ? opt.value : '')}
+                                                            options={sites.map(s => ({ value: s.id, label: s.name }))}
+                                                        />
+                                                    </div>
                                                 </td>
                                                 <td>
-                                                    <select
-                                                        className={styles.input}
-                                                        style={{ padding: '6px' }}
-                                                        value={r.new_category}
-                                                        onChange={e => handleCorrectionChange(idx, 'new_category', e.target.value)}
-                                                    >
-                                                        {['Direct wages', 'NMR wages', 'Snag wages', 'Third party subvendor work', 'weekly payment agst order'].map(cat => (
-                                                            <option key={cat} value={cat}>{cat}</option>
-                                                        ))}
-                                                    </select>
+                                                    <div style={{ minWidth: '180px' }}>
+                                                        <Select
+                                                            menuPortalTarget={document.body}
+                                                            styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }}
+                                                            placeholder="Select Category..."
+                                                            value={{ value: r.new_category, label: r.new_category }}
+                                                            onChange={opt => handleCorrectionChange(idx, 'new_category', opt ? opt.value : '')}
+                                                            options={['Direct wages', 'NMR wages', 'Snag wages', 'Third party subvendor work', 'weekly payment agst order'].map(cat => ({ value: cat, label: cat }))}
+                                                        />
+                                                    </div>
                                                 </td>
                                                 <td>
                                                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
