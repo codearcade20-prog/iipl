@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import ReactDOM from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import Select from 'react-select';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useMessage } from '../context/MessageContext';
@@ -118,15 +118,53 @@ const SearchableSelect = ({ value, onChange, options, placeholder, disabled }) =
     const [search, setSearch] = useState('');
     const dropdownRef = React.useRef(null);
 
+    const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 });
+
     React.useEffect(() => {
         const handleClickOutside = (event) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-                setIsOpen(false);
+                // Also check if clicking inside the portaled menu
+                if (!event.target.closest(`.${styles.dropdownMenu}`)) {
+                    setIsOpen(false);
+                }
             }
         };
+        const handleScroll = () => {
+            if (isOpen) {
+                if (dropdownRef.current) {
+                    const rect = dropdownRef.current.getBoundingClientRect();
+                    setDropdownPos({
+                        top: rect.bottom + window.scrollY + 4,
+                        left: rect.left + window.scrollX,
+                        width: rect.width
+                    });
+                }
+            }
+        };
+        
         document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
+        window.addEventListener('scroll', handleScroll, true);
+        window.addEventListener('resize', handleScroll);
+        
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            window.removeEventListener('scroll', handleScroll, true);
+            window.removeEventListener('resize', handleScroll);
+        };
+    }, [isOpen]);
+
+    const handleOpen = () => {
+        if (disabled) return;
+        if (dropdownRef.current) {
+            const rect = dropdownRef.current.getBoundingClientRect();
+            setDropdownPos({
+                top: rect.bottom + window.scrollY + 4,
+                left: rect.left + window.scrollX,
+                width: rect.width
+            });
+        }
+        setIsOpen(!isOpen);
+    };
 
     const filteredOptions = options.filter(opt =>
         opt.label.toLowerCase().includes(search.toLowerCase())
@@ -138,15 +176,15 @@ const SearchableSelect = ({ value, onChange, options, placeholder, disabled }) =
         <div className={styles.searchableContainer} ref={dropdownRef}>
             <div 
                 className={`${styles.dropdownTrigger} ${disabled ? styles.disabled : ''}`}
-                onClick={() => !disabled && setIsOpen(!isOpen)}
+                onClick={handleOpen}
             >
                 <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {selectedLabel}
                 </div>
             </div>
             
-            {isOpen && (
-                <div className={styles.dropdownMenu}>
+            {isOpen && ReactDOM.createPortal(
+                <div className={styles.dropdownMenu} style={{ position: 'absolute', top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width, zIndex: 99999 }}>
                     <div className={styles.searchBox}>
                         <Search size={14} color="#94a3b8" />
                         <input 
@@ -176,7 +214,8 @@ const SearchableSelect = ({ value, onChange, options, placeholder, disabled }) =
                             <div className={styles.noResults}>No matches found.</div>
                         )}
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );
@@ -1754,24 +1793,20 @@ const WagesPage = () => {
                                                 <td><div className={styles.strong}>{formatDate(r.work_date)}</div></td>
                                                 <td>
                                                     <div style={{ minWidth: '180px' }}>
-                                                        <Select
-                                                            menuPortalTarget={document.body}
-                                                            styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }}
+                                                        <SearchableSelect 
                                                             placeholder="Select Site..."
-                                                            value={sites.map(s => ({ value: s.id, label: s.name })).find(opt => opt.value == r.new_site_id) || null}
-                                                            onChange={opt => handleCorrectionChange(idx, 'new_site_id', opt ? opt.value : '')}
+                                                            value={r.new_site_id || ''}
+                                                            onChange={e => handleCorrectionChange(idx, 'new_site_id', e.target.value)}
                                                             options={sites.map(s => ({ value: s.id, label: s.name }))}
                                                         />
                                                     </div>
                                                 </td>
                                                 <td>
                                                     <div style={{ minWidth: '180px' }}>
-                                                        <Select
-                                                            menuPortalTarget={document.body}
-                                                            styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }}
+                                                        <SearchableSelect 
                                                             placeholder="Select Category..."
-                                                            value={{ value: r.new_category, label: r.new_category }}
-                                                            onChange={opt => handleCorrectionChange(idx, 'new_category', opt ? opt.value : '')}
+                                                            value={r.new_category}
+                                                            onChange={e => handleCorrectionChange(idx, 'new_category', e.target.value)}
                                                             options={['Direct wages', 'NMR wages', 'Snag wages', 'Third party subvendor work', 'weekly payment agst order'].map(cat => ({ value: cat, label: cat }))}
                                                         />
                                                     </div>
