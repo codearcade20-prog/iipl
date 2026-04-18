@@ -260,8 +260,8 @@ const TemplateModal = ({ record, onClose, gmSignatureUrl }) => {
                             <div className={styles.footerGrid}>
                                 <div className={styles.footerItem}>PREPARED</div>
                                 <div className={styles.footerItem}>GM</div>
-                                <div className={styles.footerItem}>MD</div>
                                 <div className={styles.footerItem}>CEO</div>
+                                <div className={styles.footerItem}>MD</div>
                             </div>
                         </div>
                     )}
