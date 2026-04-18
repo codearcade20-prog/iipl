@@ -20,6 +20,12 @@ const HistoryPage = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const ROWS_PER_PAGE = 10;
     const { alert, confirm, prompt, toast } = useMessage();
+    
+    // Modal State for Moving to Advances
+    const [showMoveModal, setShowMoveModal] = useState(false);
+    const [moveData, setMoveData] = useState({ splits: [], mode: 'M1', item: null });
+    const [existingAdvances, setExistingAdvances] = useState([]);
+    const [savingMove, setSavingMove] = useState(false);
 
     useEffect(() => {
         fetchHistory();
@@ -40,6 +46,88 @@ const HistoryPage = () => {
             console.error(e);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const openMoveModal = async (item) => {
+        const workOrderNo = item.wo_no || item.invoice_no;
+        if (!workOrderNo) {
+            await alert("No Work Order Number associated with this record.");
+            return;
+        }
+
+        let initialSplits = Array.isArray(item.payment_splits) && item.payment_splits.length > 0 ? [...item.payment_splits] : [];
+        if (initialSplits.length === 0) {
+            initialSplits = [{ amount: item.amount, date: item.paid_date || item.date || new Date().toISOString().split('T')[0] }];
+        }
+
+        setMoveData({
+            item: item,
+            date: item.paid_date || new Date().toISOString().split('T')[0],
+            mode: 'M1',
+            splits: initialSplits
+        });
+
+        // Fetch existing advances for reference
+        try {
+            const { data: woData } = await supabase.from('work_orders').select('id').eq('wo_no', workOrderNo).single();
+            if (woData) {
+                const { data: advData } = await supabase.from('advances').select('*').eq('work_order_id', woData.id).order('date', { ascending: false });
+                setExistingAdvances(advData || []);
+            } else {
+                setExistingAdvances([]);
+            }
+        } catch (e) {
+            console.error("Error fetching existing advances", e);
+        }
+
+        setShowMoveModal(true);
+    };
+
+    const confirmMoveToAdvances = async () => {
+        const { item, mode, splits } = moveData;
+        const workOrderNo = item.wo_no || item.invoice_no;
+
+        const totalToMove = splits.reduce((sum, s) => sum + (parseFloat(s.amount) || 0), 0);
+        if (totalToMove > (parseFloat(item.amount) + 0.01)) {
+            if (!await confirm(`Total split amount (₹${totalToMove.toLocaleString('en-IN')}) exceeds record amount (₹${parseFloat(item.amount).toLocaleString('en-IN')}). Proceed?`)) return;
+        }
+
+        setSavingMove(true);
+        try {
+            const { data: woData, error: woError } = await supabase
+                .from('work_orders')
+                .select('id')
+                .eq('wo_no', workOrderNo)
+                .single();
+
+            if (woError || !woData) {
+                await alert(`Work Order Number "${workOrderNo}" not registered! Cannot move to advances.`);
+                setSavingMove(false);
+                return;
+            }
+
+            const advancesToInsert = splits.map(split => ({
+                work_order_id: woData.id,
+                amount: parseFloat(split.amount),
+                date: split.date,
+                payment_mode: mode
+            }));
+
+            const { error: advError } = await supabase.from('advances').insert(advancesToInsert);
+            if (advError) throw advError;
+
+            const { error: histUpdateErr } = await supabase.from('payment_history').update({ is_moved: true }).eq('id', item.id);
+            if (!histUpdateErr) {
+                setHistory(history.map(h => h.id === item.id ? { ...h, is_moved: true } : h));
+            }
+            toast(`Successfully moved ${splits.length} split(s) directly to Advances!`);
+            setShowMoveModal(false);
+        } catch (e) {
+            console.error(e);
+            await alert("Error moving to advances: " + e.message);
+        } finally {
+            setSavingMove(false);
         }
     };
 
@@ -140,6 +228,10 @@ const HistoryPage = () => {
                 h.id === id ? { ...h, ...payload } : h
             ));
             toast('Status Updated Successfully!');
+            
+            if (payload.status === 'Paid' && !item.is_moved) {
+                openMoveModal({ ...item, ...payload });
+            }
         } catch (e) { await alert(e.message); }
         finally { setLoading(false); }
     };
@@ -370,6 +462,102 @@ const HistoryPage = () => {
                     record={viewItem}
                     onClose={() => setViewItem(null)}
                 />
+            )}
+
+            {/* Move to Advances Modal */}
+            {showMoveModal && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px' }}>
+                    <div style={{ background: 'white', padding: '24px', borderRadius: '12px', width: '100%', maxWidth: '500px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', maxHeight: '90vh', overflowY: 'auto' }}>
+                        <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a', marginBottom: '16px' }}>Move to Work Order Advances</h3>
+                        
+                        <div style={{ padding: '12px', background: '#f8fafc', borderRadius: '8px', marginBottom: '20px', border: '1px solid #e2e8f0' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Work Order:</span>
+                                <span style={{ fontWeight: 600, color: '#1e293b' }}>{moveData.item?.wo_no || moveData.item?.invoice_no}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Total Record Amount:</span>
+                                <span style={{ fontWeight: 600, color: '#059669' }}>₹{parseFloat(moveData.item?.amount || 0).toLocaleString('en-IN')}</span>
+                            </div>
+                        </div>
+
+                        {existingAdvances.length > 0 && (
+                            <div style={{ marginBottom: '20px' }}>
+                                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, fontSize: '0.9rem', color: '#475569' }}>Existing History for this WO:</label>
+                                <div style={{ background: '#fff', border: '1px solid #cbd5e1', borderRadius: '6px', maxHeight: '120px', overflowY: 'auto', padding: '8px' }}>
+                                    {existingAdvances.map(adv => (
+                                        <div key={adv.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid #f1f5f9', fontSize: '0.85rem' }}>
+                                            <span style={{ color: '#64748b' }}>{formatDate(adv.date)}</span>
+                                            <span style={{ fontWeight: 500 }}>₹{parseFloat(adv.amount).toLocaleString('en-IN')}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        <div style={{ marginBottom: '16px' }}>
+                            <label style={{ display: 'block', marginBottom: '6px', fontWeight: 600, fontSize: '0.9rem', color: '#475569' }}>Payment Mode (Applied to all splits)</label>
+                            <select
+                                value={moveData.mode}
+                                onChange={e => setMoveData({ ...moveData, mode: e.target.value })}
+                                style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '6px', background: 'white' }}
+                            >
+                                <option value="M1">M1</option>
+                                <option value="M2">M2</option>
+                                <option value="M3">M3</option>
+                                <option value="M4">M4</option>
+                                <option value="M5">M5</option>
+                            </select>
+                        </div>
+
+                        <div style={{ marginBottom: '24px' }}>
+                            <label style={{ display: 'block', marginBottom: '10px', fontWeight: 600, fontSize: '0.9rem', color: '#475569' }}>Payment Splits to Move</label>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                {moveData.splits.map((split, index) => (
+                                    <div key={index} style={{ display: 'flex', gap: '8px', alignItems: 'center', background: '#f8fafc', padding: '10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                                        <div style={{ flex: 1 }}>
+                                            <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>Amount (₹)</span>
+                                            <input
+                                                type="text"
+                                                inputMode="decimal"
+                                                value={split.amount}
+                                                onChange={e => {
+                                                    const newSplits = [...moveData.splits];
+                                                    newSplits[index] = { ...newSplits[index], amount: e.target.value };
+                                                    setMoveData({ ...moveData, splits: newSplits });
+                                                }}
+                                                style={{ width: '100%', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: '4px', outline: 'none' }}
+                                            />
+                                        </div>
+                                        <div style={{ flex: 1 }}>
+                                            <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>Date</span>
+                                            <input
+                                                type="date"
+                                                value={split.date}
+                                                onChange={e => {
+                                                    const newSplits = [...moveData.splits];
+                                                    newSplits[index] = { ...newSplits[index], date: e.target.value };
+                                                    setMoveData({ ...moveData, splits: newSplits });
+                                                }}
+                                                style={{ width: '100%', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: '4px', outline: 'none' }}
+                                            />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <div style={{ marginTop: '12px', textAlign: 'right', fontWeight: 600, color: '#0f172a', fontSize: '0.9rem' }}>
+                                Total Moving: ₹{moveData.splits.reduce((sum, s) => sum + (parseFloat(s.amount) || 0), 0).toLocaleString('en-IN')}
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                            <Button variant="secondary" onClick={() => setShowMoveModal(false)}>Cancel</Button>
+                            <Button variant="primary" onClick={confirmMoveToAdvances} disabled={savingMove}>
+                                {savingMove ? 'Moving...' : 'Confirm Move'}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );
