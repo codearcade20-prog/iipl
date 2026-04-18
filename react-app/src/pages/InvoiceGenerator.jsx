@@ -313,12 +313,12 @@ const InvoiceGenerator = () => {
         try {
             const { data: woData, error: woError } = await supabase
                 .from('work_orders')
-                .select('id, wo_value, wo_pdf_url, bill_certified_value, remarks, bill_status, wo_status_url')
+                .select('id, wo_value, wo_pdf_url, bill_certified_value, remarks, bill_status, wo_status_url, housekeeping, retention')
                 .eq('wo_no', formData.woNumber)
                 .single();
                 
             if (woError || !woData) {
-                setWoHistoryData({ history: [], woValue: 0, billCertified: 0, remarks: '', totalPaid: 0, remaining: 0, driveUrl: null, billStatus: 'N/A', statusUrl: null });
+                setWoHistoryData({ history: [], woValue: 0, billCertified: 0, deductions: 0, remarks: '', totalPaid: 0, remaining: 0, driveUrl: null, billStatus: 'N/A', statusUrl: null });
                 return;
             }
 
@@ -332,14 +332,20 @@ const InvoiceGenerator = () => {
             
             const totalPaid = (advData || []).reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
             const woVal = parseFloat(woData.wo_value) || 0;
+            const billCertified = parseFloat(woData.bill_certified_value) || 0;
+            const housekeeping = parseFloat(woData.housekeeping) || 0;
+            const retention = parseFloat(woData.retention) || 0;
+            const totalDeductions = housekeeping + retention;
+            const baseValue = billCertified > 0 ? billCertified : woVal;
             
             setWoHistoryData({
                 history: advData || [],
                 woValue: woVal,
-                billCertified: parseFloat(woData.bill_certified_value) || 0,
+                billCertified: billCertified,
+                deductions: totalDeductions,
                 remarks: woData.remarks || '',
                 totalPaid: totalPaid,
-                remaining: woVal - totalPaid,
+                remaining: baseValue - totalDeductions - totalPaid,
                 driveUrl: woData.wo_pdf_url || null,
                 billStatus: woData.bill_status || 'N/A',
                 statusUrl: woData.wo_status_url || null
@@ -857,9 +863,15 @@ const InvoiceGenerator = () => {
                                     <span style={{ fontWeight: 600, color: '#0f172a' }}>₹{woHistoryData.billCertified.toLocaleString('en-IN')}</span>
                                 </div>
                             )}
+                            {woHistoryData.deductions > 0 && (
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                                    <span style={{ color: '#dc2626', fontSize: '0.9rem' }}>Less Deductions:</span>
+                                    <span style={{ fontWeight: 600, color: '#dc2626' }}>-₹{woHistoryData.deductions.toLocaleString('en-IN')}</span>
+                                </div>
+                            )}
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                                 <span style={{ color: '#475569', fontSize: '0.9rem' }}>Total Paid:</span>
-                                <span style={{ fontWeight: 600, color: '#059669' }}>₹{woHistoryData.totalPaid.toLocaleString('en-IN')}</span>
+                                <span style={{ fontWeight: 600, color: '#059669' }}>{woHistoryData.totalPaid > 0 ? '-' : ''}₹{woHistoryData.totalPaid.toLocaleString('en-IN')}</span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '8px', marginTop: '4px', borderTop: '1px solid #cbd5e1' }}>
                                 <span style={{ color: '#475569', fontSize: '0.9rem', fontWeight: 600 }}>Remaining Balance:</span>
