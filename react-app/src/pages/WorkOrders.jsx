@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import Select from 'react-select';
+import { supabase } from '../lib/supabase';
+import { useMessage } from '../context/MessageContext';
 import { Button } from '../components/ui/Button';
 import { Folder, Upload, FolderPlus, FileText, LogIn, LogOut, Loader2, RefreshCw, ChevronRight, ArrowLeft } from 'lucide-react';
 import { GoogleOAuthProvider, useGoogleLogin } from '@react-oauth/google';
@@ -20,6 +23,57 @@ const DriveManager = () => {
     // Upload state
     const fileInputRef = useRef(null);
     const [isUploading, setIsUploading] = useState(false);
+
+    // Work Order Link Modal State
+    const [showLinkModal, setShowLinkModal] = useState(false);
+    const [workOrdersList, setWorkOrdersList] = useState([]);
+    const [selectedWoId, setSelectedWoId] = useState(null);
+    const [driveLink, setDriveLink] = useState('');
+    const [isUpdatingLink, setIsUpdatingLink] = useState(false);
+    const { toast } = useMessage();
+
+    useEffect(() => {
+        if (showLinkModal) {
+            fetchWorkOrders();
+        }
+    }, [showLinkModal]);
+
+    const fetchWorkOrders = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('work_orders')
+                .select('id, wo_no, wo_pdf_url, vendors(vendor_name), sites(name)')
+                .order('wo_no', { ascending: false });
+            if (error) throw error;
+            setWorkOrdersList(data || []);
+        } catch (error) {
+            console.error("Error fetching work orders:", error);
+            alert("Error fetching work orders.");
+        }
+    };
+
+    const handleUpdateLink = async () => {
+        if (!selectedWoId) return alert("Please select a Work Order.");
+        if (!driveLink) return alert("Please enter a valid Google Drive link.");
+        
+        setIsUpdatingLink(true);
+        try {
+            const { error } = await supabase
+                .from('work_orders')
+                .update({ wo_pdf_url: driveLink })
+                .eq('id', selectedWoId);
+            if (error) throw error;
+            toast("Work Order link updated successfully!");
+            setShowLinkModal(false);
+            setDriveLink('');
+            setSelectedWoId(null);
+        } catch (error) {
+            console.error("Error updating link:", error);
+            alert("Error updating work order link.");
+        } finally {
+            setIsUpdatingLink(false);
+        }
+    };
 
     const login = useGoogleLogin({
         scope: SCOPES,
@@ -179,6 +233,9 @@ const DriveManager = () => {
                         <Button variant="secondary">← Back</Button>
                     </Link>
                     <h1 className={styles.title}>Drive Module</h1>
+                    <Button variant="outline" onClick={() => setShowLinkModal(true)}>
+                        Update WO Link
+                    </Button>
                 </div>
                 
                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
@@ -281,6 +338,67 @@ const DriveManager = () => {
                     </div>
                 )}
             </div>
+
+            {/* Work Order Link Modal */}
+            {showLinkModal && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px' }}>
+                    <div style={{ background: 'white', padding: '32px', borderRadius: '16px', width: '100%', maxWidth: '500px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
+                        <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a', marginBottom: '16px' }}>Link Work Order to Drive</h3>
+                        
+                        <div style={{ marginBottom: '16px' }}>
+                            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: '#475569', marginBottom: '8px' }}>Select Work Order</label>
+                            <Select 
+                                placeholder="Search Work Order..."
+                                options={workOrdersList.map(wo => ({
+                                    value: wo.id,
+                                    label: `${wo.wo_no} - ${wo.vendors?.vendor_name} (${wo.sites?.name})`
+                                }))}
+                                value={workOrdersList.map(wo => ({
+                                    value: wo.id,
+                                    label: `${wo.wo_no} - ${wo.vendors?.vendor_name} (${wo.sites?.name})`
+                                })).find(opt => opt.value === selectedWoId) || null}
+                                onChange={(opt) => {
+                                    setSelectedWoId(opt ? opt.value : null);
+                                    const wo = workOrdersList.find(w => w.id === (opt ? opt.value : null));
+                                    if (wo) {
+                                        setDriveLink(wo.wo_pdf_url || '');
+                                    } else {
+                                        setDriveLink('');
+                                    }
+                                }}
+                                isClearable
+                                styles={{
+                                    menuPortal: base => ({ ...base, zIndex: 99999 })
+                                }}
+                                menuPortalTarget={document.body}
+                            />
+                        </div>
+
+                        {selectedWoId && (
+                            <div style={{ marginBottom: '24px' }}>
+                                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, color: '#475569', marginBottom: '8px' }}>Google Drive Link</label>
+                                <input 
+                                    type="url"
+                                    placeholder="Paste Google Drive link here..."
+                                    value={driveLink}
+                                    onChange={(e) => setDriveLink(e.target.value)}
+                                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.95rem', outline: 'none', boxSizing: 'border-box' }}
+                                />
+                                {workOrdersList.find(w => w.id === selectedWoId)?.wo_pdf_url && (
+                                    <p style={{ fontSize: '0.8rem', color: '#10b981', marginTop: '6px' }}>This Work Order currently has a link attached.</p>
+                                )}
+                            </div>
+                        )}
+
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                            <Button variant="secondary" onClick={() => setShowLinkModal(false)}>Cancel</Button>
+                            <Button variant="primary" onClick={handleUpdateLink} disabled={isUpdatingLink || !selectedWoId || !driveLink}>
+                                {isUpdatingLink ? 'Updating...' : 'Update Link'}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
