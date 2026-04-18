@@ -289,6 +289,82 @@
 }
 
 /* Integrated Filter Bar */
+.filterMenuBar {
+    display: flex;
+    align-items: center;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 8px 16px;
+    gap: 16px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    flex-wrap: wrap;
+}
+
+.filterMenuDivider {
+    width: 1px;
+    height: 32px;
+    background: #e2e8f0;
+}
+
+.filterMenuItem {
+    flex: 1;
+    min-width: 130px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.filterMenuItemLabel {
+    font-size: 0.65rem;
+    font-weight: 800;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.filterMenuInput {
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #1e293b;
+    width: 100%;
+    padding: 4px 0;
+}
+
+.filterMenuInput::placeholder {
+    color: #cbd5e1;
+    font-weight: 400;
+}
+
+.dateFilterGroup {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    flex-wrap: nowrap;
+}
+
+.filterDateInput {
+    border: 1px solid transparent;
+    outline: none;
+    background: transparent;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #1e293b;
+    padding: 2px 4px;
+    border-radius: 6px;
+    transition: all 0.2s;
+    width: 100%;
+    min-width: 0;
+}
+
+.filterDateInput:hover, .filterDateInput:focus {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+}
+
 .selectionStepper {
     display: flex;
     align-items: stretch;
@@ -483,15 +559,18 @@
     position: absolute;
     top: 100%;
     left: 0;
-    right: 0;
+    min-width: 100%;
+    width: max-content;
     z-index: 1000;
     margin-top: 8px;
     background: white;
     border-radius: 12px;
     box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
     border: 1px solid #e2e8f0;
-    overflow: hidden;
     animation: slideDown 0.2s ease-out;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
 }
 
 @keyframes slideDown {
@@ -506,6 +585,7 @@
     align-items: center;
     gap: 8px;
     background: #f8fafc;
+    border-radius: 12px 12px 0 0;
 }
 
 .searchBox input {
@@ -635,6 +715,19 @@
 }
 
 /* --- MOBILE RESPONSIVENESS --- */
+@media (max-width: 1024px) {
+    .filterMenuBar {
+        gap: 12px;
+        padding: 12px;
+    }
+    .filterMenuItem {
+        min-width: calc(50% - 12px);
+    }
+    .filterMenuDivider {
+        display: none;
+    }
+}
+
 @media (max-width: 768px) {
     .container {
         padding: 16px 12px;
@@ -711,6 +804,19 @@
     .formGrid {
         padding: 16px;
         gap: 16px;
+    }
+    
+    .filterMenuItem {
+        min-width: 100%;
+    }
+    
+    .dateFilterGroup {
+        flex-wrap: wrap;
+    }
+    
+    .filterDateInput {
+        flex: 1;
+        min-width: 120px;
     }
 }
 

@@ -20,8 +20,10 @@ import {
     BarChart2,
     Printer,
     Search,
-    Check
+    Check,
+    Download
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import styles from './WagesPage.module.css';
 
 const TimePicker = ({ value, onChange, className }) => {
@@ -260,8 +262,10 @@ const WagesPage = () => {
     const [summaryView, setSummaryView] = useState('all');
     const [completedLaborIds, setCompletedLaborIds] = useState(new Set());
     const [searchLaborReport, setSearchLaborReport] = useState('');
+    const [searchSiteReport, setSearchSiteReport] = useState('All');
     const [searchCategoryReport, setSearchCategoryReport] = useState('All');
     const [searchSubcontractorReport, setSearchSubcontractorReport] = useState('All');
+    const [showRawData, setShowRawData] = useState(false);
 
 
     // Correction Modal States
@@ -1159,13 +1163,15 @@ const WagesPage = () => {
 
     const renderReports = () => (
         <div className={styles.card}>
-            <div className={styles.header} style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', borderRadius: '12px 12px 0 0' }}>
-                <div className={styles.formGroup}>
-                    <label className={styles.label}>PERIOD SELECTION</label>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                        <input type="date" className={styles.input} value={reportStartDate} onChange={e => setReportStartDate(e.target.value)} />
-                        <span className={styles.muted}>to</span>
-                        <input type="date" className={styles.input} value={reportEndDate} onChange={e => setReportEndDate(e.target.value)} />
+            <div className={styles.header} style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', borderRadius: '12px 12px 0 0', padding: '20px' }}>
+                <div className={styles.filterMenuBar} style={{ margin: 0, width: '100%', maxWidth: '500px' }}>
+                    <div className={styles.filterMenuItem}>
+                        <label className={styles.filterMenuItemLabel}>Period Selection</label>
+                        <div className={styles.dateFilterGroup}>
+                            <input type="date" className={styles.filterDateInput} value={reportStartDate} onChange={e => setReportStartDate(e.target.value)} />
+                            <span className={styles.muted} style={{ fontSize: '0.8rem', padding: '0 4px' }}>to</span>
+                            <input type="date" className={styles.filterDateInput} value={reportEndDate} onChange={e => setReportEndDate(e.target.value)} />
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1245,7 +1251,8 @@ const WagesPage = () => {
             const matchesLabor = !searchLaborReport || r.labors?.name?.toLowerCase().includes(searchLaborReport.toLowerCase());
             const matchesCategory = searchCategoryReport === 'All' || r.wage_category === searchCategoryReport;
             const matchesSub = searchSubcontractorReport === 'All' || r.subcontractor_id === searchSubcontractorReport;
-            return matchesLabor && matchesCategory && matchesSub;
+            const matchesSite = searchSiteReport === 'All' || r.site_id == searchSiteReport;
+            return matchesLabor && matchesCategory && matchesSub && matchesSite;
         }).sort((a, b) => new Date(a.work_date) - new Date(b.work_date));
 
         const totalAmount = filteredData.reduce((sum, r) => sum + (parseFloat(r.wages_amount) || 0), 0);
@@ -1407,26 +1414,81 @@ const WagesPage = () => {
             doc.close();
         };
 
+        const exportToExcel = () => {
+            const exportData = filteredData.map((r, i) => {
+                const row = {
+                    '#': i + 1,
+                    'Date': new Date(r.work_date).toLocaleDateString('en-GB'),
+                    'Site / Project': r.sites?.name || '-',
+                    'Labor Name': r.labors?.name || '-',
+                    'Category': r.wage_category,
+                    'Time In': formatTime12h(r.time_in),
+                    'Time Out': formatTime12h(r.time_out),
+                    'Remarks': r.remarks || '---',
+                };
+                if (showRawData) {
+                    row['Calc Attn Val'] = r.calculated_attendance_value !== undefined && r.calculated_attendance_value !== null ? parseFloat(r.calculated_attendance_value).toFixed(3) : calculateAttendanceValue(r.time_in, r.time_out).toFixed(3);
+                }
+                row['Attn Val'] = r.attendance_value;
+                if (showRawData) {
+                    row['Raw Wages'] = (r.raw_wages_amount !== undefined && r.raw_wages_amount !== null ? parseFloat(r.raw_wages_amount) : (parseFloat(r.attendance_value) || 0) * (r.labors?.daily_rate || 0));
+                }
+                row['Wages Amount'] = parseFloat(r.wages_amount) || 0;
+                return row;
+            });
+
+            const totalRow = {
+                '#': '', 'Date': '', 'Site / Project': '', 'Labor Name': '', 'Category': '', 'Time In': '', 'Time Out': '', 'Remarks': 'TOTAL',
+            };
+            if (showRawData) totalRow['Calc Attn Val'] = '';
+            totalRow['Attn Val'] = '';
+            if (showRawData) totalRow['Raw Wages'] = '';
+            totalRow['Wages Amount'] = totalAmount;
+
+            exportData.push(totalRow);
+
+            const worksheet = XLSX.utils.json_to_sheet(exportData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Wages_Analytics");
+            XLSX.writeFile(workbook, `Wages_Analytics_${new Date().toLocaleDateString('en-GB').replace(/\//g, '-')}.xlsx`);
+        };
+
         return (
             <div className={styles.card}>
                 <div className={styles.header} style={{ flexDirection: 'column', alignItems: 'stretch', gap: '20px' }}>
-                    <div className={styles.formGrid} style={{ gridTemplateColumns: '1.2fr 1.2fr 1.2fr 2fr', background: 'none', padding: 0 }}>
-                        <div className={styles.formGroup}>
-                            <label className={styles.label}>SEARCH LABOR</label>
+                    <div className={styles.filterMenuBar}>
+                        <div className={styles.filterMenuItem}>
+                            <label className={styles.filterMenuItemLabel}>Search Labor</label>
                             <div style={{ position: 'relative' }}>
                                 <input
                                     type="text"
-                                    className={styles.input}
-                                    placeholder="Name..."
+                                    className={styles.filterMenuInput}
+                                    placeholder="Type name..."
                                     value={searchLaborReport}
                                     onChange={e => setSearchLaborReport(e.target.value)}
-                                    style={{ paddingLeft: '35px' }}
+                                    style={{ paddingLeft: '24px' }}
                                 />
-                                <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
+                                <Search size={14} style={{ position: 'absolute', left: '2px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
                             </div>
                         </div>
-                        <div className={styles.formGroup}>
-                            <label className={styles.label}>CATEGORY FILTER</label>
+                        <div className={styles.filterMenuDivider}></div>
+                        
+                        <div className={styles.filterMenuItem}>
+                            <label className={styles.filterMenuItemLabel}>Site Filter</label>
+                            <SearchableSelect 
+                                placeholder="All Sites"
+                                value={searchSiteReport}
+                                onChange={e => setSearchSiteReport(e.target.value)}
+                                options={[
+                                    { value: 'All', label: 'All Sites' },
+                                    ...sites.map(s => ({ value: s.id, label: s.name }))
+                                ]}
+                            />
+                        </div>
+                        <div className={styles.filterMenuDivider}></div>
+
+                        <div className={styles.filterMenuItem}>
+                            <label className={styles.filterMenuItemLabel}>Category Filter</label>
                             <SearchableSelect 
                                 placeholder="All Categories"
                                 value={searchCategoryReport}
@@ -1439,8 +1501,10 @@ const WagesPage = () => {
                                 ]}
                             />
                         </div>
-                        <div className={styles.formGroup}>
-                            <label className={styles.label}>SUBVENDOR FILTER</label>
+                        <div className={styles.filterMenuDivider}></div>
+
+                        <div className={styles.filterMenuItem}>
+                            <label className={styles.filterMenuItemLabel}>Subvendor Filter</label>
                             <SearchableSelect 
                                 placeholder="All Subvendors"
                                 value={searchSubcontractorReport}
@@ -1451,21 +1515,26 @@ const WagesPage = () => {
                                 ]}
                             />
                         </div>
-                        <div className={styles.formGroup}>
-                            <label className={styles.label}>DATE RANGE</label>
-                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                <input type="date" className={styles.input} value={reportStartDate} onChange={e => setReportStartDate(e.target.value)} />
-                                <span className={styles.muted}>to</span>
-                                <input type="date" className={styles.input} value={reportEndDate} onChange={e => setReportEndDate(e.target.value)} />
+                        <div className={styles.filterMenuDivider}></div>
+
+                        <div className={styles.filterMenuItem} style={{ flex: '1.5', minWidth: '220px' }}>
+                            <label className={styles.filterMenuItemLabel}>Date Range</label>
+                            <div className={styles.dateFilterGroup}>
+                                <input type="date" className={styles.filterDateInput} value={reportStartDate} onChange={e => setReportStartDate(e.target.value)} />
+                                <span className={styles.muted} style={{ fontSize: '0.8rem', padding: '0 4px' }}>to</span>
+                                <input type="date" className={styles.filterDateInput} value={reportEndDate} onChange={e => setReportEndDate(e.target.value)} />
                             </div>
                         </div>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', flexWrap: 'wrap' }}>
                         {isSingleLabor && matchedLaborObj && (
                             <Button onClick={() => printLaborStatement(matchedLaborObj)} style={{ background: '#0f172a', color: 'white', borderColor: '#0f172a' }}>
                                 <Printer size={16} style={{ marginRight: 8 }} /> Print Labor Statement (Bill)
                             </Button>
                         )}
+                        <Button onClick={exportToExcel} style={{ background: '#10b981', color: 'white', borderColor: '#10b981' }}>
+                            <Download size={16} style={{ marginRight: 8 }} /> Export Excel
+                        </Button>
                         <Button onClick={printSummary} variant="outline" size="sm">
                             <Printer size={16} style={{ marginRight: 8 }} /> Print Analytics (All)
                         </Button>
@@ -1485,7 +1554,9 @@ const WagesPage = () => {
                                     <th>TIME IN</th>
                                     <th>TIME OUT</th>
                                     <th>REMARKS</th>
-                                    <th style={{ textAlign: 'right' }}>ATTN VAL</th>
+                                    {showRawData && <th style={{ textAlign: 'center', color: '#8b5cf6' }}>CALC ATTN VAL</th>}
+                                    <th style={{ textAlign: 'center' }}>ATTN VAL</th>
+                                    {showRawData && <th style={{ textAlign: 'right', color: '#8b5cf6' }}>RAW WAGES</th>}
                                     <th style={{ textAlign: 'right' }}>WAGES AMOUNT</th>
                                 </tr>
                             </thead>
@@ -1504,12 +1575,14 @@ const WagesPage = () => {
                                         <td style={{ fontWeight: 600, color: '#2563eb' }}>{formatTime12h(r.time_in)}</td>
                                         <td style={{ fontWeight: 600, color: '#2563eb' }}>{formatTime12h(r.time_out)}</td>
                                         <td style={{ fontSize: '0.85rem' }}>{r.remarks || '---'}</td>
+                                        {showRawData && <td style={{ textAlign: 'center', color: '#8b5cf6', fontWeight: 600 }}>{r.calculated_attendance_value !== undefined && r.calculated_attendance_value !== null ? parseFloat(r.calculated_attendance_value).toFixed(3) : calculateAttendanceValue(r.time_in, r.time_out).toFixed(3)}</td>}
                                         <td style={{ textAlign: 'center' }}>{r.attendance_value}</td>
+                                        {showRawData && <td style={{ textAlign: 'right', color: '#8b5cf6', fontWeight: 600 }}>₹{(r.raw_wages_amount !== undefined && r.raw_wages_amount !== null ? parseFloat(r.raw_wages_amount) : (parseFloat(r.attendance_value) || 0) * (r.labors?.daily_rate || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>}
                                         <td style={{ textAlign: 'right', fontWeight: 600 }}>₹{parseFloat(r.wages_amount).toLocaleString('en-IN')}</td>
                                     </tr>
                                 ))}
                                 <tr style={{ background: '#f8fafc', fontWeight: 800 }}>
-                                    <td colSpan="9" style={{ textAlign: 'right', textTransform: 'uppercase' }}>Page Total</td>
+                                    <td colSpan={showRawData ? 11 : 9} style={{ textAlign: 'right', textTransform: 'uppercase' }}>Page Total</td>
                                     <td style={{ textAlign: 'right', color: '#0f172a' }}>₹{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                                 </tr>
                             </tbody>
@@ -1560,22 +1633,36 @@ const WagesPage = () => {
                 </div>
             </div>
 
-            <div className={styles.tabs}>
-                <div className={`${styles.tab} ${activeTab === 'attendance' ? styles.activeTab : ''}`} onClick={() => setActiveTab('attendance')}>
-                    <ClipboardList size={18} /> Attendance
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
+                <div className={styles.tabs} style={{ marginBottom: 0 }}>
+                    <div className={`${styles.tab} ${activeTab === 'attendance' ? styles.activeTab : ''}`} onClick={() => setActiveTab('attendance')}>
+                        <ClipboardList size={18} /> Attendance
+                    </div>
+                    <div className={`${styles.tab} ${activeTab === 'reports' ? styles.activeTab : ''}`} onClick={() => setActiveTab('reports')}>
+                        <DollarSign size={18} /> Payments
+                    </div>
+                    <div className={`${styles.tab} ${activeTab === 'summary' ? styles.activeTab : ''}`} onClick={() => setActiveTab('summary')}>
+                        <BarChart2 size={18} /> Analytics
+                    </div>
+                    <div className={`${styles.tab} ${activeTab === 'engineers' ? styles.activeTab : ''}`} onClick={() => setActiveTab('engineers')}>
+                        <Briefcase size={18} /> Subcontractors
+                    </div>
+                    <div className={`${styles.tab} ${activeTab === 'labors' ? styles.activeTab : ''}`} onClick={() => setActiveTab('labors')}>
+                        <Users size={18} /> Labors
+                    </div>
                 </div>
-                <div className={`${styles.tab} ${activeTab === 'reports' ? styles.activeTab : ''}`} onClick={() => setActiveTab('reports')}>
-                    <DollarSign size={18} /> Payments
-                </div>
-                <div className={`${styles.tab} ${activeTab === 'summary' ? styles.activeTab : ''}`} onClick={() => setActiveTab('summary')}>
-                    <BarChart2 size={18} /> Analytics
-                </div>
-                <div className={`${styles.tab} ${activeTab === 'engineers' ? styles.activeTab : ''}`} onClick={() => setActiveTab('engineers')}>
-                    <Briefcase size={18} /> Subcontractors
-                </div>
-                <div className={`${styles.tab} ${activeTab === 'labors' ? styles.activeTab : ''}`} onClick={() => setActiveTab('labors')}>
-                    <Users size={18} /> Labors
-                </div>
+                
+                {activeTab === 'summary' && (
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 600, color: '#475569', fontSize: '0.9rem', background: 'white', padding: '10px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                        <input 
+                            type="checkbox" 
+                            checked={showRawData} 
+                            onChange={e => setShowRawData(e.target.checked)} 
+                            style={{ width: '16px', height: '16px', accentColor: '#2563eb', cursor: 'pointer' }}
+                        />
+                        Show Raw Data (Calc Units & Raw Wages)
+                    </label>
+                )}
             </div>
 
             <div className={styles.content}>
