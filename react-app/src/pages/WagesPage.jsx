@@ -691,6 +691,7 @@ const WagesPage = () => {
             const dailyRate = laborObj?.daily_rate || 0;
             return {
                 ...r,
+                new_site_id: r.site_id,
                 new_time_in: r.time_in ? r.time_in.substring(0, 5) : '',
                 new_time_out: r.time_out ? r.time_out.substring(0, 5) : '',
                 new_attn_val: r.attendance_value || 0,
@@ -743,7 +744,8 @@ const WagesPage = () => {
                     wages_amount: parseFloat(r.new_wages) || 0,
                     raw_wages_amount: parseFloat(r.new_actual_wages) || 0,
                     remarks: r.new_remarks,
-                    wage_category: r.new_category
+                    wage_category: r.new_category,
+                    site_id: r.new_site_id
                 }).eq('id', r.id)
             );
             const results = await Promise.all(updates);
@@ -1735,6 +1737,7 @@ const WagesPage = () => {
                                     <thead>
                                         <tr>
                                             <th>Date</th>
+                                            <th>Site / Project</th>
                                             <th>Category</th>
                                             <th>Hours (In - Out)</th>
                                             <th style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>Units (Calc / Edit)</th>
@@ -1749,14 +1752,27 @@ const WagesPage = () => {
                                             <tr key={r.id}>
                                                 <td><div className={styles.strong}>{formatDate(r.work_date)}</div></td>
                                                 <td>
-                                                    <SearchableSelect 
-                                                        placeholder="Category"
-                                                        value={r.new_category} 
+                                                    <select
+                                                        className={styles.input}
+                                                        style={{ padding: '6px', minWidth: '120px' }}
+                                                        value={r.new_site_id || ''}
+                                                        onChange={e => handleCorrectionChange(idx, 'new_site_id', e.target.value)}
+                                                    >
+                                                        <option value="" disabled>Select Site...</option>
+                                                        {sites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                                    </select>
+                                                </td>
+                                                <td>
+                                                    <select
+                                                        className={styles.input}
+                                                        style={{ padding: '6px' }}
+                                                        value={r.new_category}
                                                         onChange={e => handleCorrectionChange(idx, 'new_category', e.target.value)}
-                                                        options={['Direct wages', 'NMR wages', 'Snag wages', 'Third party subvendor work', 'weekly payment agst order'].map(cat => ({ 
-                                                            value: cat, label: cat 
-                                                        }))}
-                                                    />
+                                                    >
+                                                        {['Direct wages', 'NMR wages', 'Snag wages', 'Third party subvendor work', 'weekly payment agst order'].map(cat => (
+                                                            <option key={cat} value={cat}>{cat}</option>
+                                                        ))}
+                                                    </select>
                                                 </td>
                                                 <td>
                                                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
