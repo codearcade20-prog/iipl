@@ -184,7 +184,19 @@ const SearchableSelect = ({ value, onChange, options, placeholder, disabled }) =
             </div>
             
             {isOpen && ReactDOM.createPortal(
-                <div className={styles.dropdownMenu} style={{ position: 'absolute', top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width, zIndex: 99999 }}>
+                <div 
+                    className={styles.dropdownMenu} 
+                    style={{ 
+                        position: 'absolute', 
+                        top: dropdownPos.top, 
+                        left: dropdownPos.left, 
+                        width: dropdownPos.width,
+                        minWidth: Math.max(dropdownPos.width, 260),
+                        maxWidth: '90vw',
+                        zIndex: 99999,
+                        marginTop: 0
+                    }}
+                >
                     <div className={styles.searchBox}>
                         <Search size={14} color="#94a3b8" />
                         <input 
@@ -201,11 +213,13 @@ const SearchableSelect = ({ value, onChange, options, placeholder, disabled }) =
                                 <div 
                                     key={opt.value}
                                     className={`${styles.optionItem} ${opt.value === value ? styles.selectedOption : ''}`}
+                                    style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                                     onClick={() => {
                                         onChange({ target: { value: opt.value } });
                                         setIsOpen(false);
                                         setSearch('');
                                     }}
+                                    title={opt.label}
                                 >
                                     {opt.label}
                                 </div>
