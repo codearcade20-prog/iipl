@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
-import { FileText, Printer } from 'lucide-react';
+import { FileText, Printer, History } from 'lucide-react';
 import { Input, LoadingOverlay, SearchableSelect } from '../components/ui';
 import PrintModal from '../components/PrintModal';
 import styles from './PaymentRequest.module.css';
@@ -31,6 +31,11 @@ const PaymentRequest = () => {
     const [historyModalOpen, setHistoryModalOpen] = useState(false);
     const [historyList, setHistoryList] = useState([]);
     const [historyVendorSearch, setHistoryVendorSearch] = useState('');
+
+    // WO History Modal State
+    const [woHistoryModalOpen, setWoHistoryModalOpen] = useState(false);
+    const [woHistoryData, setWoHistoryData] = useState({ history: [], woValue: 0, totalPaid: 0, remaining: 0 });
+    const [woHistoryLoading, setWoHistoryLoading] = useState(false);
 
     const [loading, setLoading] = useState(false);
     const { alert, confirm, toast } = useMessage();
@@ -255,6 +260,48 @@ const PaymentRequest = () => {
         setTimeout(() => window.print(), 100);
     };
 
+    const openWOHistoryModal = async () => {
+        if (!formData.invoiceNo) return;
+        setWoHistoryLoading(true);
+        setWoHistoryModalOpen(true);
+        try {
+            const { data: woData, error: woError } = await supabase
+                .from('work_orders')
+                .select('id, wo_value')
+                .eq('wo_no', formData.invoiceNo)
+                .single();
+                
+            if (woError || !woData) {
+                setWoHistoryData({ history: [], woValue: parseFloat(formData.woValue) || 0, totalPaid: 0, remaining: parseFloat(formData.woValue) || 0 });
+                return;
+            }
+
+            const { data: advData, error: advError } = await supabase
+                .from('advances')
+                .select('*')
+                .eq('work_order_id', woData.id)
+                .order('date', { ascending: false });
+
+            if (advError) throw advError;
+            
+            const totalPaid = (advData || []).reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+            const woVal = parseFloat(woData.wo_value) || parseFloat(formData.woValue) || 0;
+            
+            setWoHistoryData({
+                history: advData || [],
+                woValue: woVal,
+                totalPaid: totalPaid,
+                remaining: woVal - totalPaid
+            });
+        } catch (e) {
+            console.error("Error fetching WO history", e);
+            toast("Error loading history");
+            setWoHistoryModalOpen(false);
+        } finally {
+            setWoHistoryLoading(false);
+        }
+    };
+
     const saveToHistory = async () => {
         if (!await validateForm()) return;
 
@@ -372,27 +419,23 @@ const PaymentRequest = () => {
                       <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                         {formData.invoiceNo && (
                             <button 
-                                disabled={!isSaved}
-                                onClick={() => {
-                                    window.open(`#/vendor-dashboard?wo=${formData.invoiceNo}&direct=true&from=payment`, '_blank')
-                                }}
+                                onClick={openWOHistoryModal}
                                 style={{ 
                                     display: 'flex', 
                                     alignItems: 'center', 
                                     justifyContent: 'center',
                                     padding: '8px',
-                                    background: isSaved ? '#fee2e2' : '#f1f5f9', 
-                                    border: `1px solid ${isSaved ? '#ef4444' : '#cbd5e1'}`, 
-                                    color: isSaved ? '#b91c1c' : '#94a3b8',
+                                    background: '#eff6ff', 
+                                    border: '1px solid #bfdbfe', 
+                                    color: '#3b82f6',
                                     borderRadius: '8px',
-                                    cursor: isSaved ? 'pointer' : 'not-allowed',
+                                    cursor: 'pointer',
                                     transition: 'all 0.2s',
-                                    boxShadow: isSaved ? '0 2px 4px rgba(0,0,0,0.1)' : 'none',
-                                    opacity: isSaved ? 1 : 0.6
+                                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
                                 }}
-                                title={isSaved ? "Print Work Order Report" : "Please save before printing"}
+                                title="View Work Order Payment History"
                             >
-                                <Printer size={20} strokeWidth={2.5} />
+                                <History size={20} strokeWidth={2.5} />
                             </button>
                         )}
                         <Button variant="secondary" onClick={openHistoryModal} style={{ padding: '8px 12px' }}>History</Button>
@@ -688,6 +731,81 @@ const PaymentRequest = () => {
                 onClose={() => setPrintModalOpen(false)}
                 onConfirm={confirmPrint}
             />
+
+            {/* Work Order Payment History Modal */}
+            {woHistoryModalOpen && (
+                <div className={styles.modalOverlay} style={{ zIndex: 1000 }}>
+                    <div className={styles.modalContent} style={{ maxWidth: '600px', width: '90%' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                            <h3 className={styles.modalTitle} style={{ margin: 0, color: '#0f172a' }}>Work Order Payment History</h3>
+                            <button onClick={() => setWoHistoryModalOpen(false)} style={{ border: 'none', background: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#64748b' }}>&times;</button>
+                        </div>
+                        
+                        <div style={{ marginBottom: '16px', background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                <span style={{ color: '#475569', fontSize: '0.9rem' }}>Work Order No:</span>
+                                <span style={{ fontWeight: 600, color: '#0f172a' }}>{formData.invoiceNo}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                                <span style={{ color: '#475569', fontSize: '0.9rem' }}>Work Order Value:</span>
+                                <span style={{ fontWeight: 600, color: '#0f172a' }}>₹{woHistoryData.woValue.toLocaleString('en-IN')}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                                <span style={{ color: '#475569', fontSize: '0.9rem' }}>Total Paid:</span>
+                                <span style={{ fontWeight: 600, color: '#059669' }}>₹{woHistoryData.totalPaid.toLocaleString('en-IN')}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '8px', marginTop: '4px', borderTop: '1px solid #cbd5e1' }}>
+                                <span style={{ color: '#475569', fontSize: '0.9rem', fontWeight: 600 }}>Remaining Balance:</span>
+                                <span style={{ fontWeight: 700, color: woHistoryData.remaining > 0 ? '#dc2626' : '#059669' }}>
+                                    ₹{woHistoryData.remaining.toLocaleString('en-IN')}
+                                </span>
+                            </div>
+                        </div>
+
+                        {woHistoryLoading ? (
+                            <div style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>Loading history...</div>
+                        ) : (
+                            <div style={{ maxHeight: '350px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                                    <thead style={{ background: '#f1f5f9', position: 'sticky', top: 0 }}>
+                                        <tr>
+                                            <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #e2e8f0', color: '#475569', fontWeight: 600 }}>Date</th>
+                                            <th style={{ padding: '10px', textAlign: 'center', borderBottom: '2px solid #e2e8f0', color: '#475569', fontWeight: 600 }}>Mode</th>
+                                            <th style={{ padding: '10px', textAlign: 'right', borderBottom: '2px solid #e2e8f0', color: '#475569', fontWeight: 600 }}>Amount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {woHistoryData.history.length > 0 ? (
+                                            woHistoryData.history.map((item, index) => (
+                                                <tr key={index} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                                    <td style={{ padding: '10px', color: '#334155' }}>{formatDate(item.date)}</td>
+                                                    <td style={{ padding: '10px', textAlign: 'center' }}>
+                                                        <span style={{ background: '#e0e7ff', color: '#4338ca', padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 600 }}>
+                                                            {item.payment_mode || 'N/A'}
+                                                        </span>
+                                                    </td>
+                                                    <td style={{ padding: '10px', textAlign: 'right', fontWeight: 600, color: '#0f172a' }}>
+                                                        ₹{parseFloat(item.amount).toLocaleString('en-IN')}
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan="3" style={{ padding: '30px', textAlign: 'center', color: '#94a3b8' }}>
+                                                    No payments recorded for this Work Order yet.
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                        <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+                            <Button variant="secondary" onClick={() => setWoHistoryModalOpen(false)}>Close</Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
