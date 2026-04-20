@@ -22,7 +22,10 @@ import {
     Printer,
     Search,
     Check,
-    Download
+    Download,
+    Smartphone,
+    Camera,
+    MapPin
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import styles from './WagesPage.module.css';
@@ -322,6 +325,10 @@ const WagesPage = () => {
     const [showRawData, setShowRawData] = useState(false);
     const [searchPaymentLabor, setSearchPaymentLabor] = useState('');
 
+    // Portal Logs State
+    const [portalLogDate, setPortalLogDate] = useState(new Date().toISOString().split('T')[0]);
+    const [portalLogs, setPortalLogs] = useState([]);
+
 
     // Correction Modal States
     const [correctionModalOpen, setCorrectionModalOpen] = useState(false);
@@ -440,6 +447,29 @@ const WagesPage = () => {
             fetchAttendance();
         }
     }, [selectedSite, selectedDate, selectedCategory, activeTab, isInitialLoad]);
+
+    const fetchPortalLogs = async () => {
+        setLoading(true);
+        try {
+            const { data, error } = await supabase
+                .from('labor_attendance_wages')
+                .select('*, labors(name, phone), sites(name)')
+                .eq('work_date', portalLogDate)
+                .order('time_in_timestamp', { ascending: false });
+            if (error) throw error;
+            setPortalLogs(data || []);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (activeTab === 'portalLogs' && portalLogDate && !isInitialLoad) {
+            fetchPortalLogs();
+        }
+    }, [activeTab, portalLogDate, isInitialLoad]);
 
     const calculateAttendanceValue = (timeIn, timeOut) => {
         if (!timeIn || !timeOut) return 0;
@@ -1700,6 +1730,126 @@ const WagesPage = () => {
         );
     };
 
+    const renderPortalLogs = () => {
+        return (
+            <div className={styles.card}>
+                <div className={styles.header} style={{ marginBottom: '20px' }}>
+                    <div>
+                        <h2 style={{ margin: 0, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <Smartphone size={24} color="#3b82f6" /> Portal Check-ins
+                        </h2>
+                        <p className={styles.muted} style={{ margin: '4px 0 0 0' }}>Review selfies and GPS locations captured directly from the Labor Portal</p>
+                    </div>
+                    <div>
+                        <input 
+                            type="date" 
+                            className={styles.filterDateInput} 
+                            value={portalLogDate} 
+                            onChange={(e) => setPortalLogDate(e.target.value)} 
+                        />
+                    </div>
+                </div>
+
+                <div className={styles.tableContainer}>
+                    <table className={styles.table}>
+                        <thead>
+                            <tr>
+                                <th style={{ paddingLeft: '24px' }}>Labor Name</th>
+                                <th>Reported Site</th>
+                                <th>Time In Snapshot</th>
+                                <th style={{ paddingRight: '24px' }}>Time Out Snapshot</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {portalLogs.length === 0 ? (
+                                <tr>
+                                    <td colSpan="4">
+                                        <div style={{ padding: '60px', textAlign: 'center', color: '#64748b' }}>
+                                            <Camera size={40} color="#cbd5e1" style={{ marginBottom: '16px' }} />
+                                            <p style={{ margin: 0 }}>No portal check-ins found for {new Date(portalLogDate).toLocaleDateString('en-GB')}.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : portalLogs.map(log => (
+                                <tr key={log.id}>
+                                    <td style={{ paddingLeft: '24px' }}>
+                                        <div className={styles.strong}>{log.labors?.name || 'Unknown'}</div>
+                                        <div className={styles.muted}>{log.labors?.phone || '-'}</div>
+                                    </td>
+                                    <td>
+                                        <span className={styles.badge} style={{ background: '#f1f5f9', color: '#475569' }}>
+                                            {log.sites?.name || 'Unknown Site'}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {log.time_in_timestamp ? (
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                <div style={{ width: '40px', height: '40px', borderRadius: '8px', overflow: 'hidden', background: '#e2e8f0', cursor: 'pointer', border: '1px solid #cbd5e1', flexShrink: 0 }}
+                                                    onMouseEnter={(e) => {
+                                                        setHoveredLabor({ name: log.labors?.name + ' (Time In)', photo_url: log.time_in_photo_url });
+                                                        setMousePos({ x: e.clientX, y: e.clientY });
+                                                    }}
+                                                    onMouseMove={(e) => { setMousePos({ x: e.clientX, y: e.clientY }); }}
+                                                    onMouseLeave={() => setHoveredLabor(null)}
+                                                >
+                                                    {log.time_in_photo_url ? (
+                                                        <img src={getPhotoUrl(log.time_in_photo_url)} alt="Time In" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                    ) : <Camera size={20} color="#94a3b8" style={{ margin: '10px' }} />}
+                                                </div>
+                                                <div>
+                                                    <div className={styles.strong} style={{ color: '#10b981' }}>{new Date(log.time_in_timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</div>
+                                                    {log.time_in_address && (
+                                                        <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(log.time_in_coords?.lat + ',' + log.time_in_coords?.lng)}`} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>
+                                                            <div style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px', maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'pointer' }} title={log.time_in_address}>
+                                                                <MapPin size={10} color="#3b82f6" /> {log.time_in_address.split(',')[0]}
+                                                            </div>
+                                                        </a>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <span className={styles.muted}>---</span>
+                                        )}
+                                    </td>
+                                    <td style={{ paddingRight: '24px' }}>
+                                        {log.time_out_timestamp ? (
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                <div style={{ width: '40px', height: '40px', borderRadius: '8px', overflow: 'hidden', background: '#e2e8f0', cursor: 'pointer', border: '1px solid #cbd5e1', flexShrink: 0 }}
+                                                    onMouseEnter={(e) => {
+                                                        setHoveredLabor({ name: log.labors?.name + ' (Time Out)', photo_url: log.time_out_photo_url });
+                                                        setMousePos({ x: e.clientX, y: e.clientY });
+                                                    }}
+                                                    onMouseMove={(e) => { setMousePos({ x: e.clientX, y: e.clientY }); }}
+                                                    onMouseLeave={() => setHoveredLabor(null)}
+                                                >
+                                                    {log.time_out_photo_url ? (
+                                                        <img src={getPhotoUrl(log.time_out_photo_url)} alt="Time Out" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                    ) : <Camera size={20} color="#94a3b8" style={{ margin: '10px' }} />}
+                                                </div>
+                                                <div>
+                                                    <div className={styles.strong} style={{ color: '#f59e0b' }}>{new Date(log.time_out_timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</div>
+                                                    {log.time_out_address && (
+                                                        <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(log.time_out_coords?.lat + ',' + log.time_out_coords?.lng)}`} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>
+                                                            <div style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px', maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'pointer' }} title={log.time_out_address}>
+                                                                <MapPin size={10} color="#3b82f6" /> {log.time_out_address.split(',')[0]}
+                                                            </div>
+                                                        </a>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <span className={styles.muted}>---</span>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        );
+    };
+
 
     return (
         <div className={styles.container}>
@@ -1757,6 +1907,9 @@ const WagesPage = () => {
                     <div className={`${styles.tab} ${activeTab === 'labors' ? styles.activeTab : ''}`} onClick={() => setActiveTab('labors')}>
                         <Users size={18} /> Labors
                     </div>
+                    <div className={`${styles.tab} ${activeTab === 'portalLogs' ? styles.activeTab : ''}`} onClick={() => setActiveTab('portalLogs')}>
+                        <Smartphone size={18} /> Portal Logs
+                    </div>
                 </div>
                 
                 {activeTab === 'summary' && (
@@ -1778,6 +1931,7 @@ const WagesPage = () => {
                 {activeTab === 'summary' && renderSummary()}
                 {activeTab === 'engineers' && renderSubcontractors()}
                 {activeTab === 'labors' && renderLaborsList()}
+                {activeTab === 'portalLogs' && renderPortalLogs()}
                 {/* --- CORRECTION MODAL --- */}
                 {correctionModalOpen && (
                     <div className={styles.modalOverlay}>
