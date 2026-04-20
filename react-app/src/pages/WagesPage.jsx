@@ -465,6 +465,40 @@ const WagesPage = () => {
         }
     };
 
+    const deletePortalLog = async (log) => {
+        if (!await confirm(`Are you sure you want to delete this portal log for ${log.labors?.name}? This will permanently delete the check-in photos and the attendance record.`)) return;
+
+        setLoading(true);
+        try {
+            // Delete Time In Photo if exists
+            if (log.time_in_photo_url) {
+                const fileNameIn = log.time_in_photo_url.split('/').pop();
+                if (fileNameIn && !fileNameIn.includes('drive.google')) {
+                    await supabase.storage.from('attendance_selfies').remove([fileNameIn]);
+                }
+            }
+            // Delete Time Out Photo if exists
+            if (log.time_out_photo_url) {
+                const fileNameOut = log.time_out_photo_url.split('/').pop();
+                if (fileNameOut && !fileNameOut.includes('drive.google')) {
+                    await supabase.storage.from('attendance_selfies').remove([fileNameOut]);
+                }
+            }
+            
+            // Delete the database record
+            const { error } = await supabase.from('labor_attendance_wages').delete().eq('id', log.id);
+            if (error) throw error;
+            
+            toast('Portal log and photos deleted successfully.');
+            fetchPortalLogs(); // Refresh the list
+        } catch (err) {
+            console.error(err);
+            alert("Failed to delete log: " + err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
         if (activeTab === 'portalLogs' && portalLogDate && !isInitialLoad) {
             fetchPortalLogs();
@@ -1757,13 +1791,14 @@ const WagesPage = () => {
                                 <th style={{ paddingLeft: '24px' }}>Labor Name</th>
                                 <th>Reported Site</th>
                                 <th>Time In Snapshot</th>
-                                <th style={{ paddingRight: '24px' }}>Time Out Snapshot</th>
+                                <th>Time Out Snapshot</th>
+                                <th style={{ paddingRight: '24px', textAlign: 'center' }}>Action</th>
                             </tr>
                         </thead>
                         <tbody>
                             {portalLogs.length === 0 ? (
                                 <tr>
-                                    <td colSpan="4">
+                                    <td colSpan="5">
                                         <div style={{ padding: '60px', textAlign: 'center', color: '#64748b' }}>
                                             <Camera size={40} color="#cbd5e1" style={{ marginBottom: '16px' }} />
                                             <p style={{ margin: 0 }}>No portal check-ins found for {new Date(portalLogDate).toLocaleDateString('en-GB')}.</p>
@@ -1811,7 +1846,7 @@ const WagesPage = () => {
                                             <span className={styles.muted}>---</span>
                                         )}
                                     </td>
-                                    <td style={{ paddingRight: '24px' }}>
+                                    <td>
                                         {log.time_out_timestamp ? (
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                                 <div style={{ width: '40px', height: '40px', borderRadius: '8px', overflow: 'hidden', background: '#e2e8f0', cursor: 'pointer', border: '1px solid #cbd5e1', flexShrink: 0 }}
@@ -1840,6 +1875,17 @@ const WagesPage = () => {
                                         ) : (
                                             <span className={styles.muted}>---</span>
                                         )}
+                                    </td>
+                                    <td style={{ paddingRight: '24px', textAlign: 'center' }}>
+                                        <button 
+                                            onClick={() => deletePortalLog(log)}
+                                            style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '8px', borderRadius: '8px', transition: 'all 0.2s' }}
+                                            onMouseOver={e => e.currentTarget.style.background = '#fef2f2'}
+                                            onMouseOut={e => e.currentTarget.style.background = 'none'}
+                                            title="Delete Portal Log & Photos"
+                                        >
+                                            <Trash2 size={18} />
+                                        </button>
                                     </td>
                                 </tr>
                             ))}
