@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { LoadingOverlay, Input } from '../components/ui';
 import { Button } from '../components/ui/Button';
-import { MapPin, Camera, LogOut, CheckCircle, ShieldAlert } from 'lucide-react';
+import { MapPin, Camera, LogOut, CheckCircle, ShieldAlert, Building } from 'lucide-react';
 import { useMessage } from '../context/MessageContext';
 
 const LaborPortal = () => {
@@ -10,6 +10,10 @@ const LaborPortal = () => {
     const [loading, setLoading] = useState(false);
     const [labor, setLabor] = useState(null);
     const [todayRecord, setTodayRecord] = useState(null);
+    
+    // Site Selection
+    const [sites, setSites] = useState([]);
+    const [selectedSite, setSelectedSite] = useState('');
     
     // Auth State
     const [phone, setPhone] = useState('');
@@ -35,6 +39,11 @@ const LaborPortal = () => {
             setLabor(laborData);
             checkTodayAttendance(laborData.id);
         }
+        
+        // Fetch Sites
+        supabase.from('sites').select('id, name').order('name').then(({data}) => {
+            if(data) setSites(data);
+        });
     }, []);
 
     const handleLogin = async (e) => {
@@ -87,6 +96,11 @@ const LaborPortal = () => {
     };
 
     const handleTimeAction = (type) => {
+        if (type === 'in' && !selectedSite && !todayRecord) {
+            alert("Please select your current site before timing in.");
+            return;
+        }
+
         if (navigator.permissions && navigator.permissions.query) {
             Promise.all([
                 navigator.permissions.query({ name: 'camera' }).catch(() => ({ state: 'prompt' })),
@@ -217,7 +231,7 @@ const LaborPortal = () => {
                 payload = {
                     labor_id: labor.id,
                     work_date: today,
-                    site_id: labor.site_id || null, // Assuming labor has site_id
+                    site_id: selectedSite || (todayRecord ? todayRecord.site_id : null),
                     attendance: 'Present',
                     time_in_timestamp: timestamp,
                     time_in_photo_url: publicUrl,
@@ -421,6 +435,25 @@ const LaborPortal = () => {
                         )}
                     </div>
 
+                    {/* Site Selection */}
+                    {!todayRecord?.time_in_timestamp && (
+                        <div style={{ marginBottom: '20px' }}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', color: '#64748b', marginBottom: '8px', fontWeight: 600 }}>
+                                <Building size={16} /> Select Your Current Site
+                            </label>
+                            <select 
+                                value={selectedSite}
+                                onChange={(e) => setSelectedSite(e.target.value)}
+                                style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '1rem', background: '#f8fafc', color: '#1e293b' }}
+                            >
+                                <option value="">-- Choose Site --</option>
+                                {sites.map(s => (
+                                    <option key={s.id} value={s.id}>{s.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+
                     {/* Action Buttons */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                         <Button 
@@ -464,6 +497,7 @@ const LaborPortal = () => {
                         <h3 style={{ margin: '0 0 12px 0', fontSize: '1.4rem', color: '#1e293b' }}>We Need Your Permission</h3>
                         <p style={{ margin: '0 0 24px 0', color: '#64748b', fontSize: '0.95rem', lineHeight: 1.5 }}>
                             To log your attendance properly, we need access to your <b>Camera</b> (for a selfie) and <b>Location</b> (to verify you are on site).<br/><br/>
+                            <b>Please ensure your phone's GPS / Location is turned ON.</b><br/><br/>
                             When prompted by your browser on the next step, please tap <b>"Allow"</b>.
                         </p>
                         <div style={{ display: 'flex', gap: '12px', flexDirection: 'column' }}>
