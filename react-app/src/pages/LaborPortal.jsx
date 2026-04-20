@@ -20,6 +20,8 @@ const LaborPortal = () => {
     const [actionType, setActionType] = useState(''); // 'in' or 'out'
     const [showPermissionPrompt, setShowPermissionPrompt] = useState(false);
     const [pendingAction, setPendingAction] = useState(null);
+    const [useFallback, setUseFallback] = useState(false);
+    const [fallbackFile, setFallbackFile] = useState(null);
     
     const videoRef = useRef(null);
     const canvasRef = useRef(null);
@@ -113,9 +115,32 @@ const LaborPortal = () => {
         if (pendingAction) startCamera(pendingAction);
     };
 
+    const fetchLocation = () => {
+        navigator.geolocation.getCurrentPosition(
+            async (pos) => {
+                const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                try {
+                    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lng}`);
+                    const data = await res.json();
+                    setLocation({ coords, address: data.display_name });
+                } catch (e) {
+                    setLocation({ coords, address: "Unknown Address" });
+                }
+            },
+            (err) => {
+                console.error(err);
+                toast("Location access denied or unavailable. Proceeding without location.");
+                setLocation({ coords: null, address: "Location Unavailable" });
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+        );
+    };
+
     const startCamera = async (type) => {
         setActionType(type);
         setShowCamera(true);
+        setUseFallback(false);
+        setFallbackFile(null);
         try {
             const mediaStream = await navigator.mediaDevices.getUserMedia({ 
                 video: { facingMode: "user" } // Use front camera
@@ -124,30 +149,12 @@ const LaborPortal = () => {
             if (videoRef.current) {
                 videoRef.current.srcObject = mediaStream;
             }
-            
-            // Get location in background
-            navigator.geolocation.getCurrentPosition(
-                async (pos) => {
-                    const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                    // Reverse geocode
-                    try {
-                        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lng}`);
-                        const data = await res.json();
-                        setLocation({ coords, address: data.display_name });
-                    } catch (e) {
-                        setLocation({ coords, address: "Unknown Address" });
-                    }
-                },
-                (err) => {
-                    console.error(err);
-                    toast("Location access denied or unavailable. Proceeding without location.");
-                    setLocation({ coords: null, address: "Location Unavailable" });
-                },
-                { enableHighAccuracy: true, timeout: 10000 }
-            );
+            fetchLocation();
         } catch (err) {
-            await alert("Camera access denied. Please allow camera permissions.");
-            setShowCamera(false);
+            console.error("Camera error:", err);
+            // Fallback to native file input
+            setUseFallback(true);
+            fetchLocation();
         }
     };
 
@@ -157,6 +164,8 @@ const LaborPortal = () => {
         }
         setStream(null);
         setShowCamera(false);
+        setUseFallback(false);
+        setFallbackFile(null);
     };
 
     const captureAndSubmit = async () => {
@@ -167,14 +176,25 @@ const LaborPortal = () => {
 
         setLoading(true);
         try {
-            // 1. Capture image from video
-            const video = videoRef.current;
-            const canvas = canvasRef.current;
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            canvas.getContext('2d').drawImage(video, 0, 0);
+            let imageBlob = null;
             
-            const imageBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.8));
+            if (useFallback) {
+                if (!fallbackFile) {
+                    await alert("Please take a photo first!");
+                    setLoading(false);
+                    return;
+                }
+                imageBlob = fallbackFile;
+            } else {
+                // 1. Capture image from video
+                const video = videoRef.current;
+                const canvas = canvasRef.current;
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                canvas.getContext('2d').drawImage(video, 0, 0);
+                
+                imageBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.8));
+            }
             
             // 2. Upload to Supabase Storage
             const fileName = `selfie_${labor.id}_${Date.now()}.jpg`;
@@ -283,11 +303,36 @@ const LaborPortal = () => {
                 </div>
                 
                 <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
-                    <video ref={videoRef} autoPlay playsInline style={{ minWidth: '100%', minHeight: '100%', objectFit: 'cover' }} />
-                    <canvas ref={canvasRef} style={{ display: 'none' }} />
-                    
-                    {/* Camera Overlay UI */}
-                    <div style={{ position: 'absolute', inset: '40px', border: '2px dashed rgba(255,255,255,0.5)', borderRadius: '50% 50% 50% 50% / 60% 60% 40% 40%', pointerEvents: 'none' }}></div>
+                    {useFallback ? (
+                        <div style={{ textAlign: 'center', color: '#fff', padding: '20px' }}>
+                            <Camera size={48} color="#64748b" style={{ marginBottom: '16px' }} />
+                            <p style={{ marginBottom: '24px', color: '#cbd5e1' }}>Browser camera blocked.<br/>Tap below to open your phone's camera.</p>
+                            <label style={{ 
+                                display: 'inline-block', background: '#3b82f6', color: '#fff', 
+                                padding: '12px 24px', borderRadius: '8px', fontSize: '1.1rem', cursor: 'pointer' 
+                            }}>
+                                {fallbackFile ? "Photo Attached ✓" : "Open Camera"}
+                                <input 
+                                    type="file" 
+                                    accept="image/*" 
+                                    capture="user" 
+                                    style={{ display: 'none' }} 
+                                    onChange={(e) => {
+                                        if (e.target.files && e.target.files[0]) {
+                                            setFallbackFile(e.target.files[0]);
+                                        }
+                                    }}
+                                />
+                            </label>
+                        </div>
+                    ) : (
+                        <>
+                            <video ref={videoRef} autoPlay playsInline style={{ minWidth: '100%', minHeight: '100%', objectFit: 'cover' }} />
+                            <canvas ref={canvasRef} style={{ display: 'none' }} />
+                            {/* Camera Overlay UI */}
+                            <div style={{ position: 'absolute', inset: '40px', border: '2px dashed rgba(255,255,255,0.5)', borderRadius: '50% 50% 50% 50% / 60% 60% 40% 40%', pointerEvents: 'none' }}></div>
+                        </>
+                    )}
                 </div>
 
                 <div style={{ padding: '30px', background: '#1e293b', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
@@ -307,16 +352,18 @@ const LaborPortal = () => {
                     
                     <button 
                         onClick={captureAndSubmit}
-                        disabled={!location}
+                        disabled={!location || (useFallback && !fallbackFile)}
                         style={{ 
-                            width: '70px', height: '70px', borderRadius: '50%', background: location ? '#3b82f6' : '#94a3b8', 
-                            border: '4px solid #fff', cursor: location ? 'pointer' : 'not-allowed',
+                            width: '70px', height: '70px', borderRadius: '50%', background: (location && (!useFallback || fallbackFile)) ? '#3b82f6' : '#94a3b8', 
+                            border: '4px solid #fff', cursor: (location && (!useFallback || fallbackFile)) ? 'pointer' : 'not-allowed',
                             display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s'
                         }}
                     >
                         <Camera color="#fff" size={24} />
                     </button>
-                    <p style={{ color: '#cbd5e1', margin: 0, fontSize: '0.9rem' }}>Tap to capture and submit</p>
+                    <p style={{ color: '#cbd5e1', margin: 0, fontSize: '0.9rem' }}>
+                        {useFallback ? "Submit Attendance" : "Tap to capture and submit"}
+                    </p>
                 </div>
             </div>
         );
