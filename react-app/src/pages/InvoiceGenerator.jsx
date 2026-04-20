@@ -40,6 +40,7 @@ const InvoiceGenerator = () => {
 
     const [loading, setLoading] = useState(false);
     const [showWoDate, setShowWoDate] = useState(false);
+    const [isInfiniInfra, setIsInfiniInfra] = useState(false);
     const { alert, confirm, toast } = useMessage();
 
     const [isSaved, setIsSaved] = useState(false);
@@ -316,7 +317,7 @@ const InvoiceGenerator = () => {
                 .select('id, wo_value, wo_pdf_url, bill_certified_value, remarks, bill_status, wo_status_url, housekeeping, retention')
                 .eq('wo_no', formData.woNumber)
                 .single();
-                
+
             if (woError || !woData) {
                 setWoHistoryData({ history: [], woValue: 0, billCertified: 0, deductions: 0, remarks: '', totalPaid: 0, remaining: 0, driveUrl: null, billStatus: 'N/A', statusUrl: null });
                 return;
@@ -329,7 +330,7 @@ const InvoiceGenerator = () => {
                 .order('date', { ascending: false });
 
             if (advError) throw advError;
-            
+
             const totalPaid = (advData || []).reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
             const woVal = parseFloat(woData.wo_value) || 0;
             const billCertified = parseFloat(woData.bill_certified_value) || 0;
@@ -337,7 +338,7 @@ const InvoiceGenerator = () => {
             const retention = parseFloat(woData.retention) || 0;
             const totalDeductions = housekeeping + retention;
             const baseValue = billCertified > 0 ? billCertified : woVal;
-            
+
             setWoHistoryData({
                 history: advData || [],
                 woValue: woVal,
@@ -380,8 +381,9 @@ const InvoiceGenerator = () => {
                 status: 'Pending',
                 paid_amount: 0,
                 remaining_amount: totalItems,
-                items_data: items,
-                created_at: new Date().toISOString()
+                items_data: items.map((it, idx) => idx === 0 ? { ...it, _isInfiniInfra: isInfiniInfra } : it),
+                created_at: new Date().toISOString(),
+                is_infini_infra: isInfiniInfra
             };
 
             const { error } = await supabase.from('payment_history').insert([payload]);
@@ -435,10 +437,21 @@ const InvoiceGenerator = () => {
         });
 
         if (item.items_data) {
-            setItems(item.items_data);
+            setItems(item.items_data.map(it => {
+                const { _isInfiniInfra, ...rest } = it;
+                return rest; // remove the flag before setting items
+            }));
+            if (item.is_infini_infra !== undefined && item.is_infini_infra !== null) {
+                setIsInfiniInfra(item.is_infini_infra);
+            } else if (item.items_data.length > 0 && item.items_data[0]._isInfiniInfra) {
+                setIsInfiniInfra(true);
+            } else {
+                setIsInfiniInfra(false);
+            }
         } else {
             // Legacy fallback for old history items
             setItems([{ desc: '', unit: 'LS', amount: item.amount || '' }]);
+            setIsInfiniInfra(item.is_infini_infra || false);
         }
 
         setHistoryModalOpen(false);
@@ -486,15 +499,15 @@ const InvoiceGenerator = () => {
                     <h2 className={styles.title}>Invoice Data Entry</h2>
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                         {formData.woNumber && (
-                            <button 
+                            <button
                                 onClick={openWOHistoryModal}
-                                style={{ 
-                                    display: 'flex', 
-                                    alignItems: 'center', 
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
                                     justifyContent: 'center',
                                     padding: '8px',
-                                    background: '#eff6ff', 
-                                    border: '1px solid #bfdbfe', 
+                                    background: '#eff6ff',
+                                    border: '1px solid #bfdbfe',
                                     color: '#3b82f6',
                                     borderRadius: '8px',
                                     cursor: 'pointer',
@@ -527,6 +540,19 @@ const InvoiceGenerator = () => {
 
                 <Input label="PAN NO" value={formData.pan} onChange={e => setFormData({ ...formData, pan: e.target.value })} />
 
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '12px', marginBottom: '8px' }}>
+                    <input
+                        type="checkbox"
+                        id="infiniInfra"
+                        checked={isInfiniInfra}
+                        onChange={(e) => setIsInfiniInfra(e.target.checked)}
+                        style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                    />
+                    <label htmlFor="infiniInfra" style={{ cursor: 'pointer', fontSize: '0.9rem', fontWeight: '500', color: 'var(--text-secondary)' }}>
+                        IIIPL
+                    </label>
+                </div>
+
                 <Input label="City / Address" multiline={true} rows={3} value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} placeholder="Enter City / Address" />
 
                 <Input label="Phone Number" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} />
@@ -537,9 +563,9 @@ const InvoiceGenerator = () => {
                     <Input type="date" label="Date" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
                 </div>
                 <div style={{ marginTop: '12px' }}>
-                    <Input 
-                        label="Work Order NO" 
-                        value={formData.woNumber || ''} 
+                    <Input
+                        label="Work Order NO"
+                        value={formData.woNumber || ''}
                         onChange={e => {
                             setIsSaved(false);
                             const val = e.target.value;
@@ -607,11 +633,11 @@ const InvoiceGenerator = () => {
                 <Input label="Bank Name" value={formData.bank} onChange={e => setFormData({ ...formData, bank: e.target.value })} />
 
                 <div style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <Button 
-                        onClick={handlePrint} 
+                    <Button
+                        onClick={handlePrint}
                         disabled={!isSaved}
-                        style={{ 
-                            background: isSaved ? '' : '#f1f5f9', 
+                        style={{
+                            background: isSaved ? '' : '#f1f5f9',
                             color: isSaved ? '' : '#94a3b8',
                             cursor: isSaved ? 'pointer' : 'not-allowed',
                             opacity: isSaved ? 1 : 0.7
@@ -650,7 +676,7 @@ const InvoiceGenerator = () => {
                             )}
                             <div className={styles.toSection} style={{ gridColumn: 'span 2' }}>TO</div>
                             <div className={styles.clientName} style={{ gridColumn: 'span 2', paddingBottom: '10px' }}>
-                                Innovative Interiors Pvt Ltd,<br />
+                                {isInfiniInfra ? 'Innovative Infini Infra Pvt Ltd,' : 'Innovative Interiors Pvt Ltd,'}<br />
                                 No 7, V V Kovil Street,<br />
                                 Chinmaya Nagar,<br />
                                 Koyembedu, Chennai-92
@@ -813,7 +839,7 @@ const InvoiceGenerator = () => {
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                 <h3 className={styles.title} style={{ margin: 0 }}>Work Order Payment History</h3>
                                 {woHistoryData.driveUrl && (
-                                    <button 
+                                    <button
                                         onClick={() => {
                                             let url = woHistoryData.driveUrl;
                                             if (url && url.includes('/view')) url = url.replace('/view', '/preview');
@@ -826,18 +852,18 @@ const InvoiceGenerator = () => {
                                     </button>
                                 )}
                                 {woHistoryData.statusUrl && woHistoryData.billStatus && woHistoryData.billStatus !== 'N/A' && (
-                                    <button 
+                                    <button
                                         onClick={() => {
                                             let url = woHistoryData.statusUrl;
                                             if (url && url.includes('/view')) url = url.replace('/view', '/preview');
                                             setPreviewUrl(url);
                                         }}
-                                        style={{ 
-                                            display: 'flex', alignItems: 'center', gap: '6px', 
-                                            background: woHistoryData.billStatus === 'FINAL' ? '#f0fdf4' : (woHistoryData.billStatus.startsWith('RAB') ? '#fffbeb' : '#fef2f2'), 
-                                            color: woHistoryData.billStatus === 'FINAL' ? '#166534' : (woHistoryData.billStatus.startsWith('RAB') ? '#92400e' : '#b91c1c'), 
-                                            border: `1px solid ${woHistoryData.billStatus === 'FINAL' ? '#bbf7d0' : (woHistoryData.billStatus.startsWith('RAB') ? '#fde68a' : '#fecaca')}`, 
-                                            padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 
+                                        style={{
+                                            display: 'flex', alignItems: 'center', gap: '6px',
+                                            background: woHistoryData.billStatus === 'FINAL' ? '#f0fdf4' : (woHistoryData.billStatus.startsWith('RAB') ? '#fffbeb' : '#fef2f2'),
+                                            color: woHistoryData.billStatus === 'FINAL' ? '#166534' : (woHistoryData.billStatus.startsWith('RAB') ? '#92400e' : '#b91c1c'),
+                                            border: `1px solid ${woHistoryData.billStatus === 'FINAL' ? '#bbf7d0' : (woHistoryData.billStatus.startsWith('RAB') ? '#fde68a' : '#fecaca')}`,
+                                            padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600
                                         }}
                                         title="View Bill Status Document"
                                     >
@@ -847,7 +873,7 @@ const InvoiceGenerator = () => {
                             </div>
                             <button onClick={() => setWoHistoryModalOpen(false)} style={{ border: 'none', background: 'none', fontSize: '1.5rem', cursor: 'pointer', color: 'var(--text-muted)' }}>&times;</button>
                         </div>
-                        
+
                         <div style={{ marginBottom: '16px', background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                                 <span style={{ color: '#475569', fontSize: '0.9rem' }}>Work Order No:</span>
@@ -939,8 +965,8 @@ const InvoiceGenerator = () => {
                             <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#1e293b', margin: 0 }}>Work Order Document</h3>
                             <Button variant="secondary" onClick={() => setPreviewUrl(null)} style={{ padding: '6px 12px', fontSize: '0.85rem' }}>Close</Button>
                         </div>
-                        <iframe 
-                            src={previewUrl} 
+                        <iframe
+                            src={previewUrl}
                             style={{ flex: 1, width: '100%', border: 'none', backgroundColor: '#e2e8f0' }}
                             title="Document Preview"
                             allow="autoplay"

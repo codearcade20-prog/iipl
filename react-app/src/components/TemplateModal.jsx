@@ -94,7 +94,7 @@ const TemplateModal = ({ record, onClose, gmSignatureUrl }) => {
                                     <div className={styles.infoItem} style={{ textAlign: 'right', fontWeight: 'bold' }}>{formatDate(record.date)}</div>
                                     <div className={styles.toSection} style={{ gridColumn: 'span 2' }}>TO</div>
                                     <div className={styles.clientName} style={{ gridColumn: 'span 2', paddingBottom: '10px' }}>
-                                        Innovative Interiors Pvt Ltd,<br />
+                                        {record.is_infini_infra || record.items_data?.[0]?._isInfiniInfra ? 'Innovative Infini Infra Pvt Ltd,' : 'Innovative Interiors Pvt Ltd,'}<br />
                                         No 7, V V Kovil Street,<br />
                                         Chinmaya Nagar,<br />
                                         Koyembedu, Chennai-92

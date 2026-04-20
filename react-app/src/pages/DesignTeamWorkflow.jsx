@@ -29,6 +29,28 @@ const DesignTeamWorkflow = () => {
     const [viewMode, setViewMode] = useState('single');
     const [searchQuery, setSearchQuery] = useState('');
     const [allWorkflows, setAllWorkflows] = useState([]);
+    const [masterViewMode, setMasterViewMode] = useState('summary');
+
+    const FULL_FIELDS = [
+        { group: 'step_1_concept', key: 'delegation', label: '1.1 Delegation' },
+        { group: 'step_1_concept', key: 'line_drawing', label: '1.2 Line Drawing' },
+        { group: 'step_1_concept', key: 'architect_meeting', label: '1.3 Arch. Meeting' },
+        { group: 'step_1_concept', key: 'site_visit', label: '1.4 P1 Site Visit' },
+        { group: 'step_1_concept', key: 'site_marking', label: '1.5 Site Marking' },
+        { group: 'step_1_concept', key: 'sample_mockup', label: '1.6 Sample Mockup' },
+        { group: 'step_1_concept', key: 'mood_board', label: '1.7 Mood Board' },
+        { group: 'step_2_development', key: 'shop_drawing', label: '2.1 Shop Drawing' },
+        { group: 'step_2_development', key: 'planning', label: '2.2 Planning' },
+        { group: 'step_2_development', key: 'revisions', label: '2.3 Revisions' },
+        { group: 'step_2_development', key: 'final_approval', label: '2.4 Final App.' },
+        { group: 'step_3_material', key: 'mrf_long_lead', label: '3.1 MRF Long Lead' },
+        { group: 'step_3_material', key: 'mrf_regular', label: '3.2 MRF Regular' },
+        { group: 'step_4_production', key: 'cutting_list', label: '4.1 Cutting List' },
+        { group: 'step_4_production', key: 'factory_visit', label: '4.2 Factory Visit' },
+        { group: 'step_4_production', key: 'review_validation', label: '4.3 Review Val.' },
+        { group: 'step_5_installation', key: 'knowledge_transfer', label: '5.1 Knowledge Tr.' },
+        { group: 'step_5_installation', key: 'site_visit', label: '5.2 P5 Site Visit' }
+    ];
 
     const fetchMasterData = async (projectsData) => {
         try {
@@ -269,35 +291,54 @@ const DesignTeamWorkflow = () => {
     };
 
     const handleExportPDF = () => {
-        const doc = new jsPDF('landscape');
+        const isFull = masterViewMode === 'full';
+        const doc = new jsPDF(isFull ? 'l' : 'l', 'mm', isFull ? 'a3' : 'a4');
         doc.setFontSize(16);
-        doc.text('Design Team Workflow Master View', 14, 15);
+        doc.text(`Design Team Workflow Master View - ${isFull ? 'Full Fields' : 'Summary'}`, 14, 15);
         
-        const tableColumn = ["Project Name", "Start Date", "Days", "Phase 1", "Phase 2", "Phase 3", "Phase 4", "Phase 5", "Overall"];
-        
+        let tableColumn = [];
+        let tableRows = [];
         const filteredWorkflows = allWorkflows.filter(w => w.project_name.toLowerCase().includes(searchQuery.toLowerCase()));
-        
-        const tableRows = filteredWorkflows.map(w => [
-            w.project_name,
-            w.start_date || 'N/A',
-            `${w.elapsedDays}d`,
-            `${w.p1}%`,
-            `${w.p2}%`,
-            `${w.p3}%`,
-            `${w.p4}%`,
-            `${w.p5}%`,
-            `${w.overallProgress}%`
-        ]);
+
+        const getStatusText = (status) => {
+            if (status === 'completed' || status === true) return '100%';
+            if (status === 'process') return '50%';
+            return '0%';
+        };
+
+        if (isFull) {
+            tableColumn = ["Project", "Start Date", "Days", ...FULL_FIELDS.map(f => f.label)];
+            tableRows = filteredWorkflows.map(w => [
+                w.project_name,
+                w.start_date || 'N/A',
+                `${w.elapsedDays}d`,
+                ...FULL_FIELDS.map(f => w[f.group] ? getStatusText(w[f.group][f.key]) : 'P')
+            ]);
+        } else {
+            tableColumn = ["Project Name", "Start Date", "Days", "Phase 1", "Phase 2", "Phase 3", "Phase 4", "Phase 5", "Overall"];
+            tableRows = filteredWorkflows.map(w => [
+                w.project_name,
+                w.start_date || 'N/A',
+                `${w.elapsedDays}d`,
+                `${w.p1}%`,
+                `${w.p2}%`,
+                `${w.p3}%`,
+                `${w.p4}%`,
+                `${w.p5}%`,
+                `${w.overallProgress}%`
+            ]);
+        }
 
         autoTable(doc, {
             head: [tableColumn],
             body: tableRows,
             startY: 20,
-            styles: { fontSize: 10 },
-            headStyles: { fillColor: [37, 99, 235] }
+            styles: { fontSize: isFull ? 7 : 10, cellPadding: 1 },
+            headStyles: { fillColor: [37, 99, 235] },
+            columnStyles: isFull ? { 0: { cellWidth: 30 } } : {}
         });
 
-        doc.save('design_workflow.pdf');
+        doc.save(`design_workflow_${isFull ? 'full' : 'summary'}.pdf`);
         toast("Download started!");
     };
 
@@ -568,12 +609,22 @@ const DesignTeamWorkflow = () => {
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
                         </div>
-                        <button 
-                            className={`${styles.viewToggleBtn} ${styles.printBtn}`} 
-                            onClick={handleExportPDF}
-                        >
-                            <Download size={16} /> Export PDF
-                        </button>
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                            <select 
+                                value={masterViewMode} 
+                                onChange={(e) => setMasterViewMode(e.target.value)}
+                                style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                            >
+                                <option value="summary">Summary View</option>
+                                <option value="full">Full Fields View</option>
+                            </select>
+                            <button 
+                                className={`${styles.viewToggleBtn} ${styles.printBtn}`} 
+                                onClick={handleExportPDF}
+                            >
+                                <Download size={16} /> Export PDF
+                            </button>
+                        </div>
                     </div>
 
                     <div className={styles.tableWrapper}>
@@ -583,12 +634,18 @@ const DesignTeamWorkflow = () => {
                                     <th>Project Name</th>
                                     <th>Start Date</th>
                                     <th>Days</th>
-                                    <th>Phase 1</th>
-                                    <th>Phase 2</th>
-                                    <th>Phase 3</th>
-                                    <th>Phase 4</th>
-                                    <th>Phase 5</th>
-                                    <th>Overall</th>
+                                    {masterViewMode === 'summary' ? (
+                                        <>
+                                            <th>Phase 1</th>
+                                            <th>Phase 2</th>
+                                            <th>Phase 3</th>
+                                            <th>Phase 4</th>
+                                            <th>Phase 5</th>
+                                            <th>Overall</th>
+                                        </>
+                                    ) : (
+                                        FULL_FIELDS.map((f, i) => <th key={i} style={{ fontSize: '0.75rem', whiteSpace: 'nowrap' }}>{f.label}</th>)
+                                    )}
                                 </tr>
                             </thead>
                             <tbody>
@@ -606,24 +663,57 @@ const DesignTeamWorkflow = () => {
                                                 {w.elapsedDays}d
                                             </span>
                                         </td>
-                                        <td>{w.p1}%</td>
-                                        <td>{w.p2}%</td>
-                                        <td>{w.p3}%</td>
-                                        <td>{w.p4}%</td>
-                                        <td>{w.p5}%</td>
-                                        <td>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                <div style={{ flex: 1, backgroundColor: '#e2e8f0', height: '6px', borderRadius: '4px' }}>
-                                                    <div style={{ width: `${w.overallProgress}%`, backgroundColor: '#3b82f6', height: '100%', borderRadius: '4px' }}></div>
-                                                </div>
-                                                <span style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>{w.overallProgress}%</span>
-                                            </div>
-                                        </td>
+                                        {masterViewMode === 'summary' ? (
+                                            <>
+                                                <td>{w.p1}%</td>
+                                                <td>{w.p2}%</td>
+                                                <td>{w.p3}%</td>
+                                                <td>{w.p4}%</td>
+                                                <td>{w.p5}%</td>
+                                                <td>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                        <div style={{ flex: 1, backgroundColor: '#e2e8f0', height: '6px', borderRadius: '4px' }}>
+                                                            <div style={{ width: `${w.overallProgress}%`, backgroundColor: '#3b82f6', height: '100%', borderRadius: '4px' }}></div>
+                                                        </div>
+                                                        <span style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>{w.overallProgress}%</span>
+                                                    </div>
+                                                </td>
+                                            </>
+                                        ) : (
+                                            FULL_FIELDS.map((f, i) => {
+                                                const status = w[f.group] ? w[f.group][f.key] : 'pending';
+                                                let bgColor = '#f1f5f9';
+                                                let color = '#64748b';
+                                                let text = '0%';
+                                                
+                                                if (status === 'completed' || status === true) {
+                                                    bgColor = '#dcfce7'; color = '#16a34a'; text = '100%';
+                                                } else if (status === 'process') {
+                                                    bgColor = '#fef3c7'; color = '#d97706'; text = '50%';
+                                                }
+                                                
+                                                return (
+                                                    <td key={i}>
+                                                        <span style={{
+                                                            backgroundColor: bgColor,
+                                                            color: color,
+                                                            padding: '2px 6px',
+                                                            borderRadius: '4px',
+                                                            fontSize: '0.7rem',
+                                                            fontWeight: '500',
+                                                            whiteSpace: 'nowrap'
+                                                        }}>
+                                                            {text}
+                                                        </span>
+                                                    </td>
+                                                );
+                                            })
+                                        )}
                                     </tr>
                                 ))}
                                 {allWorkflows.length === 0 && (
                                     <tr>
-                                        <td colSpan="9" style={{ textAlign: 'center', padding: '2rem' }}>No progression data found</td>
+                                        <td colSpan={masterViewMode === 'summary' ? 9 : 3 + FULL_FIELDS.length} style={{ textAlign: 'center', padding: '2rem' }}>No progression data found</td>
                                     </tr>
                                 )}
                             </tbody>
