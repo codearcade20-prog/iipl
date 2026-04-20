@@ -130,24 +130,37 @@ const LaborPortal = () => {
     };
 
     const fetchLocation = () => {
-        navigator.geolocation.getCurrentPosition(
-            async (pos) => {
+        const getLoc = (options) => new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, options);
+        });
+
+        const tryGetLocation = async () => {
+            try {
+                // Try high accuracy (GPS) first with a 10s timeout
+                return await getLoc({ enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+            } catch (err) {
+                console.warn("High accuracy location failed. Retrying with low accuracy...", err);
+                // Fallback to low accuracy (Cell-tower/WiFi) which is much faster and reliable indoors
+                return await getLoc({ enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 });
+            }
+        };
+
+        tryGetLocation()
+            .then(async (pos) => {
                 const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
                 try {
                     const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lng}`);
                     const data = await res.json();
                     setLocation({ coords, address: data.display_name });
                 } catch (e) {
-                    setLocation({ coords, address: "Unknown Address" });
+                    setLocation({ coords, address: "Unknown Address (Coordinates Found)" });
                 }
-            },
-            (err) => {
-                console.error(err);
-                toast("Location access denied or unavailable. Proceeding without location.");
+            })
+            .catch((err) => {
+                console.error("Final location error:", err);
+                toast("Location access denied or unavailable. Please enable device GPS.");
                 setLocation({ coords: null, address: "Location Unavailable" });
-            },
-            { enableHighAccuracy: true, timeout: 10000 }
-        );
+            });
     };
 
     const startCamera = async (type) => {
