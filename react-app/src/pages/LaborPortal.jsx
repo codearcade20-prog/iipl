@@ -245,6 +245,8 @@ const LaborPortal = () => {
                     labor_id: labor.id,
                     work_date: today,
                     site_id: selectedSite || (todayRecord ? todayRecord.site_id : null),
+                    subcontractor_id: labor.subcontractor_id || null,
+                    wage_category: 'Direct wages',
                     attendance: 'Present',
                     time_in_timestamp: timestamp,
                     time_in_photo_url: publicUrl,

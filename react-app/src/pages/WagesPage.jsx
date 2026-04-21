@@ -401,7 +401,7 @@ const WagesPage = () => {
         try {
             const { data, error } = await supabase
                 .from('labor_attendance_wages')
-                .select('id, labor_id, site_id, time_in, time_out, attendance_value, calculated_attendance_value, wages_amount, raw_wages_amount, remarks, payment_status, subcontractor_id, wage_category')
+                .select('id, labor_id, site_id, time_in, time_out, time_in_timestamp, time_out_timestamp, attendance_value, calculated_attendance_value, wages_amount, raw_wages_amount, remarks, payment_status, subcontractor_id, wage_category')
                 .eq('work_date', selectedDate);
 
             if (error) throw error;
@@ -417,13 +417,28 @@ const WagesPage = () => {
                 }
 
                 // Only populate the entry for the current selected site AND category
-                if (rec.site_id == selectedSite && rec.wage_category === selectedCategory) {
+                // Fallback: If category is NULL, treat it as 'Direct wages'
+                const isMatch = rec.site_id == selectedSite && 
+                               (rec.wage_category === selectedCategory || (!rec.wage_category && selectedCategory === 'Direct wages'));
+
+                if (isMatch) {
                     const laborObj = labors.find(l => l.id === rec.labor_id);
                     const dailyRate = laborObj?.daily_rate || 0;
+
+                    // Helper to format timestamp to HH:mm
+                    const formatTs = (ts) => {
+                        if (!ts) return '';
+                        const d = new Date(ts);
+                        return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+                    };
+
+                    const t_in = rec.time_in || formatTs(rec.time_in_timestamp);
+                    const t_out = rec.time_out || formatTs(rec.time_out_timestamp);
+
                     lookup[rec.labor_id] = {
-                        time_in: rec.time_in || '',
-                        time_out: rec.time_out || '',
-                        calc_attn_val: rec.calculated_attendance_value != null ? rec.calculated_attendance_value : calculateAttendanceValue(rec.time_in, rec.time_out),
+                        time_in: t_in,
+                        time_out: t_out,
+                        calc_attn_val: rec.calculated_attendance_value != null ? rec.calculated_attendance_value : calculateAttendanceValue(t_in, t_out),
                         attn_val: rec.attendance_value || 0,
                         actual_wages: rec.raw_wages_amount != null ? rec.raw_wages_amount : parseFloat(((rec.attendance_value || 0) * dailyRate).toFixed(2)),
                         wages: rec.wages_amount,
