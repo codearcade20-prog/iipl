@@ -1153,13 +1153,6 @@ const WagesPage = () => {
             <div className={`${styles.step} ${!isCategorySelected ? styles.disabledStep : styles.activeStep}`}>
                 <div className={styles.stepHeader}>
                     <span className={styles.stepLabel}>Step 04 • Work Date</span>
-                    <button
-                        onClick={() => setHideCompleted(!hideCompleted)}
-                        className={`${styles.pendingToggle} ${hideCompleted ? styles.pendingActive : ''}`}
-                        disabled={!isCategorySelected}
-                    >
-                        {hideCompleted ? '🔥 Pending' : 'All'}
-                    </button>
                 </div>
                 <input 
                     type="date" 
@@ -1466,6 +1459,17 @@ const WagesPage = () => {
     };
 
     const renderSummary = () => {
+        const getCategoryStyles = (cat) => {
+            switch(cat) {
+                case 'Direct wages': return { bg: '#eff6ff', text: '#1e40af', border: '#dbeafe' };
+                case 'NMR wages': return { bg: '#fdf2f8', text: '#9d174d', border: '#fce7f3' };
+                case 'Snag wages': return { bg: '#f0fdf4', text: '#166534', border: '#dcfce7' };
+                case 'Third party subvendor work': return { bg: '#fff7ed', text: '#c2410c', border: '#ffedd5' };
+                case 'weekly payment agst order': return { bg: '#fefce8', text: '#854d0e', border: '#fef9c3' };
+                default: return { bg: '#f1f5f9', text: '#475569', border: '#e2e8f0' };
+            }
+        };
+
         const filteredData = rawReportData.filter(r => {
             const matchesLabor = !searchLaborReport || r.labors?.name?.toLowerCase().includes(searchLaborReport.toLowerCase());
             const matchesCategory = searchCategoryReport === 'All' || r.wage_category === searchCategoryReport;
@@ -1597,17 +1601,20 @@ const WagesPage = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                ${filteredData.map((r, i) => `
+                                ${filteredData.map((r, i) => {
+                                    const styles = getCategoryStyles(r.wage_category);
+                                    return `
                                     <tr>
                                         <td>${i + 1}</td>
                                         <td>${new Date(r.work_date).toLocaleDateString('en-GB')}</td>
                                         <td><strong>${r.sites?.name || '-'}</strong></td>
+                                        <td><span style="background: ${styles.bg}; color: ${styles.text}; padding: 2px 6px; border-radius: 4px; font-weight: 600; font-size: 10px; border: 1px solid ${styles.border};">${r.wage_category}</span></td>
                                         <td>${formatTime12h(r.time_in)}</td>
                                         <td>${formatTime12h(r.time_out)}</td>
                                         <td style="text-align: center;">${r.attendance_value}</td>
                                         <td style="text-align: right;">₹${parseFloat(r.wages_amount).toLocaleString('en-IN')}</td>
                                     </tr>
-                                `).join('')}
+                                `;}).join('')}
                                 <tr class="total-row">
                                     <td colspan="6" style="text-align: right; text-transform: uppercase;">Total Payable Amount:</td>
                                     <td style="text-align: right;">₹${filteredData.reduce((sum, r) => sum + (parseFloat(r.wages_amount) || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
@@ -1807,9 +1814,14 @@ const WagesPage = () => {
                                         <td data-label="Labor Name"><span className={styles.strong}>{r.labors?.name || '-'}</span></td>
                                         <td data-label="Designation" style={{ fontSize: '0.8rem' }}>{r.labors?.designation || '-'}</td>
                                         <td data-label="Category">
-                                            <span className={styles.badge} style={{ background: '#f1f5f9', color: '#475569', fontSize: '10px' }}>
-                                                {r.wage_category}
-                                            </span>
+                                            {(() => {
+                                                const s = getCategoryStyles(r.wage_category);
+                                                return (
+                                                    <span className={styles.badge} style={{ background: s.bg, color: s.text, fontSize: '10px', border: `1px solid ${s.border}` }}>
+                                                        {r.wage_category}
+                                                    </span>
+                                                );
+                                            })()}
                                         </td>
                                         <td data-label="Time In" style={{ fontWeight: 600, color: '#2563eb' }}>{formatTime12h(r.time_in)}</td>
                                         <td data-label="Time Out" style={{ fontWeight: 600, color: '#2563eb' }}>{formatTime12h(r.time_out)}</td>
