@@ -614,10 +614,10 @@ const WagesPage = () => {
     const saveAttendance = async () => {
         setLoading(true);
         try {
-            const updates = [];
+            const recordsToUpsert = [];
             const filteredLabors = labors.filter(l =>
                 l.status === 'Active' &&
-                (!selectedSubcontractor || l.subcontractor_id === selectedSubcontractor)
+                (selectedSubcontractor === 'ALL' || !selectedSubcontractor || l.subcontractor_id === selectedSubcontractor)
             );
 
             for (const labor of filteredLabors) {
@@ -641,15 +641,27 @@ const WagesPage = () => {
                     wage_category: selectedCategory,
                     payment_week: selectedDate
                 };
-                if (entry.id) updates.push(supabase.from('labor_attendance_wages').update(payload).eq('id', entry.id));
-                else updates.push(supabase.from('labor_attendance_wages').insert([payload]));
+
+                if (entry.id) payload.id = entry.id;
+                recordsToUpsert.push(payload);
             }
-            const results = await Promise.all(updates);
-            if (results.some(r => r.error)) throw new Error('Some entries failed to save.');
-            toast('Attendance saved!');
+
+            if (recordsToUpsert.length === 0) {
+                toast('No entries to save.');
+                return;
+            }
+
+            const { error } = await supabase.from('labor_attendance_wages').upsert(recordsToUpsert);
+            if (error) throw error;
+
+            toast('Attendance saved successfully!');
             fetchAttendance();
-        } catch (error) { alert(error.message); }
-        finally { setLoading(false); }
+        } catch (error) { 
+            console.error('Save Attendance Error:', error);
+            alert('Failed to save attendance: ' + error.message); 
+        } finally { 
+            setLoading(false); 
+        }
     };
 
     // --- LABOR CRUD ---
@@ -683,6 +695,19 @@ const WagesPage = () => {
             // Handle File Upload if selected
             if (selectedLaborFile) {
                 setUploadingLaborPhoto(true);
+
+                // Delete previous photo if it exists and is not a generic/drive link
+                if (laborForm.photo_url && !laborForm.photo_url.includes('drive.google')) {
+                    try {
+                        const oldFileName = decodeURIComponent(laborForm.photo_url.split('/').pop().split('?')[0]);
+                        if (oldFileName) {
+                            await supabase.storage.from('labors').remove([oldFileName]);
+                        }
+                    } catch (err) {
+                        console.warn("Could not delete old labor photo:", err);
+                    }
+                }
+
                 const fileExt = selectedLaborFile.name.split('.').pop();
                 const fileName = `${laborForm.name.replace(/\s+/g, '_')}_${Date.now()}.${fileExt}`;
                 const filePath = `${fileName}`;
@@ -759,6 +784,21 @@ const WagesPage = () => {
 
         setLoading(true);
         try {
+            // Delete labor photo from storage if applicable
+            if (table === 'labors') {
+                const laborToDelete = labors.find(l => l.id === id);
+                if (laborToDelete?.photo_url && !laborToDelete.photo_url.includes('drive.google')) {
+                    try {
+                        const fileName = decodeURIComponent(laborToDelete.photo_url.split('/').pop().split('?')[0]);
+                        if (fileName) {
+                            await supabase.storage.from('labors').remove([fileName]);
+                        }
+                    } catch (err) {
+                        console.warn("Could not delete labor photo from storage:", err);
+                    }
+                }
+            }
+
             const { error } = await supabase.from(table).delete().eq('id', id);
             if (error) throw error;
             fetchInitialData(true);
@@ -900,28 +940,31 @@ const WagesPage = () => {
     };
 
     const saveCorrections = async () => {
+        if (correctionRecords.length === 0) return;
         setIsSavingCorrection(true);
         try {
-            const updates = correctionRecords.map(r =>
-                supabase.from('labor_attendance_wages').update({
-                    time_in: r.new_time_in,
-                    time_out: r.new_time_out,
-                    attendance_value: r.new_attn_val,
-                    calculated_attendance_value: calculateAttendanceValue(r.new_time_in, r.new_time_out),
-                    wages_amount: parseFloat(r.new_wages) || 0,
-                    raw_wages_amount: parseFloat(r.new_actual_wages) || 0,
-                    remarks: r.new_remarks,
-                    wage_category: r.new_category,
-                    site_id: r.new_site_id
-                }).eq('id', r.id)
-            );
-            const results = await Promise.all(updates);
-            if (results.some(r => r.error)) throw new Error('Some corrections failed to save.');
-            toast('Corrections saved!');
+            const recordsToUpsert = correctionRecords.map(r => ({
+                id: r.id,
+                time_in: r.new_time_in,
+                time_out: r.new_time_out,
+                attendance_value: r.new_attn_val,
+                calculated_attendance_value: calculateAttendanceValue(r.new_time_in, r.new_time_out),
+                wages_amount: parseFloat(r.new_wages) || 0,
+                raw_wages_amount: parseFloat(r.new_actual_wages) || 0,
+                remarks: r.new_remarks,
+                wage_category: r.new_category,
+                site_id: r.new_site_id
+            }));
+
+            const { error } = await supabase.from('labor_attendance_wages').upsert(recordsToUpsert);
+            if (error) throw error;
+
+            toast('Corrections saved successfully!');
             setCorrectionModalOpen(false);
             fetchWeeklyReport();
         } catch (error) {
-            alert(error.message);
+            console.error('Save Correction Error:', error);
+            alert('Failed to save corrections: ' + error.message);
         } finally {
             setIsSavingCorrection(false);
         }
