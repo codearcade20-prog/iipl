@@ -646,13 +646,17 @@ const WagesPage = () => {
                 recordsToUpsert.push(payload);
             }
 
-            if (recordsToUpsert.length === 0) {
-                toast('No entries to save.');
-                return;
-            }
+            const inserts = recordsToUpsert.filter(r => !r.id);
+            const updates = recordsToUpsert.filter(r => r.id);
 
-            const { error } = await supabase.from('labor_attendance_wages').upsert(recordsToUpsert);
-            if (error) throw error;
+            const promises = [];
+            if (inserts.length > 0) promises.push(supabase.from('labor_attendance_wages').insert(inserts));
+            if (updates.length > 0) promises.push(supabase.from('labor_attendance_wages').upsert(updates));
+
+            const results = await Promise.all(promises);
+            const errors = results.filter(r => r.error).map(r => r.error.message);
+            
+            if (errors.length > 0) throw new Error(errors.join(', '));
 
             toast('Attendance saved successfully!');
             fetchAttendance();
@@ -956,8 +960,17 @@ const WagesPage = () => {
                 site_id: r.new_site_id
             }));
 
-            const { error } = await supabase.from('labor_attendance_wages').upsert(recordsToUpsert);
-            if (error) throw error;
+            const inserts = recordsToUpsert.filter(r => !r.id);
+            const updates = recordsToUpsert.filter(r => r.id);
+
+            const promises = [];
+            if (inserts.length > 0) promises.push(supabase.from('labor_attendance_wages').insert(inserts));
+            if (updates.length > 0) promises.push(supabase.from('labor_attendance_wages').upsert(updates));
+
+            const results = await Promise.all(promises);
+            const errors = results.filter(r => r.error).map(r => r.error.message);
+
+            if (errors.length > 0) throw new Error(errors.join(', '));
 
             toast('Corrections saved successfully!');
             setCorrectionModalOpen(false);
