@@ -489,32 +489,44 @@ const WagesPage = () => {
         
         const confirmMsg = isPortal 
             ? `Are you sure you want to delete this portal log for ${name}? This will permanently delete the check-in photos and the attendance record.`
-            : `Are you sure you want to delete this daily log for ${name}? If it has portal check-in photos, they will also be deleted.`;
+            : `Are you sure you want to delete this daily log for ${name}? If it has portal check-in photos, they will also be deleted from storage.`;
 
         if (!await confirm(confirmMsg)) return;
 
         setLoading(true);
         try {
-            // Delete Time In Photo if exists
+            const filesToDelete = [];
             if (record.time_in_photo_url) {
-                const fileNameIn = record.time_in_photo_url.split('/').pop().split('?')[0];
-                if (fileNameIn && !fileNameIn.includes('drive.google')) {
-                    await supabase.storage.from('attendance_selfies').remove([fileNameIn]);
-                }
+                const fname = decodeURIComponent(record.time_in_photo_url.split('/').pop().split('?')[0]);
+                if (fname && !fname.includes('drive.google')) filesToDelete.push(fname);
             }
-            // Delete Time Out Photo if exists
             if (record.time_out_photo_url) {
-                const fileNameOut = record.time_out_photo_url.split('/').pop().split('?')[0];
-                if (fileNameOut && !fileNameOut.includes('drive.google')) {
-                    await supabase.storage.from('attendance_selfies').remove([fileNameOut]);
+                const fname = decodeURIComponent(record.time_out_photo_url.split('/').pop().split('?')[0]);
+                if (fname && !fname.includes('drive.google')) filesToDelete.push(fname);
+            }
+
+            if (filesToDelete.length > 0) {
+                console.log("Attempting to delete from Supabase storage:", filesToDelete);
+                const { data, error: storageError } = await supabase.storage
+                    .from('attendance_selfies')
+                    .remove(filesToDelete);
+
+                if (storageError) {
+                    console.error("Storage cleanup failed:", storageError);
+                    if (!await confirm(`Note: The record was found, but the photos could not be deleted from storage (${storageError.message}). Should I still delete the database record?`)) {
+                        setLoading(false);
+                        return;
+                    }
+                } else {
+                    console.log("Storage files removed successfully:", data);
                 }
             }
             
             // Delete the database record
-            const { error } = await supabase.from('labor_attendance_wages').delete().eq('id', record.id);
-            if (error) throw error;
+            const { error: dbError } = await supabase.from('labor_attendance_wages').delete().eq('id', record.id);
+            if (dbError) throw dbError;
             
-            toast('Record and associated photos deleted successfully.');
+            toast('Attendance record deleted successfully.');
             
             if (isPortal) {
                 fetchPortalLogs();
@@ -523,8 +535,8 @@ const WagesPage = () => {
                 fetchWeeklyReport();
             }
         } catch (err) {
-            console.error(err);
-            alert("Failed to delete: " + err.message);
+            console.error("Final deletion error:", err);
+            alert("Failed to delete record: " + err.message);
         } finally {
             setLoading(false);
         }
