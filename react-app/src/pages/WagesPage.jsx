@@ -938,7 +938,9 @@ const WagesPage = () => {
         if (!isSiteSelected || !isSubSelected || !isCategorySelected) {
             return (
                 <div className={styles.card}>
-                    {renderFilterBar(isSiteSelected, isSubSelected, isCategorySelected)}
+                    <div style={{ marginBottom: '40px' }}>
+                        {renderFilterBar(isSiteSelected, isSubSelected, isCategorySelected)}
+                    </div>
                     <div className={styles.welcomeState}>
                         <div className={styles.welcomeCircle}>
                             <Briefcase size={36} color="#2563eb" />
@@ -952,18 +954,23 @@ const WagesPage = () => {
 
         return (
             <div className={styles.card}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px' }}>
-                    {renderFilterBar(true, true, true)}
-                    <div style={{ position: 'relative', minWidth: '250px' }}>
-                        <input
-                            type="text"
-                            placeholder="Search worker name..."
-                            className={styles.filterMenuInput}
-                            style={{ paddingLeft: '32px', width: '100%', borderRadius: '12px' }}
-                            value={searchLaborEntry}
-                            onChange={e => setSearchLaborEntry(e.target.value)}
-                        />
-                        <Search size={18} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '20px', marginBottom: '32px' }}>
+                    <div style={{ flex: '1', minWidth: '300px' }}>
+                        {renderFilterBar(true, true, true)}
+                    </div>
+                    <div style={{ position: 'relative', minWidth: '280px', marginTop: '4px' }}>
+                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', color: '#94a3b8', marginBottom: '8px', letterSpacing: '0.1em' }}>Find Worker</label>
+                        <div style={{ position: 'relative' }}>
+                            <input
+                                type="text"
+                                placeholder="Search worker name..."
+                                className={styles.filterMenuInput}
+                                style={{ padding: '12px 12px 12px 40px', width: '100%', borderRadius: '12px', background: '#f8fafc', border: '1px solid #e2e8f0' }}
+                                value={searchLaborEntry}
+                                onChange={e => setSearchLaborEntry(e.target.value)}
+                            />
+                            <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                        </div>
                     </div>
                 </div>
                 <div className={styles.tableSlideIn}>
@@ -996,7 +1003,7 @@ const WagesPage = () => {
                                     const entry = attendanceEntry[l.id] || { time_in: '', time_out: '', attn_val: 0, wages: 0 };
                                     return (
                                         <tr key={l.id}>
-                                            <td style={{ paddingLeft: '24px' }}>
+                                            <td data-label="Worker Details" style={{ paddingLeft: '24px' }}>
                                                 <div 
                                                     className={styles.strong} 
                                                     style={{ cursor: 'pointer', display: 'inline-block' }}
@@ -1022,14 +1029,14 @@ const WagesPage = () => {
                                                 </div>
                                                 <div className={styles.muted} style={{ fontSize: '0.75rem' }}>Rate: ₹{l.daily_rate}</div>
                                             </td>
-                                            <td>
+                                            <td data-label="Attendance Hours">
                                                 <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                                                     <TimePicker className={styles.compactInput} value={entry.time_in || ''} onChange={val => handleAttendanceChange(l.id, 'time_in', val)} />
                                                     <span className={styles.muted}>→</span>
                                                     <TimePicker className={styles.compactInput} value={entry.time_out || ''} onChange={val => handleAttendanceChange(l.id, 'time_out', val)} />
                                                 </div>
                                             </td>
-                                            <td style={{ textAlign: 'center' }}>
+                                            <td data-label="Units (Calc / Edit)" style={{ textAlign: 'center' }}>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
                                                     <span style={{ color: '#64748b', fontSize: '0.85rem' }} title="Calculated Units">
                                                         {(entry.calc_attn_val !== undefined ? entry.calc_attn_val : calculateAttendanceValue(entry.time_in, entry.time_out)).toFixed(2)}
@@ -1046,19 +1053,19 @@ const WagesPage = () => {
                                                     />
                                                 </div>
                                             </td>
-                                            <td>
+                                            <td data-label="Raw Wage">
                                                 <div className={styles.wageValue}>
                                                     <span className={styles.currency}>₹</span>
                                                     <input type="number" readOnly className={styles.minimalInput} style={{ width: '70px', color: '#94a3b8' }} value={entry.actual_wages || 0} />
                                                 </div>
                                             </td>
-                                            <td>
+                                            <td data-label="Rounded Wage">
                                                 <div className={styles.wageValue}>
                                                     <span className={styles.currency} style={{ color: '#0f172a' }}>₹</span>
                                                     <input type="number" className={styles.minimalInput} style={{ width: '80px', fontWeight: 800, color: '#0f172a' }} value={entry.wages} onChange={e => handleAttendanceChange(l.id, 'wages', e.target.value)} />
                                                 </div>
                                             </td>
-                                            <td style={{ paddingRight: '24px' }}>
+                                            <td data-label="Remarks" style={{ paddingRight: '24px' }}>
                                                 <input type="text" className={styles.minimalInput} style={{ width: '100%' }} placeholder="Remarks..." value={entry.remarks || ''} onChange={e => handleAttendanceChange(l.id, 'remarks', e.target.value)} />
                                             </td>
                                         </tr>
@@ -1794,23 +1801,23 @@ const WagesPage = () => {
                             <tbody>
                                 {filteredData.map((r, i) => (
                                     <tr key={r.id}>
-                                        <td>{i + 1}</td>
-                                        <td>{new Date(r.work_date).toLocaleDateString('en-GB')}</td>
-                                        <td><span className={styles.strong}>{r.sites?.name || '-'}</span></td>
-                                        <td><span className={styles.strong}>{r.labors?.name || '-'}</span></td>
-                                        <td style={{ fontSize: '0.8rem' }}>{r.labors?.designation || '-'}</td>
-                                        <td>
+                                        <td data-label="#">{i + 1}</td>
+                                        <td data-label="Date">{new Date(r.work_date).toLocaleDateString('en-GB')}</td>
+                                        <td data-label="Site / Project"><span className={styles.strong}>{r.sites?.name || '-'}</span></td>
+                                        <td data-label="Labor Name"><span className={styles.strong}>{r.labors?.name || '-'}</span></td>
+                                        <td data-label="Designation" style={{ fontSize: '0.8rem' }}>{r.labors?.designation || '-'}</td>
+                                        <td data-label="Category">
                                             <span className={styles.badge} style={{ background: '#f1f5f9', color: '#475569', fontSize: '10px' }}>
                                                 {r.wage_category}
                                             </span>
                                         </td>
-                                        <td style={{ fontWeight: 600, color: '#2563eb' }}>{formatTime12h(r.time_in)}</td>
-                                        <td style={{ fontWeight: 600, color: '#2563eb' }}>{formatTime12h(r.time_out)}</td>
-                                        <td style={{ fontSize: '0.85rem' }}>{r.remarks || '---'}</td>
-                                        {showRawData && <td style={{ textAlign: 'center', color: '#8b5cf6', fontWeight: 600 }}>{r.calculated_attendance_value !== undefined && r.calculated_attendance_value !== null ? parseFloat(r.calculated_attendance_value).toFixed(3) : calculateAttendanceValue(r.time_in, r.time_out).toFixed(3)}</td>}
-                                        <td style={{ textAlign: 'center' }}>{r.attendance_value}</td>
-                                        {showRawData && <td style={{ textAlign: 'right', color: '#8b5cf6', fontWeight: 600 }}>₹{(r.raw_wages_amount !== undefined && r.raw_wages_amount !== null ? parseFloat(r.raw_wages_amount) : (parseFloat(r.attendance_value) || 0) * (r.labors?.daily_rate || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>}
-                                        <td style={{ textAlign: 'right', fontWeight: 600 }}>₹{parseFloat(r.wages_amount).toLocaleString('en-IN')}</td>
+                                        <td data-label="Time In" style={{ fontWeight: 600, color: '#2563eb' }}>{formatTime12h(r.time_in)}</td>
+                                        <td data-label="Time Out" style={{ fontWeight: 600, color: '#2563eb' }}>{formatTime12h(r.time_out)}</td>
+                                        <td data-label="Remarks" style={{ fontSize: '0.85rem' }}>{r.remarks || '---'}</td>
+                                        {showRawData && <td data-label="Calc Attn" style={{ textAlign: 'center', color: '#8b5cf6', fontWeight: 600 }}>{r.calculated_attendance_value !== undefined && r.calculated_attendance_value !== null ? parseFloat(r.calculated_attendance_value).toFixed(3) : calculateAttendanceValue(r.time_in, r.time_out).toFixed(3)}</td>}
+                                        <td data-label="Attn Val" style={{ textAlign: 'center' }}>{r.attendance_value}</td>
+                                        {showRawData && <td data-label="Raw Wages" style={{ textAlign: 'right', color: '#8b5cf6', fontWeight: 600 }}>₹{(r.raw_wages_amount !== undefined && r.raw_wages_amount !== null ? parseFloat(r.raw_wages_amount) : (parseFloat(r.attendance_value) || 0) * (r.labors?.daily_rate || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>}
+                                        <td data-label="Wages Amount" style={{ textAlign: 'right', fontWeight: 600 }}>₹{parseFloat(r.wages_amount).toLocaleString('en-IN')}</td>
                                     </tr>
                                 ))}
                                 <tr style={{ background: '#f8fafc', fontWeight: 800 }}>

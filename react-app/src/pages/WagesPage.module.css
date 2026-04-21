@@ -291,14 +291,15 @@
 /* Integrated Filter Bar */
 .filterMenuBar {
     display: flex;
-    align-items: center;
+    align-items: stretch;
     background: #ffffff;
     border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    padding: 8px 16px;
-    gap: 16px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    border-radius: 16px;
+    padding: 6px;
+    gap: 8px;
+    box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.05);
     flex-wrap: wrap;
+    margin-bottom: 24px;
 }
 
 .filterMenuDivider {
@@ -320,7 +321,8 @@
     font-weight: 800;
     color: #94a3b8;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.1em;
+    padding-left: 8px;
 }
 
 .filterMenuInput {
@@ -372,7 +374,7 @@
     border-radius: 16px;
     border: 1px solid #e2e8f0;
     box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.05);
-    margin-bottom: 40px;
+    margin-bottom: 0;
     overflow: visible; /* Changed from hidden to allow dropdowns to overflow */
 }
 
@@ -380,11 +382,15 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    padding: 16px 24px;
+    padding: 16px 20px;
     border-right: 1px solid #f1f5f9;
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     background: white;
+}
+
+.step:hover:not(.disabledStep) {
+    background: #f8faff;
 }
 
 .step:first-child {
@@ -715,13 +721,29 @@
 }
 
 /* --- MOBILE RESPONSIVENESS --- */
+@media (max-width: 1200px) {
+    .selectionStepper {
+        flex-wrap: wrap;
+    }
+    .step {
+        flex: 1 1 50%;
+        border-bottom: 1px solid #f1f5f9;
+    }
+    .step:nth-child(2n) {
+        border-right: none;
+    }
+}
+
 @media (max-width: 1024px) {
     .filterMenuBar {
-        gap: 12px;
-        padding: 12px;
+        gap: 8px;
+        padding: 8px;
     }
     .filterMenuItem {
-        min-width: calc(50% - 12px);
+        min-width: calc(50% - 8px);
+        background: #f8fafc;
+        padding: 10px;
+        border-radius: 12px;
     }
     .filterMenuDivider {
         display: none;
@@ -771,14 +793,44 @@
         border-bottom: none;
     }
 
-    .card {
-        padding: 16px;
-        border-radius: 16px;
+    .tableContainer {
+        border: none;
+        border-radius: 0;
     }
 
-    .table th, .table td {
-        padding: 12px 8px;
-        font-size: 0.8rem;
+    .table thead {
+        display: none;
+    }
+
+    .table tr {
+        display: block;
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        margin-bottom: 16px;
+        padding: 16px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+
+    .table td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid #f1f5f9;
+        font-size: 0.9rem;
+    }
+
+    .table td:last-child {
+        border-bottom: none;
+    }
+
+    .table td::before {
+        content: attr(data-label);
+        font-weight: 700;
+        color: #64748b;
+        font-size: 0.75rem;
+        text-transform: uppercase;
     }
 
     .tableTitle {
