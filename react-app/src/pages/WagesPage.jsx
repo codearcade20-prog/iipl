@@ -639,7 +639,8 @@ const WagesPage = () => {
                     raw_wages_amount: parseFloat(entry.actual_wages) || 0,
                     remarks: entry.remarks || '',
                     wage_category: selectedCategory,
-                    payment_week: selectedDate
+                    payment_week: selectedDate,
+                    payment_status: entry.payment_status || 'Pending'
                 };
 
                 if (entry.id) payload.id = entry.id;
@@ -949,6 +950,9 @@ const WagesPage = () => {
         try {
             const recordsToUpsert = correctionRecords.map(r => ({
                 id: r.id,
+                labor_id: r.labor_id, // Include required columns
+                work_date: r.work_date,
+                subcontractor_id: r.subcontractor_id,
                 time_in: r.new_time_in,
                 time_out: r.new_time_out,
                 attendance_value: r.new_attn_val,
@@ -957,7 +961,9 @@ const WagesPage = () => {
                 raw_wages_amount: parseFloat(r.new_actual_wages) || 0,
                 remarks: r.new_remarks,
                 wage_category: r.new_category,
-                site_id: r.new_site_id
+                site_id: r.new_site_id,
+                payment_week: r.payment_week,
+                payment_status: r.payment_status || 'Pending'
             }));
 
             const inserts = recordsToUpsert.filter(r => !r.id);
