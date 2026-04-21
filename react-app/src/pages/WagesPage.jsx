@@ -290,6 +290,7 @@ const WagesPage = () => {
     const [selectedCategory, setSelectedCategory] = useState('Direct wages');
     const [searchSub, setSearchSub] = useState('');
     const [searchLabor, setSearchLabor] = useState('');
+    const [searchLaborEntry, setSearchLaborEntry] = useState('');
     const [hideCompleted, setHideCompleted] = useState(true);
 
     // Labor Management States
@@ -324,6 +325,7 @@ const WagesPage = () => {
     const [searchSubcontractorReport, setSearchSubcontractorReport] = useState('All');
     const [showRawData, setShowRawData] = useState(false);
     const [searchPaymentLabor, setSearchPaymentLabor] = useState('');
+    const [searchDesignationReport, setSearchDesignationReport] = useState('All');
 
     // Portal Logs State
     const [portalLogDate, setPortalLogDate] = useState(new Date().toISOString().split('T')[0]);
@@ -750,7 +752,7 @@ const WagesPage = () => {
         try {
             const { data, error } = await supabase
                 .from('labor_attendance_wages')
-                .select('*, labors(name, phone), sites(name), subcontractors(name)')
+                .select('*, labors(name, phone, designation), sites(name), subcontractors(name)')
                 .gte('work_date', reportStartDate)
                 .lte('work_date', reportEndDate);
             if (error) throw error;
@@ -925,6 +927,10 @@ const WagesPage = () => {
             filteredLabors = filteredLabors.filter(l => !completedLaborIds.has(l.id));
         }
 
+        if (searchLaborEntry) {
+            filteredLabors = filteredLabors.filter(l => l.name.toLowerCase().includes(searchLaborEntry.toLowerCase()));
+        }
+
         const isSiteSelected = selectedSite !== '';
         const isSubSelected = selectedSubcontractor !== '';
         const isCategorySelected = selectedCategory !== '';
@@ -946,7 +952,20 @@ const WagesPage = () => {
 
         return (
             <div className={styles.card}>
-                {renderFilterBar(true, true, true)}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px' }}>
+                    {renderFilterBar(true, true, true)}
+                    <div style={{ position: 'relative', minWidth: '250px' }}>
+                        <input
+                            type="text"
+                            placeholder="Search worker name..."
+                            className={styles.filterMenuInput}
+                            style={{ paddingLeft: '32px', width: '100%', borderRadius: '12px' }}
+                            value={searchLaborEntry}
+                            onChange={e => setSearchLaborEntry(e.target.value)}
+                        />
+                        <Search size={18} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                    </div>
+                </div>
                 <div className={styles.tableSlideIn}>
                     <div className={styles.tableHeader}>
                         <div className={styles.tableTitle}>
@@ -1445,7 +1464,8 @@ const WagesPage = () => {
             const matchesCategory = searchCategoryReport === 'All' || r.wage_category === searchCategoryReport;
             const matchesSub = searchSubcontractorReport === 'All' || r.subcontractor_id === searchSubcontractorReport;
             const matchesSite = searchSiteReport === 'All' || r.site_id == searchSiteReport;
-            return matchesLabor && matchesCategory && matchesSub && matchesSite;
+            const matchesDesignation = searchDesignationReport === 'All' || r.labors?.designation === searchDesignationReport;
+            return matchesLabor && matchesCategory && matchesSub && matchesSite && matchesDesignation;
         }).sort((a, b) => new Date(a.work_date) - new Date(b.work_date));
 
         const totalAmount = filteredData.reduce((sum, r) => sum + (parseFloat(r.wages_amount) || 0), 0);
@@ -1614,6 +1634,7 @@ const WagesPage = () => {
                     'Date': new Date(r.work_date).toLocaleDateString('en-GB'),
                     'Site / Project': r.sites?.name || '-',
                     'Labor Name': r.labors?.name || '-',
+                    'Designation': r.labors?.designation || '-',
                     'Category': r.wage_category,
                     'Time In': formatTime12h(r.time_in),
                     'Time Out': formatTime12h(r.time_out),
@@ -1631,7 +1652,7 @@ const WagesPage = () => {
             });
 
             const totalRow = {
-                '#': '', 'Date': '', 'Site / Project': '', 'Labor Name': '', 'Category': '', 'Time In': '', 'Time Out': '', 'Remarks': 'TOTAL',
+                '#': '', 'Date': '', 'Site / Project': '', 'Labor Name': '', 'Designation': '', 'Category': '', 'Time In': '', 'Time Out': '', 'Remarks': 'TOTAL',
             };
             if (showRawData) totalRow['Calc Attn Val'] = '';
             totalRow['Attn Val'] = '';
@@ -1710,6 +1731,22 @@ const WagesPage = () => {
                         </div>
                         <div className={styles.filterMenuDivider}></div>
 
+                        <div className={styles.filterMenuItem}>
+                            <label className={styles.filterMenuItemLabel}>Designation</label>
+                            <SearchableSelect 
+                                placeholder="All Designations"
+                                value={searchDesignationReport}
+                                onChange={e => setSearchDesignationReport(e.target.value)}
+                                options={[
+                                    { value: 'All', label: 'All Designations' },
+                                    ...[...new Set(rawReportData.map(r => r.labors?.designation).filter(Boolean))].map(d => ({ 
+                                        value: d, label: d 
+                                    }))
+                                ]}
+                            />
+                        </div>
+                        <div className={styles.filterMenuDivider}></div>
+
                         <div className={styles.filterMenuItem} style={{ flex: '1.5', minWidth: '220px' }}>
                             <label className={styles.filterMenuItemLabel}>Date Range</label>
                             <div className={styles.dateFilterGroup}>
@@ -1743,6 +1780,7 @@ const WagesPage = () => {
                                     <th>DATE</th>
                                     <th>SITE / PROJECT</th>
                                     <th>LABOR NAME</th>
+                                    <th>DESIGNATION</th>
                                     <th>CATEGORY</th>
                                     <th>TIME IN</th>
                                     <th>TIME OUT</th>
@@ -1760,6 +1798,7 @@ const WagesPage = () => {
                                         <td>{new Date(r.work_date).toLocaleDateString('en-GB')}</td>
                                         <td><span className={styles.strong}>{r.sites?.name || '-'}</span></td>
                                         <td><span className={styles.strong}>{r.labors?.name || '-'}</span></td>
+                                        <td style={{ fontSize: '0.8rem' }}>{r.labors?.designation || '-'}</td>
                                         <td>
                                             <span className={styles.badge} style={{ background: '#f1f5f9', color: '#475569', fontSize: '10px' }}>
                                                 {r.wage_category}
@@ -1775,7 +1814,7 @@ const WagesPage = () => {
                                     </tr>
                                 ))}
                                 <tr style={{ background: '#f8fafc', fontWeight: 800 }}>
-                                    <td colSpan={showRawData ? 11 : 9} style={{ textAlign: 'right', textTransform: 'uppercase' }}>Page Total</td>
+                                    <td colSpan={showRawData ? 12 : 10} style={{ textAlign: 'right', textTransform: 'uppercase' }}>Page Total</td>
                                     <td style={{ textAlign: 'right', color: '#0f172a' }}>₹{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                                 </tr>
                             </tbody>
