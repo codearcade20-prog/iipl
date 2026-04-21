@@ -483,35 +483,48 @@ const WagesPage = () => {
         }
     };
 
-    const deletePortalLog = async (log) => {
-        if (!await confirm(`Are you sure you want to delete this portal log for ${log.labors?.name}? This will permanently delete the check-in photos and the attendance record.`)) return;
+    const deleteAttendanceRecordAndPhotos = async (record, source = 'portal') => {
+        const isPortal = source === 'portal';
+        const name = record.labors?.name || record.name || 'this worker';
+        
+        const confirmMsg = isPortal 
+            ? `Are you sure you want to delete this portal log for ${name}? This will permanently delete the check-in photos and the attendance record.`
+            : `Are you sure you want to delete this daily log for ${name}? If it has portal check-in photos, they will also be deleted.`;
+
+        if (!await confirm(confirmMsg)) return;
 
         setLoading(true);
         try {
             // Delete Time In Photo if exists
-            if (log.time_in_photo_url) {
-                const fileNameIn = log.time_in_photo_url.split('/').pop();
+            if (record.time_in_photo_url) {
+                const fileNameIn = record.time_in_photo_url.split('/').pop().split('?')[0];
                 if (fileNameIn && !fileNameIn.includes('drive.google')) {
                     await supabase.storage.from('attendance_selfies').remove([fileNameIn]);
                 }
             }
             // Delete Time Out Photo if exists
-            if (log.time_out_photo_url) {
-                const fileNameOut = log.time_out_photo_url.split('/').pop();
+            if (record.time_out_photo_url) {
+                const fileNameOut = record.time_out_photo_url.split('/').pop().split('?')[0];
                 if (fileNameOut && !fileNameOut.includes('drive.google')) {
                     await supabase.storage.from('attendance_selfies').remove([fileNameOut]);
                 }
             }
             
             // Delete the database record
-            const { error } = await supabase.from('labor_attendance_wages').delete().eq('id', log.id);
+            const { error } = await supabase.from('labor_attendance_wages').delete().eq('id', record.id);
             if (error) throw error;
             
-            toast('Portal log and photos deleted successfully.');
-            fetchPortalLogs(); // Refresh the list
+            toast('Record and associated photos deleted successfully.');
+            
+            if (isPortal) {
+                fetchPortalLogs();
+            } else {
+                setCorrectionRecords(prev => prev.filter(r => r.id !== record.id));
+                fetchWeeklyReport();
+            }
         } catch (err) {
             console.error(err);
-            alert("Failed to delete log: " + err.message);
+            alert("Failed to delete: " + err.message);
         } finally {
             setLoading(false);
         }
@@ -902,18 +915,7 @@ const WagesPage = () => {
         }
     };
 
-    const deleteCorrectionRecord = async (recordId) => {
-        if (!await confirm("Are you sure you want to delete this specific daily log?")) return;
-        setLoading(true);
-        try {
-            const { error } = await supabase.from('labor_attendance_wages').delete().eq('id', recordId);
-            if (error) throw error;
-            toast('Daily log deleted.');
-            setCorrectionRecords(prev => prev.filter(r => r.id !== recordId));
-            fetchWeeklyReport();
-        } catch (error) { alert(error.message); }
-        finally { setLoading(false); }
-    };
+    // deleteCorrectionRecord replaced by consolidated deleteAttendanceRecordAndPhotos helper
 
     // --- RENDERERS ---
 
@@ -1958,7 +1960,7 @@ const WagesPage = () => {
                                     </td>
                                     <td style={{ paddingRight: '24px', textAlign: 'center' }}>
                                         <button 
-                                            onClick={() => deletePortalLog(log)}
+                                            onClick={() => deleteAttendanceRecordAndPhotos(log, 'portal')}
                                             style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '8px', borderRadius: '8px', transition: 'all 0.2s' }}
                                             onMouseOver={e => e.currentTarget.style.background = '#fef2f2'}
                                             onMouseOut={e => e.currentTarget.style.background = 'none'}
@@ -2140,7 +2142,7 @@ const WagesPage = () => {
                                                 </td>
                                                 <td style={{ textAlign: 'right' }}>
                                                     <button 
-                                                        onClick={() => deleteCorrectionRecord(r.id)} 
+                                                        onClick={() => deleteAttendanceRecordAndPhotos(r, 'correction')} 
                                                         className={`${styles.attnBtn} ${styles.btnA}`} 
                                                         title="Delete Day Log"
                                                     >
