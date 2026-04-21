@@ -755,8 +755,12 @@ const WagesPage = () => {
                 .lte('work_date', reportEndDate);
             if (error) throw error;
 
-            // ONLY show records that have been verified/saved by manager (manual time strings present)
-            const verifiedData = (data || []).filter(rec => rec.time_in && rec.time_out);
+            // ONLY hide records that are unverified portal check-ins
+            // (i.e., have a portal timestamp but no manual verification time set)
+            const verifiedData = (data || []).filter(rec => {
+                const isUnverifiedPortal = rec.time_in_timestamp && !rec.time_in;
+                return !isUnverifiedPortal;
+            });
             setRawReportData(verifiedData);
 
             const grouped = {};
