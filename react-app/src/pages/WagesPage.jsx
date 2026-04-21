@@ -754,10 +754,12 @@ const WagesPage = () => {
                 .lte('work_date', reportEndDate);
             if (error) throw error;
 
-            setRawReportData(data || []);
+            // ONLY show records that have been verified/saved by manager (manual time strings present)
+            const verifiedData = (data || []).filter(rec => rec.time_in && rec.time_out);
+            setRawReportData(verifiedData);
 
             const grouped = {};
-            data.forEach(rec => {
+            verifiedData.forEach(rec => {
                 const lid = rec.labor_id;
                 if (!grouped[lid]) {
                     grouped[lid] = { labor_id: lid, name: rec.labors?.name || 'Unknown', phone: rec.labors?.phone || '-', total_wages: 0, days_present: 0, records: [], status: 'Paid' };
