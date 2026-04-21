@@ -470,6 +470,7 @@ const WagesPage = () => {
                 .from('labor_attendance_wages')
                 .select('*, labors(name, phone), sites(name)')
                 .eq('work_date', portalLogDate)
+                .not('time_in_timestamp', 'is', null)
                 .order('time_in_timestamp', { ascending: false });
             if (error) throw error;
             setPortalLogs(data || []);
