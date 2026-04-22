@@ -43,6 +43,13 @@ export const evaluateFormula = (input) => {
 
 export const formatDate = (dateStr) => {
     if (!dateStr) return '';
+    if (dateStr.includes('T')) {
+        const d = new Date(dateStr);
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const year = d.getFullYear();
+        return `${day}-${month}-${year}`;
+    }
     const parts = dateStr.split('-');
     if (parts.length !== 3) return dateStr;
     const [y, m, d] = parts;

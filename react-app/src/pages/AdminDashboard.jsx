@@ -73,6 +73,9 @@ const AdminDashboard = () => {
     });
     const [userSearch, setUserSearch] = useState('');
     const [userFilter, setUserFilter] = useState('all'); // all, pending, approved
+    const [sessions, setSessions] = useState([]);
+    const [loadingSessions, setLoadingSessions] = useState(false);
+    const [sessionSearch, setSessionSearch] = useState('');
 
     // --- SITES STATE ---
     const [sites, setSites] = useState([]);
@@ -176,6 +179,7 @@ const AdminDashboard = () => {
             else if (currentView === 'sites') fetchSites();
             else if (currentView === 'bin') fetchBin();
             else if (currentView === 'users') fetchUsers();
+            else if (currentView === 'sessions') fetchSessions();
             else if (currentView === 'system') runDiagnostics();
             else fetchHistory();
         }
@@ -746,6 +750,49 @@ const AdminDashboard = () => {
         }
     };
 
+    // --- SESSION ACTIONS ---
+    const fetchSessions = async () => {
+        setLoadingSessions(true);
+        try {
+            const { data, error } = await supabase
+                .from('user_sessions')
+                .select('*')
+                .order('last_active_at', { ascending: false });
+            if (error) throw error;
+            setSessions(data || []);
+        } catch (e) { console.error(e); }
+        finally { setLoadingSessions(false); }
+    };
+
+    const revokeSession = async (id, currentState) => {
+        const action = currentState ? 'Reactivate' : 'Logout/Revoke';
+        if (await confirm(`${action} this device/session?`)) {
+            setSaving(true);
+            try {
+                const { error } = await supabase
+                    .from('user_sessions')
+                    .update({ is_revoked: !currentState })
+                    .eq('id', id);
+                if (error) throw error;
+                setSessions(sessions.map(s => s.id === id ? { ...s, is_revoked: !currentState } : s));
+                toast(`Session ${currentState ? 'reactivated' : 'revoked'} successfully!`);
+            } catch (e) { await alert(e.message); }
+            finally { setSaving(false); }
+        }
+    };
+
+    const deleteSession = async (id) => {
+        if (await confirm('Permanently delete this session record?')) {
+            setSaving(true);
+            try {
+                await supabase.from('user_sessions').delete().eq('id', id);
+                setSessions(sessions.filter(s => s.id !== id));
+                toast('Session record deleted.');
+            } catch (e) { await alert(e.message); }
+            finally { setSaving(false); }
+        }
+    };
+
     // --- SETTINGS ACTIONS ---
     const fetchSettings = async () => {
         setSaving(true);
@@ -998,6 +1045,17 @@ const AdminDashboard = () => {
     const totalPagesSites = Math.ceil(filteredSites.length / ROWS_PER_PAGE);
     const paginatedSites = filteredSites.slice((currentPage - 1) * ROWS_PER_PAGE, currentPage * ROWS_PER_PAGE);
 
+    const filteredSessions = useMemo(() => {
+        return sessions.filter(s =>
+            !sessionSearch ||
+            s.username?.toLowerCase().includes(sessionSearch.toLowerCase()) ||
+            s.device_info?.toLowerCase().includes(sessionSearch.toLowerCase())
+        );
+    }, [sessions, sessionSearch]);
+
+    const totalPagesSessions = Math.ceil(filteredSessions.length / ROWS_PER_PAGE);
+    const paginatedSessions = filteredSessions.slice((currentPage - 1) * ROWS_PER_PAGE, currentPage * ROWS_PER_PAGE);
+
     // --- FILTERED DATA ---
     const filteredUsers = useMemo(() => {
         return appUsers.filter(u => {
@@ -1081,6 +1139,10 @@ const AdminDashboard = () => {
                                     className={`${styles.navButton} ${currentView === 'users' ? styles.navButtonActive : ''}`}
                                     onClick={() => setCurrentView('users')}
                                 >Users</button>
+                                <button
+                                    className={`${styles.navButton} ${currentView === 'sessions' ? styles.navButtonActive : ''}`}
+                                    onClick={() => setCurrentView('sessions')}
+                                >Active Logins</button>
                                 <button
                                     className={`${styles.navButton} ${currentView === 'settings' ? styles.navButtonActive : ''}`}
                                     onClick={() => setCurrentView('settings')}
@@ -1816,6 +1878,77 @@ const AdminDashboard = () => {
                         <Pagination 
                             currentPage={currentPage} 
                             totalPages={totalPagesSites} 
+                            onPageChange={setCurrentPage} 
+                        />
+                    </div>
+                )}
+
+                {/* --- SESSIONS VIEW --- */}
+                {currentView === 'sessions' && (
+                    <div className={styles.card}>
+                        <div className={styles.cardHeader}>
+                            <h3 className={styles.cardTitle}>Active Device Logins</h3>
+                            <div style={{ display: 'flex', gap: '10px' }}>
+                                <input
+                                    type="text"
+                                    placeholder="Search user or device..."
+                                    className={styles.searchInput}
+                                    value={sessionSearch}
+                                    onChange={(e) => setSessionSearch(e.target.value)}
+                                    style={{ padding: '8px 12px', border: '1px solid var(--border-color)', borderRadius: '8px', fontSize: '0.9rem', width: '250px' }}
+                                />
+                                <button onClick={fetchSessions} className={styles.actionBtn}>🔄 Refresh</button>
+                            </div>
+                        </div>
+                        <div className={styles.tableWrapper}>
+                            <table className={styles.table}>
+                                <thead>
+                                    <tr>
+                                        <th>User</th>
+                                        <th>Device / Browser</th>
+                                        <th>Last Active</th>
+                                        <th>Login At</th>
+                                        <th>Status</th>
+                                        <th style={{ textAlign: 'center' }}>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {paginatedSessions.map(session => (
+                                        <tr key={session.id} style={{ opacity: session.is_revoked ? 0.6 : 1 }}>
+                                            <td style={{ fontWeight: 600 }}>{session.username}</td>
+                                            <td style={{ fontSize: '0.8rem', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={session.device_info}>
+                                                {session.device_info}
+                                            </td>
+                                            <td>{formatDate(session.last_active_at)} {new Date(session.last_active_at).toLocaleTimeString()}</td>
+                                            <td>{formatDate(session.login_at)}</td>
+                                            <td>
+                                                <span className={`${styles.badge} ${session.is_revoked ? styles.badgeRejected : styles.badgeApproved}`}>
+                                                    {session.is_revoked ? 'REVOKED' : 'ACTIVE'}
+                                                </span>
+                                            </td>
+                                            <td style={{ textAlign: 'center' }}>
+                                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                                                    <Button 
+                                                        variant={session.is_revoked ? "secondary" : "danger"} 
+                                                        size="small" 
+                                                        onClick={() => revokeSession(session.id, session.is_revoked)}
+                                                    >
+                                                        {session.is_revoked ? 'Unblock' : 'Logout Device'}
+                                                    </Button>
+                                                    <button onClick={() => deleteSession(session.id)} className={styles.actionBtn} title="Delete Record">🗑️</button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {filteredSessions.length === 0 && (
+                                        <tr><td colSpan="6" style={{ padding: '30px', textAlign: 'center' }}>No active sessions found.</td></tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                        <Pagination 
+                            currentPage={currentPage} 
+                            totalPages={totalPagesSessions} 
                             onPageChange={setCurrentPage} 
                         />
                     </div>

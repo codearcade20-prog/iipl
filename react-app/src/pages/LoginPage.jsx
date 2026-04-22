@@ -49,7 +49,22 @@ const LoginPage = () => {
                 throw new Error('Your account is pending administrator approval.');
             }
 
-            login(data);
+            // Record Session
+            const { data: sessionData, error: sessionError } = await supabase
+                .from('user_sessions')
+                .insert([{
+                    user_id: data.id,
+                    username: data.username,
+                    device_info: navigator.userAgent
+                }])
+                .select()
+                .single();
+
+            if (sessionError) {
+                console.warn('Failed to record session:', sessionError);
+            }
+
+            login(data, sessionData?.id);
             navigate('/');
         } catch (err) {
             setError(err.message);
