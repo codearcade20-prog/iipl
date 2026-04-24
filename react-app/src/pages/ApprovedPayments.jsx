@@ -51,28 +51,28 @@ const ApprovedPayments = () => {
         <div className={styles.container}>
             {loading && <LoadingOverlay message="Fetching records..." />}
 
-            <div className={styles.topBar}>
+            <header className={styles.topBar}>
                 <div className={styles.pageTitle}>
                     <h2>Payment Approved Module</h2>
                     <span className={styles.gmBadge} style={{ background: '#10b981' }}>Approved Records</span>
                 </div>
                 <div style={{ display: 'flex', gap: '10px' }}>
-                    <Link to="/gm"><Button variant="outline">GM Dashboard</Button></Link>
-                    <Link to="/"><Button variant="secondary">Home</Button></Link>
+                    <Link to="/gm"><Button variant="secondary" style={{ color: 'black', borderColor: 'rgba(0,0,0,0.3)' }}>GM Dashboard</Button></Link>
+                    <Link to="/"><Button variant="secondary" style={{ color: 'black', borderColor: 'rgba(0,0,0,0.3)' }}>Home</Button></Link>
                 </div>
-            </div>
+            </header>
 
-            <div className={styles.card}>
-                <div className={styles.cardHeader}>
-                    <h3 className={styles.cardTitle}>Signed & Approved Payments</h3>
-                    <button onClick={fetchApprovedHistory} className={styles.refreshBtn}>
-                        🔄 Refresh Data
-                    </button>
-                </div>
+            <main className={styles.mainContent}>
+                <div className={styles.card}>
+                    <div className={styles.cardHeader}>
+                        <h3 className={styles.cardTitle}>Signed & Approved Payments</h3>
+                        <button onClick={fetchApprovedHistory} className={styles.refreshBtn}>
+                            🔄 Refresh Data
+                        </button>
+                    </div>
 
-                <div className={styles.toolBar}>
-                    <div className={styles.filterGrid}>
-                        <div className={styles.filterGroup}>
+                    <div className={styles.toolBar}>
+                        <div className={styles.filterGrid}>
                             <input
                                 type="text"
                                 placeholder="Search Vendor..."
@@ -80,16 +80,12 @@ const ApprovedPayments = () => {
                                 onChange={(e) => setVendorSearch(e.target.value)}
                                 className={styles.filterInput}
                             />
-                        </div>
-                        <div className={styles.filterGroup}>
                             <input
                                 type="date"
                                 value={dateSearch}
                                 onChange={(e) => setDateSearch(e.target.value)}
                                 className={styles.filterInput}
                             />
-                        </div>
-                        <div className={styles.filterGroup}>
                             <input
                                 type="text"
                                 placeholder="Search Project..."
@@ -99,60 +95,61 @@ const ApprovedPayments = () => {
                             />
                         </div>
                     </div>
-                </div>
 
-                <div className={styles.tableWrapper}>
-                    <table className={styles.table}>
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Type</th>
-                                <th>Vendor</th>
-                                <th>Project</th>
-                                <th style={{ textAlign: 'right' }}>Total Amount</th>
-                                <th>Status</th>
-                                <th style={{ textAlign: 'center' }}>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredHistory.map(item => (
-                                <tr key={item.id}>
-                                    <td>{formatDate(item.date)}</td>
-                                    <td>
-                                        <span className={`${styles.badge} ${item.type === 'invoice' ? styles.badgeInvoice : styles.badgePayment}`}>
-                                            {item.type === 'invoice' ? 'INVOICE' : 'PAYMENT'}
-                                        </span>
-                                    </td>
-                                    <td style={{ fontWeight: 600 }}>{item.vendor_name}</td>
-                                    <td>{item.project}</td>
-                                    <td style={{ textAlign: 'right', fontWeight: 700 }}>₹{item.amount?.toLocaleString('en-IN')}</td>
-                                    <td>
-                                        <span className={`${styles.statusBadge} ${styles.statusApproved}`}>
-                                            {item.status}
-                                        </span>
-                                    </td>
-                                    <td style={{ textAlign: 'center' }}>
-                                        <Button
-                                            variant="secondary"
-                                            style={{ padding: '6px 16px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px', margin: '0 auto' }}
-                                            onClick={() => setViewItem(item)}
-                                        >
-                                            🖨️ View & Print
-                                        </Button>
-                                    </td>
-                                </tr>
-                            ))}
-                            {filteredHistory.length === 0 && (
+                    <div className={styles.tableWrapper}>
+                        <table className={styles.table}>
+                            <thead>
                                 <tr>
-                                    <td colSpan="7" style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-                                        No approved records found.
-                                    </td>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Vendor</th>
+                                    <th>Project</th>
+                                    <th style={{ textAlign: 'right' }}>Total Amount</th>
+                                    <th>Status</th>
+                                    <th style={{ textAlign: 'center' }}>Actions</th>
                                 </tr>
-                            )}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {filteredHistory.map(item => (
+                                    <tr key={item.id}>
+                                        <td style={{ fontWeight: 600 }}>{formatDate(item.date)}</td>
+                                        <td>
+                                            <span className={`${styles.badge} ${item.type === 'invoice' ? styles.badgeInvoice : styles.badgePayment}`}>
+                                                {item.type === 'invoice' ? 'INVOICE' : 'PAYMENT'}
+                                            </span>
+                                        </td>
+                                        <td style={{ fontWeight: 700, color: '#0f172a' }}>{item.vendor_name}</td>
+                                        <td style={{ color: '#64748b' }}>{item.project}</td>
+                                        <td style={{ textAlign: 'right', fontWeight: 800, color: '#0f172a' }}>₹{item.amount?.toLocaleString('en-IN')}</td>
+                                        <td>
+                                            <span className={`${styles.statusBadge} ${styles.statusApproved}`}>
+                                                {item.status}
+                                            </span>
+                                        </td>
+                                        <td style={{ textAlign: 'center' }}>
+                                            <Button
+                                                variant="secondary"
+                                                className={styles.actionBtn}
+                                                style={{ margin: '0 auto' }}
+                                                onClick={() => setViewItem(item)}
+                                            >
+                                                🖨️ View & Print
+                                            </Button>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {filteredHistory.length === 0 && (
+                                    <tr>
+                                        <td colSpan="7" style={{ padding: '60px', textAlign: 'center', color: '#94a3b8' }}>
+                                            No approved records found.
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-            </div>
+            </main>
 
             {viewItem && (
                 <TemplateModal
@@ -162,6 +159,7 @@ const ApprovedPayments = () => {
             )}
         </div>
     );
+
 };
 
 export default ApprovedPayments;

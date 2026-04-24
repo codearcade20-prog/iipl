@@ -31,6 +31,10 @@ const DesignTeamWorkflow = () => {
     const [allWorkflows, setAllWorkflows] = useState([]);
     const [masterViewMode, setMasterViewMode] = useState('summary');
 
+    // Dropdown Search
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [projectSearchTerm, setProjectSearchTerm] = useState('');
+
     const FULL_FIELDS = [
         { group: 'step_1_concept', key: 'delegation', label: '1.1 Delegation' },
         { group: 'step_1_concept', key: 'line_drawing', label: '1.2 Line Drawing' },
@@ -208,6 +212,17 @@ const DesignTeamWorkflow = () => {
         fetchWorkflow();
     }, [selectedProject, projects, toast]);
 
+    // Click outside listener for searchable dropdown
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (!event.target.closest(`.${styles.projectSelect}`) && !event.target.closest('.dropdown-menu')) {
+                setIsDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
     const handleStatusChange = (step, task, status) => {
         setWorkflow(prev => ({
             ...prev,
@@ -374,6 +389,14 @@ const DesignTeamWorkflow = () => {
                         )}
                     </div>
                 )}
+                <div style={{ display: 'flex', gap: '10px' }}>
+                    <button 
+                        onClick={() => window.location.href = '/'}
+                        style={{ background: 'white', color: 'black', border: 'none', padding: '0.6rem 1.25rem', borderRadius: '0.75rem', fontWeight: '700', cursor: 'pointer' }}
+                    >
+                        Home
+                    </button>
+                </div>
             </header>
 
             <main className={styles.content}>
@@ -399,16 +422,86 @@ const DesignTeamWorkflow = () => {
                     {viewMode === 'single' && (
                       <>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem', flexWrap: 'wrap', gap: '1.5rem' }}>
-                            <select 
+                        <div style={{ position: 'relative', width: '100%', maxWidth: '400px' }}>
+                            <div 
                                 className={styles.projectSelect} 
-                                value={selectedProject} 
-                                onChange={e => setSelectedProject(e.target.value)}
+                                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+                                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                             >
-                                <option value="">-- Select Project --</option>
-                                {projects.map(p => (
-                                    <option key={p.id} value={p.id}>{p.name}</option>
-                                ))}
-                            </select>
+                                <span style={{ color: selectedProject ? '#0f172a' : '#94a3b8' }}>
+                                    {selectedProject ? projects.find(p => p.id === selectedProject)?.name : '-- Select Project --'}
+                                </span>
+                                <Search size={16} color="#64748b" />
+                            </div>
+
+                            {isDropdownOpen && (
+                                <div className="dropdown-menu" style={{
+                                    position: 'absolute',
+                                    top: '100%',
+                                    left: 0,
+                                    right: 0,
+                                    zIndex: 1000,
+                                    background: 'white',
+                                    border: '1px solid #e2e8f0',
+                                    borderRadius: '1rem',
+                                    marginTop: '8px',
+                                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                                    overflow: 'hidden'
+                                }}>
+                                    <div style={{ padding: '12px', borderBottom: '1px solid #f1f5f9' }}>
+                                        <div style={{ position: 'relative' }}>
+                                            <Search size={16} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+                                            <input
+                                                type="text"
+                                                placeholder="Type to search..."
+                                                autoFocus
+                                                value={projectSearchTerm}
+                                                onChange={(e) => setProjectSearchTerm(e.target.value)}
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '10px 12px 10px 38px',
+                                                    border: '1px solid #f1f5f9',
+                                                    borderRadius: '0.75rem',
+                                                    outline: 'none',
+                                                    fontSize: '0.9rem',
+                                                    background: '#f8fafc'
+                                                }}
+                                                onClick={(e) => e.stopPropagation()}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                                        {projects.filter(p => p.name.toLowerCase().includes(projectSearchTerm.toLowerCase())).length > 0 ? (
+                                            projects.filter(p => p.name.toLowerCase().includes(projectSearchTerm.toLowerCase())).map(p => (
+                                                <div 
+                                                    key={p.id}
+                                                    onClick={() => {
+                                                        setSelectedProject(p.id);
+                                                        setIsDropdownOpen(false);
+                                                        setProjectSearchTerm('');
+                                                    }}
+                                                    style={{
+                                                        padding: '12px 16px',
+                                                        cursor: 'pointer',
+                                                        fontSize: '0.9rem',
+                                                        fontWeight: 600,
+                                                        color: '#334155',
+                                                        transition: 'background 0.2s',
+                                                        borderBottom: '1px solid #f8fafc'
+                                                    }}
+                                                    onMouseEnter={(e) => e.target.style.background = '#f1f5f9'}
+                                                    onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                                                >
+                                                    {p.name}
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div style={{ padding: '16px', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>No projects found</div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
 
                             {selectedProject && (
                                 <div className={styles.overallProgressWidget}>

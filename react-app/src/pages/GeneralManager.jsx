@@ -109,28 +109,28 @@ const GeneralManager = () => {
         <div className={styles.container}>
             {loading && <LoadingOverlay message="Fetching records..." />}
 
-            <div className={styles.topBar}>
+            <header className={styles.topBar}>
                 <div className={styles.pageTitle}>
                     <h2>General Manager Dashboard</h2>
                     <span className={styles.gmBadge}>GM Access</span>
                 </div>
                 <div style={{ display: 'flex', gap: '10px' }}>
-                    <Link to="/approved-payments"><Button variant="outline">Approved Payments ✅</Button></Link>
-                    <Link to="/"><Button variant="secondary">Home</Button></Link>
+                    <Link to="/approved-payments"><Button variant="secondary" style={{ color: 'black', borderColor: 'rgba(0,0,0,0.3)' }}>Approved Payments ✅</Button></Link>
+                    <Link to="/"><Button variant="secondary" style={{ color: 'black', borderColor: 'rgba(0,0,0,0.3)' }}>Home</Button></Link>
                 </div>
-            </div>
+            </header>
 
-            <div className={styles.card}>
-                <div className={styles.cardHeader}>
-                    <h3 className={styles.cardTitle}>Payment & Invoice History</h3>
-                    <button onClick={fetchHistory} className={styles.refreshBtn}>
-                        🔄 Refresh Data
-                    </button>
-                </div>
+            <main className={styles.mainContent}>
+                <div className={styles.card}>
+                    <div className={styles.cardHeader}>
+                        <h3 className={styles.cardTitle}>Payment & Invoice History</h3>
+                        <button onClick={fetchHistory} className={styles.refreshBtn}>
+                            🔄 Refresh Data
+                        </button>
+                    </div>
 
-                <div className={styles.toolBar}>
-                    <div className={styles.filterGrid}>
-                        <div className={styles.filterGroup}>
+                    <div className={styles.toolBar}>
+                        <div className={styles.filterGrid}>
                             <input
                                 type="text"
                                 placeholder="Search Vendor..."
@@ -138,16 +138,12 @@ const GeneralManager = () => {
                                 onChange={(e) => setVendorSearch(e.target.value)}
                                 className={styles.filterInput}
                             />
-                        </div>
-                        <div className={styles.filterGroup}>
                             <input
                                 type="date"
                                 value={dateSearch}
                                 onChange={(e) => setDateSearch(e.target.value)}
                                 className={styles.filterInput}
                             />
-                        </div>
-                        <div className={styles.filterGroup}>
                             <input
                                 type="text"
                                 placeholder="Search Project..."
@@ -155,8 +151,6 @@ const GeneralManager = () => {
                                 onChange={(e) => setProjectSearch(e.target.value)}
                                 className={styles.filterInput}
                             />
-                        </div>
-                        <div className={styles.filterGroup}>
                             <select
                                 className={styles.filterInput}
                                 value={statusFilter}
@@ -173,69 +167,70 @@ const GeneralManager = () => {
                             </select>
                         </div>
                     </div>
-                </div>
 
-                <div className={styles.tableWrapper}>
-                    <table className={styles.table}>
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Type</th>
-                                <th>Vendor</th>
-                                <th>Project</th>
-                                <th style={{ textAlign: 'right' }}>Total Amount</th>
-                                <th>Status</th>
-                                <th style={{ textAlign: 'center' }}>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredHistory.map(item => (
-                                <tr key={item.id}>
-                                    <td>{formatDate(item.date)}</td>
-                                    <td>
-                                        <span className={`${styles.badge} ${item.type === 'invoice' ? styles.badgeInvoice : styles.badgePayment}`}>
-                                            {item.type === 'invoice' ? 'INVOICE' : 'PAYMENT'}
-                                        </span>
-                                    </td>
-                                    <td style={{ fontWeight: 600 }}>{item.vendor_name}</td>
-                                    <td>{item.project}</td>
-                                    <td style={{ textAlign: 'right', fontWeight: 700 }}>₹{item.amount?.toLocaleString('en-IN')}</td>
-                                    <td>
-                                        <span className={`${styles.statusBadge} ${styles['status' + (item.status || 'Pending')]}`}>
-                                            {item.status || 'Pending'}
-                                        </span>
-                                    </td>
-                                    <td style={{ textAlign: 'center' }}>
-                                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                                            <Button
-                                                variant="secondary"
-                                                style={{ padding: '6px 12px', fontSize: '0.85rem' }}
-                                                onClick={() => setViewItem(item)}
-                                            >
-                                                View
-                                            </Button>
-                                            <Button
-                                                variant="outline"
-                                                style={{ padding: '6px 12px', fontSize: '0.85rem', borderColor: '#4f46e5', color: '#4f46e5' }}
-                                                onClick={() => handleDigitalSignature(item)}
-                                            >
-                                                Signature
-                                            </Button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                            {filteredHistory.length === 0 && (
+                    <div className={styles.tableWrapper}>
+                        <table className={styles.table}>
+                            <thead>
                                 <tr>
-                                    <td colSpan="7" style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-                                        No history records available.
-                                    </td>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Vendor</th>
+                                    <th>Project</th>
+                                    <th style={{ textAlign: 'right' }}>Total Amount</th>
+                                    <th>Status</th>
+                                    <th style={{ textAlign: 'center' }}>Actions</th>
                                 </tr>
-                            )}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {filteredHistory.map(item => (
+                                    <tr key={item.id}>
+                                        <td style={{ fontWeight: 600 }}>{formatDate(item.date)}</td>
+                                        <td>
+                                            <span className={`${styles.badge} ${item.type === 'invoice' ? styles.badgeInvoice : styles.badgePayment}`}>
+                                                {item.type === 'invoice' ? 'INVOICE' : 'PAYMENT'}
+                                            </span>
+                                        </td>
+                                        <td style={{ fontWeight: 700, color: '#0f172a' }}>{item.vendor_name}</td>
+                                        <td style={{ color: '#64748b' }}>{item.project}</td>
+                                        <td style={{ textAlign: 'right', fontWeight: 800, color: '#0f172a' }}>₹{item.amount?.toLocaleString('en-IN')}</td>
+                                        <td>
+                                            <span className={`${styles.statusBadge} ${styles['status' + (item.status || 'Pending')]}`}>
+                                                {item.status || 'Pending'}
+                                            </span>
+                                        </td>
+                                        <td style={{ textAlign: 'center' }}>
+                                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                                                <Button
+                                                    variant="secondary"
+                                                    className={styles.actionBtn}
+                                                    onClick={() => setViewItem(item)}
+                                                >
+                                                    View
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    className={styles.actionBtn}
+                                                    style={{ borderColor: '#6366f1', color: '#6366f1' }}
+                                                    onClick={() => handleDigitalSignature(item)}
+                                                >
+                                                    Signature
+                                                </Button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {filteredHistory.length === 0 && (
+                                    <tr>
+                                        <td colSpan="7" style={{ padding: '60px', textAlign: 'center', color: '#94a3b8' }}>
+                                            No history records available.
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-            </div>
+            </main>
 
             {viewItem && (
                 <TemplateModal
@@ -249,6 +244,7 @@ const GeneralManager = () => {
             )}
         </div>
     );
+
 };
 
 export default GeneralManager;

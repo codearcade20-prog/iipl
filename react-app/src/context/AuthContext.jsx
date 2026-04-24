@@ -34,35 +34,90 @@ export const AuthProvider = ({ children }) => {
         return user.permissions && user.permissions.includes(module);
     };
 
-    // Instant Session Revocation via Supabase Realtime
+    // 1. Fetch latest user data on mount to sync with Admin changes
     useEffect(() => {
-        if (!sessionId || !user) return;
+        const syncUser = async () => {
+            if (!user?.id) return;
+            try {
+                const { data, error } = await supabase
+                    .from('app_users')
+                    .select('*')
+                    .eq('id', user.id)
+                    .maybeSingle();
 
-        // 1. Subscribe to changes for THIS specific session
-        const sessionChannel = supabase
-            .channel(`session-${sessionId}`)
+                if (error) throw error;
+                if (data) {
+                    if (!data.is_approved) {
+                        logout();
+                        window.location.href = '/';
+                        return;
+                    }
+                    setUser(data);
+                    localStorage.setItem('app_user', JSON.stringify(data));
+                }
+            } catch (e) {
+                console.error('User sync failed:', e);
+            }
+        };
+        syncUser();
+    }, []);
+
+    // 2. Instant Session Revocation & Permission Sync via Supabase Realtime
+    useEffect(() => {
+        if (!user?.id) return;
+
+        // A. Listen for Session Revocation
+        let sessionChannel = null;
+        if (sessionId) {
+            sessionChannel = supabase
+                .channel(`session-${sessionId}`)
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*',
+                        schema: 'public',
+                        table: 'user_sessions',
+                        filter: `id=eq.${sessionId}`
+                    },
+                    (payload) => {
+                        if (payload.eventType === 'DELETE' || (payload.eventType === 'UPDATE' && payload.new.is_revoked)) {
+                            logout();
+                            window.location.href = '/';
+                        }
+                    }
+                )
+                .subscribe();
+        }
+
+        // B. Listen for User Profile/Permission changes
+        const userChannel = supabase
+            .channel(`user-sync-${user.id}`)
             .on(
                 'postgres_changes',
                 {
-                    event: '*', // Listen for UPDATE and DELETE
+                    event: 'UPDATE',
                     schema: 'public',
-                    table: 'user_sessions',
-                    filter: `id=eq.${sessionId}`
+                    table: 'app_users',
+                    filter: `id=eq.${user.id}`
                 },
                 (payload) => {
-                    // console.log('Realtime session event:', payload);
-                    
-                    // If revoked or deleted, logout immediately
-                    if (payload.eventType === 'DELETE' || (payload.eventType === 'UPDATE' && payload.new.is_revoked)) {
-                        logout();
-                        window.location.href = '/'; // Force immediate redirect to login
+                    const updated = payload.new;
+                    if (updated) {
+                        if (!updated.is_approved) {
+                            logout();
+                            window.location.href = '/';
+                            return;
+                        }
+                        setUser(updated);
+                        localStorage.setItem('app_user', JSON.stringify(updated));
                     }
                 }
             )
             .subscribe();
 
-        // 2. Heartbeat & Fallback Check
+        // C. Heartbeat & Fallback Check
         const checkSession = async () => {
+            if (!sessionId) return;
             try {
                 const { data, error } = await supabase
                     .from('user_sessions')
@@ -70,14 +125,12 @@ export const AuthProvider = ({ children }) => {
                     .eq('id', sessionId)
                     .maybeSingle();
 
-                // If error, no data (deleted), or revoked, logout
                 if (error || !data || data.is_revoked) {
                     logout();
                     window.location.href = '/';
                     return;
                 }
 
-                // Update last active heartbeat
                 await supabase
                     .from('user_sessions')
                     .update({ last_active_at: new Date().toISOString() })
@@ -87,14 +140,15 @@ export const AuthProvider = ({ children }) => {
             }
         };
 
-        const interval = setInterval(checkSession, 60000); // Fallback check every minute
-        checkSession(); 
+        const interval = setInterval(checkSession, 60000);
+        if (sessionId) checkSession();
 
         return () => {
-            supabase.removeChannel(sessionChannel);
+            if (sessionChannel) supabase.removeChannel(sessionChannel);
+            supabase.removeChannel(userChannel);
             clearInterval(interval);
         };
-    }, [sessionId, user]);
+    }, [sessionId, user?.id]);
 
     return (
         <AuthContext.Provider value={{ user, sessionId, loading, login, logout, hasPermission }}>

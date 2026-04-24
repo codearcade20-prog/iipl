@@ -1361,9 +1361,9 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                         setAdvances(newAdvs);
                                     }}
                                 >
-                                    <option value="M1">M1 (Account)</option>
+                                    <option value="M1">M1 (Accounts)</option>
                                     <option value="M2">M2 (Cash)</option>
-                                    <option value="M3">M3 (Materials)</option>
+                                    <option value="M3">M3 (Material Purchase)</option>
                                     <option value="M4">M4 (Wages)</option>
                                     <option value="M5">M5 (Rent)</option>
                                 </select>

@@ -254,209 +254,210 @@ const HistoryPage = () => {
     return (
         <div className={styles.container}>
             {loading && <LoadingOverlay message="Fetching records..." />}
-            <div className={styles.topBar}>
-                <h2 className={styles.pageTitle}>Payment & Invoice History</h2>
-                <Link to="/"><Button variant="secondary">Home</Button></Link>
-            </div>
-
-            <div className={styles.card}>
-                <div className={styles.cardHeader}>
-                    <h3 className={styles.cardTitle}>View Records</h3>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <button
-                            onClick={fetchHistory}
-                            className={styles.refreshBtn}
-                            title="Refresh Data"
-                        >
-                            🔄
-                        </button>
-                        <select
-                            className={styles.statusSelect}
-                            value={statusFilter}
-                            onChange={(e) => setStatusFilter(e.target.value)}
-                            style={{
-                                padding: '8px 12px',
-                                minWidth: '150px',
-                                height: '40px',
-                                border: '1px solid #e2e8f0',
-                                borderRadius: '8px',
-                                background: 'white',
-                                fontWeight: 500
-                            }}
-                        >
-                            <option value="All">All Statuses</option>
-                            <option value="Pending">Pending</option>
-                            <option value="Approved">Approved</option>
-                            <option value="Partial">Partial</option>
-                            <option value="Paid">Paid</option>
-                            <option value="Rejected">Rejected</option>
-                            <option value="Accounts">Accounts</option>
-                            <option value="Hold">Hold</option>
-                        </select>
-                    </div>
+            
+            {/* Premium Header */}
+            <header className={styles.topBar}>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <h2 className={styles.pageTitle}>Payment & Invoice History</h2>
+                    <span style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '2px' }}>Comprehensive audit log for all vendor transactions</span>
                 </div>
-
-                <div className={styles.toolBar}>
-                    <div className={styles.filterGrid}>
-                        <input
-                            type="text"
-                            placeholder="Search by vendor name..."
-                            value={vendorSearch}
-                            onChange={(e) => setVendorSearch(e.target.value)}
-                            className={styles.filterInput}
-                        />
-                        <input
-                            type="date"
-                            placeholder="Filter by date"
-                            value={dateSearch}
-                            onChange={(e) => setDateSearch(e.target.value)}
-                            className={styles.filterInput}
-                        />
-                        <input
-                            type="text"
-                            placeholder="Search by project/site..."
-                            value={projectSearch}
-                            onChange={(e) => setProjectSearch(e.target.value)}
-                            className={styles.filterInput}
-                        />
-                    </div>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                    <Link to="/"><Button variant="secondary" style={{ borderColor: 'rgba(0,0,0,0.2)', color: 'black' }}>Home</Button></Link>
                 </div>
+            </header>
 
-                <div className={styles.tableWrapper}>
-                    <table className={styles.table}>
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Type</th>
-                                <th>Vendor</th>
-                                <th>Project</th>
-                                <th style={{ textAlign: 'right' }}>Total Amount</th>
-                                <th style={{ textAlign: 'right' }}>Paid</th>
-                                <th style={{ textAlign: 'right' }}>Remaining</th>
-                                <th>Status</th>
-                                <th style={{ textAlign: 'center' }}>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {paginatedHistory.map(item => (
-                                <tr key={item.id}>
-                                    <td>{formatDate(item.date)}</td>
-                                    <td>
-                                        <span className={`${styles.badge} ${item.type === 'invoice' ? styles.badgeInvoice : styles.badgePayment}`}>
-                                            {item.type === 'invoice' ? 'INVOICE' : 'PAYMENT'}
-                                        </span>
-                                    </td>
-                                    <td style={{ fontWeight: 500 }}>{item.vendor_name}</td>
-                                    <td>{item.project}</td>
-                                    <td style={{ textAlign: 'right', fontWeight: 700 }}>₹{item.amount?.toLocaleString('en-IN')}</td>
-                                    <td style={{ textAlign: 'right', color: 'green', fontWeight: 600 }}>
-                                        ₹{(item.status === 'Paid' ? item.amount : (item.paid_amount || 0)).toLocaleString('en-IN')}
-                                    </td>
-                                    <td style={{ textAlign: 'right', color: (item.remaining_amount > 0 ? 'red' : 'inherit'), fontWeight: 600 }}>
-                                        ₹{(item.remaining_amount ?? (item.status === 'Paid' ? 0 : item.amount))?.toLocaleString('en-IN')}
-                                    </td>
+            <main className={styles.mainContent}>
+                <div className={styles.card}>
+                    <div className={styles.cardHeader}>
+                        <h3 className={styles.cardTitle}>Transaction Records</h3>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <button
+                                onClick={fetchHistory}
+                                className={styles.refreshBtn}
+                                title="Refresh Data"
+                            >
+                                🔄
+                            </button>
+                            <select
+                                className={`${styles.statusSelect} ${styles['status' + (statusFilter)]}`}
+                                value={statusFilter}
+                                onChange={(e) => setStatusFilter(e.target.value)}
+                            >
+                                <option value="All">All Statuses</option>
+                                <option value="Pending">Pending</option>
+                                <option value="Approved">Approved</option>
+                                <option value="Partial">Partial</option>
+                                <option value="Paid">Paid</option>
+                                <option value="Rejected">Rejected</option>
+                                <option value="Accounts">Accounts</option>
+                                <option value="Hold">Hold</option>
+                            </select>
+                        </div>
+                    </div>
 
-                                    <td>
-                                        <div style={{ position: 'relative' }}>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setOpenStatusDropdown(openStatusDropdown === item.id ? null : item.id);
-                                                }}
-                                                className={`${styles.statusSelect} ${styles['status' + (item.status || 'Pending')]}`}
-                                                style={{
-                                                    width: '100%',
-                                                    textAlign: 'left',
-                                                    cursor: 'pointer',
-                                                    padding: '6px 12px',
-                                                    border: '1px solid #e2e8f0',
-                                                    borderRadius: '6px',
-                                                    display: 'flex',
-                                                    justifyContent: 'space-between',
-                                                    alignItems: 'center',
-                                                    fontSize: '0.9rem'
-                                                }}
-                                            >
-                                                <span>{item.status || 'Pending'}</span>
-                                                <span style={{ fontSize: '0.7rem', opacity: 0.7 }}>▼</span>
-                                            </button>
+                    <div className={styles.toolBar}>
+                        <div className={styles.filterGrid}>
+                            <div style={{ position: 'relative' }}>
+                                <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '0.9rem' }}>🔍</span>
+                                <input
+                                    type="text"
+                                    placeholder="Search by vendor name..."
+                                    value={vendorSearch}
+                                    onChange={(e) => setVendorSearch(e.target.value)}
+                                    className={styles.filterInput}
+                                    style={{ paddingLeft: '35px', width: '100%' }}
+                                />
+                            </div>
+                            <input
+                                type="date"
+                                placeholder="Filter by date"
+                                value={dateSearch}
+                                onChange={(e) => setDateSearch(e.target.value)}
+                                className={styles.filterInput}
+                            />
+                            <div style={{ position: 'relative' }}>
+                                <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '0.9rem' }}>🏢</span>
+                                <input
+                                    type="text"
+                                    placeholder="Search by project/site..."
+                                    value={projectSearch}
+                                    onChange={(e) => setProjectSearch(e.target.value)}
+                                    className={styles.filterInput}
+                                    style={{ paddingLeft: '35px', width: '100%' }}
+                                />
+                            </div>
+                        </div>
+                    </div>
 
-                                            {openStatusDropdown === item.id && (
-                                                <>
-                                                    <div
-                                                        style={{ position: 'fixed', inset: 0, zIndex: 40 }}
-                                                        onClick={() => setOpenStatusDropdown(null)}
-                                                    />
-                                                    <div style={{
-                                                        position: 'absolute',
-                                                        top: 'calc(100% + 4px)',
-                                                        left: 0,
-                                                        zIndex: 50,
-                                                        background: 'white',
-                                                        border: '1px solid #e2e8f0',
-                                                        borderRadius: '8px',
-                                                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-                                                        minWidth: '140px',
-                                                        overflow: 'hidden',
-                                                        padding: '4px'
-                                                    }}>
-                                                        {['Pending', 'Approved', 'Partial', 'Paid', 'Rejected', 'Accounts', 'Hold'].map(statusOption => (
-                                                            <button
-                                                                key={statusOption}
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    updateStatus(item.id, statusOption);
-                                                                    setOpenStatusDropdown(null);
-                                                                }}
-                                                                style={{
-                                                                    display: 'block',
-                                                                    width: '100%',
-                                                                    textAlign: 'left',
-                                                                    padding: '8px 12px',
-                                                                    background: item.status === statusOption ? '#f1f5f9' : 'transparent',
-                                                                    border: 'none',
-                                                                    borderRadius: '6px',
-                                                                    cursor: 'pointer',
-                                                                    fontSize: '0.9rem',
-                                                                    color: '#334155',
-                                                                    fontWeight: item.status === statusOption ? 600 : 400
-                                                                }}
-                                                                onMouseOver={(e) => e.currentTarget.style.background = '#f8fafc'}
-                                                                onMouseOut={(e) => e.currentTarget.style.background = item.status === statusOption ? '#f1f5f9' : 'transparent'}
-                                                            >
-                                                                {statusOption}
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                </>
-                                            )}
-                                        </div>
-                                        {item.paid_date && <div style={{ fontSize: '0.7rem', color: 'green', marginTop: '2px' }}>Paid: {formatDate(item.paid_date)}</div>}
-                                    </td>
-                                    <td style={{ textAlign: 'center' }}>
-                                        <Button
-                                            variant="secondary"
-                                            style={{ padding: '4px 10px', fontSize: '0.8rem' }}
-                                            onClick={() => setViewItem(item)}
-                                        >
-                                            View
-                                        </Button>
-                                    </td>
+                    <div className={styles.tableWrapper}>
+                        <table className={styles.table}>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Vendor</th>
+                                    <th>Project</th>
+                                    <th style={{ textAlign: 'right' }}>Total Amount</th>
+                                    <th style={{ textAlign: 'right' }}>Paid</th>
+                                    <th style={{ textAlign: 'right' }}>Remaining</th>
+                                    <th>Status</th>
+                                    <th style={{ textAlign: 'center' }}>Actions</th>
                                 </tr>
-                            ))}
-                            {filteredHistory.length === 0 && (
-                                <tr><td colSpan="9" style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>No records found matching filter.</td></tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                            </thead>
+                            <tbody>
+                                {paginatedHistory.map(item => (
+                                    <tr key={item.id}>
+                                        <td style={{ fontWeight: 600 }}>{formatDate(item.date)}</td>
+                                        <td>
+                                            <span className={`${styles.badge} ${item.type === 'invoice' ? styles.badgeInvoice : styles.badgePayment}`}>
+                                                {item.type === 'invoice' ? 'INVOICE' : 'PAYMENT'}
+                                            </span>
+                                        </td>
+                                        <td style={{ fontWeight: 700, color: '#0f172a' }}>{item.vendor_name}</td>
+                                        <td style={{ color: '#64748b' }}>{item.project}</td>
+                                        <td style={{ textAlign: 'right', fontWeight: 800, color: '#0f172a' }}>₹{item.amount?.toLocaleString('en-IN')}</td>
+                                        <td style={{ textAlign: 'right', color: '#10b981', fontWeight: 700 }}>
+                                            ₹{(item.status === 'Paid' ? item.amount : (item.paid_amount || 0)).toLocaleString('en-IN')}
+                                        </td>
+                                        <td style={{ textAlign: 'right', color: (item.remaining_amount > 0 ? '#ef4444' : '#64748b'), fontWeight: 700 }}>
+                                            ₹{(item.remaining_amount ?? (item.status === 'Paid' ? 0 : item.amount))?.toLocaleString('en-IN')}
+                                        </td>
 
-                <Pagination 
-                    currentPage={currentPage}
-                    totalPages={totalPages}
-                    onPageChange={setCurrentPage}
-                />
-            </div>
+                                        <td>
+                                            <div style={{ position: 'relative' }}>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setOpenStatusDropdown(openStatusDropdown === item.id ? null : item.id);
+                                                    }}
+                                                    className={`${styles.statusSelect} ${styles['status' + (item.status || 'Pending')]}`}
+                                                    style={{ width: '130px' }}
+                                                >
+                                                    <span>{item.status || 'Pending'}</span>
+                                                    <span style={{ fontSize: '0.7rem', opacity: 0.5 }}>▼</span>
+                                                </button>
+
+                                                {openStatusDropdown === item.id && (
+                                                    <>
+                                                        <div
+                                                            style={{ position: 'fixed', inset: 0, zIndex: 40 }}
+                                                            onClick={() => setOpenStatusDropdown(null)}
+                                                        />
+                                                        <div style={{
+                                                            position: 'absolute',
+                                                            top: 'calc(100% + 4px)',
+                                                            left: 0,
+                                                            zIndex: 50,
+                                                            background: 'white',
+                                                            border: '1px solid #e2e8f0',
+                                                            borderRadius: '12px',
+                                                            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                                                            minWidth: '160px',
+                                                            overflow: 'hidden',
+                                                            padding: '6px'
+                                                        }}>
+                                                            {['Pending', 'Approved', 'Partial', 'Paid', 'Rejected', 'Accounts', 'Hold'].map(statusOption => (
+                                                                <button
+                                                                    key={statusOption}
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        updateStatus(item.id, statusOption);
+                                                                        setOpenStatusDropdown(null);
+                                                                    }}
+                                                                    style={{
+                                                                        display: 'block',
+                                                                        width: '100%',
+                                                                        textAlign: 'left',
+                                                                        padding: '10px 12px',
+                                                                        background: item.status === statusOption ? '#f1f5f9' : 'transparent',
+                                                                        border: 'none',
+                                                                        borderRadius: '8px',
+                                                                        cursor: 'pointer',
+                                                                        fontSize: '0.85rem',
+                                                                        color: item.status === statusOption ? '#1e293b' : '#64748b',
+                                                                        fontWeight: item.status === statusOption ? 700 : 500
+                                                                    }}
+                                                                    onMouseOver={(e) => e.currentTarget.style.background = '#f8fafc'}
+                                                                    onMouseOut={(e) => e.currentTarget.style.background = item.status === statusOption ? '#f1f5f9' : 'transparent'}
+                                                                >
+                                                                    {statusOption}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </div>
+                                            {item.paid_date && <div style={{ fontSize: '0.7rem', color: '#059669', marginTop: '4px', fontWeight: 600 }}>Paid: {formatDate(item.paid_date)}</div>}
+                                        </td>
+                                        <td style={{ textAlign: 'center' }}>
+                                            <Button
+                                                variant="secondary"
+                                                className={styles.actionBtn}
+                                                style={{ padding: '6px 14px' }}
+                                                onClick={() => setViewItem(item)}
+                                            >
+                                                View Details
+                                            </Button>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {filteredHistory.length === 0 && (
+                                    <tr><td colSpan="9" style={{ padding: '60px', textAlign: 'center', color: '#94a3b8', fontSize: '1rem' }}>No transaction history matches your search.</td></tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div className={styles.paginationWrapper}>
+                        <Pagination 
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={setCurrentPage}
+                        />
+                    </div>
+                </div>
+            </main>
+
             {viewItem && (
                 <TemplateModal
                     record={viewItem}
@@ -464,59 +465,61 @@ const HistoryPage = () => {
                 />
             )}
 
-            {/* Move to Advances Modal */}
+            {/* Move to Advances Modal - Redesigned */}
             {showMoveModal && (
-                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px' }}>
-                    <div style={{ background: 'white', padding: '24px', borderRadius: '12px', width: '100%', maxWidth: '500px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', maxHeight: '90vh', overflowY: 'auto' }}>
-                        <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a', marginBottom: '16px' }}>Move to Work Order Advances</h3>
+                <div className={styles.modalOverlay} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px' }}>
+                    <div className={styles.modalContent} style={{ width: '100%', maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto', padding: '30px' }}>
+                        <h3 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', marginBottom: '20px', fontFamily: 'Outfit' }}>Move to Work Order Advances</h3>
                         
-                        <div style={{ padding: '12px', background: '#f8fafc', borderRadius: '8px', marginBottom: '20px', border: '1px solid #e2e8f0' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                                <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Work Order:</span>
-                                <span style={{ fontWeight: 600, color: '#1e293b' }}>{moveData.item?.wo_no || moveData.item?.invoice_no}</span>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Total Record Amount:</span>
-                                <span style={{ fontWeight: 600, color: '#059669' }}>₹{parseFloat(moveData.item?.amount || 0).toLocaleString('en-IN')}</span>
+                        <div className={styles.moveRecordInfo}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                                <div>
+                                    <div className={styles.moveRecordLabel}>Work Order / Invoice</div>
+                                    <div className={styles.moveRecordValue}>{moveData.item?.wo_no || moveData.item?.invoice_no}</div>
+                                </div>
+                                <div style={{ textAlign: 'right' }}>
+                                    <div className={styles.moveRecordLabel}>Total Amount</div>
+                                    <div className={styles.moveRecordValue} style={{ color: '#059669' }}>₹{parseFloat(moveData.item?.amount || 0).toLocaleString('en-IN')}</div>
+                                </div>
                             </div>
                         </div>
 
                         {existingAdvances.length > 0 && (
-                            <div style={{ marginBottom: '20px' }}>
-                                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, fontSize: '0.9rem', color: '#475569' }}>Existing History for this WO:</label>
-                                <div style={{ background: '#fff', border: '1px solid #cbd5e1', borderRadius: '6px', maxHeight: '120px', overflowY: 'auto', padding: '8px' }}>
+                            <div style={{ marginBottom: '24px' }}>
+                                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 700, fontSize: '0.8rem', color: '#64748b', textTransform: 'uppercase' }}>Existing Advances history:</label>
+                                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', maxHeight: '140px', overflowY: 'auto', padding: '12px' }}>
                                     {existingAdvances.map(adv => (
-                                        <div key={adv.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid #f1f5f9', fontSize: '0.85rem' }}>
-                                            <span style={{ color: '#64748b' }}>{formatDate(adv.date)}</span>
-                                            <span style={{ fontWeight: 500 }}>₹{parseFloat(adv.amount).toLocaleString('en-IN')}</span>
+                                        <div key={adv.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #e2e8f0', fontSize: '0.85rem' }}>
+                                            <span style={{ color: '#64748b', fontWeight: 500 }}>{formatDate(adv.date)}</span>
+                                            <span style={{ fontWeight: 700, color: '#1e293b' }}>₹{parseFloat(adv.amount).toLocaleString('en-IN')}</span>
                                         </div>
                                     ))}
                                 </div>
                             </div>
                         )}
 
-                        <div style={{ marginBottom: '16px' }}>
-                            <label style={{ display: 'block', marginBottom: '6px', fontWeight: 600, fontSize: '0.9rem', color: '#475569' }}>Payment Mode (Applied to all splits)</label>
+                        <div style={{ marginBottom: '20px' }}>
+                            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 700, fontSize: '0.8rem', color: '#64748b', textTransform: 'uppercase' }}>Payment Mode</label>
                             <select
                                 value={moveData.mode}
                                 onChange={e => setMoveData({ ...moveData, mode: e.target.value })}
-                                style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '6px', background: 'white' }}
+                                style={{ width: '100%', padding: '12px', border: '1px solid #e2e8f0', borderRadius: '10px', background: 'white', fontWeight: 600 }}
                             >
-                                <option value="M1">M1</option>
-                                <option value="M2">M2</option>
-                                <option value="M3">M3</option>
-                                <option value="M4">M4</option>
-                                <option value="M5">M5</option>
+                                <option value="M1">M1 (Accounts)</option>
+                                <option value="M2">M2 (Cash)</option>
+                                <option value="M3">M3 (Material Purchase)</option>
+                                <option value="M4">M4 (Wages)</option>
+                                <option value="M5">M5 (Rent)</option>
                             </select>
                         </div>
 
                         <div style={{ marginBottom: '24px' }}>
-                            <label style={{ display: 'block', marginBottom: '10px', fontWeight: 600, fontSize: '0.9rem', color: '#475569' }}>Payment Splits to Move</label>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            <label style={{ display: 'block', marginBottom: '12px', fontWeight: 700, fontSize: '0.8rem', color: '#64748b', textTransform: 'uppercase' }}>Payment Splits to Move</label>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                 {moveData.splits.map((split, index) => (
-                                    <div key={index} style={{ display: 'flex', gap: '8px', alignItems: 'center', background: '#f8fafc', padding: '10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                                        <div style={{ flex: 1 }}>
-                                            <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>Amount (₹)</span>
+                                    <div key={index} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                        <div>
+                                            <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block', marginBottom: '4px', fontWeight: 700 }}>Amount (₹)</span>
                                             <input
                                                 type="text"
                                                 inputMode="decimal"
@@ -526,11 +529,11 @@ const HistoryPage = () => {
                                                     newSplits[index] = { ...newSplits[index], amount: e.target.value };
                                                     setMoveData({ ...moveData, splits: newSplits });
                                                 }}
-                                                style={{ width: '100%', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: '4px', outline: 'none' }}
+                                                style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: '8px', fontWeight: 700, outline: 'none' }}
                                             />
                                         </div>
-                                        <div style={{ flex: 1 }}>
-                                            <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>Date</span>
+                                        <div>
+                                            <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block', marginBottom: '4px', fontWeight: 700 }}>Date</span>
                                             <input
                                                 type="date"
                                                 value={split.date}
@@ -539,21 +542,22 @@ const HistoryPage = () => {
                                                     newSplits[index] = { ...newSplits[index], date: e.target.value };
                                                     setMoveData({ ...moveData, splits: newSplits });
                                                 }}
-                                                style={{ width: '100%', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: '4px', outline: 'none' }}
+                                                style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: '8px', fontWeight: 600, outline: 'none' }}
                                             />
                                         </div>
                                     </div>
                                 ))}
                             </div>
-                            <div style={{ marginTop: '12px', textAlign: 'right', fontWeight: 600, color: '#0f172a', fontSize: '0.9rem' }}>
-                                Total Moving: ₹{moveData.splits.reduce((sum, s) => sum + (parseFloat(s.amount) || 0), 0).toLocaleString('en-IN')}
+                            <div style={{ marginTop: '16px', textAlign: 'right', fontWeight: 800, color: '#0f172a', fontSize: '1.1rem' }}>
+                                <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600, marginRight: '8px' }}>TOTAL TO MOVE:</span>
+                                ₹{moveData.splits.reduce((sum, s) => sum + (parseFloat(s.amount) || 0), 0).toLocaleString('en-IN')}
                             </div>
                         </div>
 
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-                            <Button variant="secondary" onClick={() => setShowMoveModal(false)}>Cancel</Button>
-                            <Button variant="primary" onClick={confirmMoveToAdvances} disabled={savingMove}>
-                                {savingMove ? 'Moving...' : 'Confirm Move'}
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', borderTop: '1px solid #f1f5f9', paddingTop: '20px' }}>
+                            <Button variant="secondary" onClick={() => setShowMoveModal(false)} style={{ padding: '10px 20px' }}>Cancel</Button>
+                            <Button variant="primary" onClick={confirmMoveToAdvances} disabled={savingMove} style={{ padding: '10px 30px', background: '#4338ca', color: 'white' }}>
+                                {savingMove ? 'Moving...' : 'Confirm & Sync'}
                             </Button>
                         </div>
                     </div>
