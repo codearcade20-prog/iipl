@@ -22,6 +22,7 @@ const AdminDashboard = () => {
     const [password, setPassword] = useState('');
     const [isSuperAdmin, setIsSuperAdmin] = useState(false);
     const [authError, setAuthError] = useState(false);
+    const [adminUser, setAdminUser] = useState(null);
 
     // Navigation State
     const [currentView, setCurrentView] = useState('history');
@@ -161,13 +162,33 @@ const AdminDashboard = () => {
     };
 
     // --- AUTH ---
-    const handleLogin = () => {
-        if (password === 'boss207') {
-            setIsAuthenticated(true);
-            setIsSuperAdmin(username === 'admin');
-            setAuthError(false);
-        } else {
-            setAuthError(true);
+    const handleLogin = async () => {
+        setSaving(true);
+        setAuthError(false);
+        try {
+            const { data, error } = await supabase
+                .from('app_users')
+                .select('*')
+                .eq('username', username)
+                .eq('password', password)
+                .eq('is_admin', true)
+                .maybeSingle();
+
+            if (error) throw error;
+
+            if (data) {
+                setAdminUser(data);
+                setIsAuthenticated(true);
+                setIsSuperAdmin(data.username === 'admin' || data.team_role === 'SuperAdmin');
+                setAuthError(false);
+            } else {
+                setAuthError(true);
+            }
+        } catch (e) {
+            console.error('Login failed:', e);
+            await alert("Login Error: " + e.message);
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -245,10 +266,11 @@ const AdminDashboard = () => {
     };
 
     const deleteVendor = async (id) => {
-        const pwd = await prompt("Enter Admin Password to Delete this vendor:");
+        const pwd = await prompt("Enter your Admin Password to Delete this vendor:");
         if (pwd === null) return;
-        if (pwd !== 'boss207') {
-            await alert("Incorrect Password!");
+        
+        if (pwd !== adminUser?.password) {
+            await alert("Incorrect Admin Password!");
             return;
         }
         if (await confirm('Delete this vendor?')) {
@@ -321,8 +343,8 @@ const AdminDashboard = () => {
     const deleteSite = async (id) => {
         const pwd = await prompt("Enter Admin Password to Delete this site:");
         if (pwd === null) return;
-        if (pwd !== 'boss207') {
-            await alert("Incorrect Password!");
+        if (pwd !== adminUser?.password) {
+            await alert("Incorrect Admin Password!");
             return;
         }
         if (await confirm('Are you sure you want to delete this site?')) {
@@ -453,8 +475,8 @@ const AdminDashboard = () => {
     const deleteHistory = async (id) => {
         const pwd = await prompt("Enter Admin Password to Delete this record:");
         if (pwd === null) return;
-        if (pwd !== 'boss207') {
-            await alert("Incorrect Password!");
+        if (pwd !== adminUser?.password) {
+            await alert("Incorrect Admin Password!");
             return;
         }
         if (await confirm('Delete this record? It will be moved to the Bin.')) {
@@ -757,10 +779,11 @@ const AdminDashboard = () => {
     };
 
     const deleteAppUser = async (id) => {
-        const pwd = await prompt("Enter Admin Password to Delete this user:");
+        const pwd = await prompt("Enter your Admin Password to Delete this user:");
         if (pwd === null) return;
-        if (pwd !== 'boss207') {
-            await alert("Incorrect Password!");
+        
+        if (pwd !== adminUser?.password) {
+            await alert("Incorrect Admin Password!");
             return;
         }
         if (await confirm('Delete this user?')) {
@@ -806,10 +829,11 @@ const AdminDashboard = () => {
     };
 
     const deleteSession = async (id) => {
-        const pwd = await prompt("Enter Admin Password to Delete this session:");
+        const pwd = await prompt("Enter your Admin Password to Delete this session:");
         if (pwd === null) return;
-        if (pwd !== 'boss207') {
-            await alert("Incorrect Password!");
+        
+        if (pwd !== adminUser?.password) {
+            await alert("Incorrect Admin Password!");
             return;
         }
         if (await confirm('Permanently delete this session record?')) {

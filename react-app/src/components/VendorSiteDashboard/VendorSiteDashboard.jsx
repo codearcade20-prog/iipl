@@ -481,8 +481,8 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
         // Password Check
         const pwd = await prompt("Enter Admin Password to Delete this record:");
         if (pwd === null) return;
-        if (pwd !== 'boss207') {
-            await alert("Incorrect Password!");
+        if (pwd !== user?.password) {
+            await alert("Incorrect Admin Password!");
             return;
         }
 

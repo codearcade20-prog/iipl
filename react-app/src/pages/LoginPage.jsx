@@ -28,16 +28,6 @@ const LoginPage = () => {
                 .single();
 
             if (fetchError || !data) {
-                if (username === 'admin' && password === 'boss207') {
-                    const fallbackUser = {
-                        username: 'admin',
-                        is_admin: true,
-                        permissions: ['invoice', 'payment', 'history', 'workorders', 'admin', 'vendor']
-                    };
-                    login(fallbackUser);
-                    navigate('/');
-                    return;
-                }
                 throw new Error('Invalid username or password');
             }
 
