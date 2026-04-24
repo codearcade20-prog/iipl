@@ -14,15 +14,13 @@ import VendorPrintTemplate from '../components/VendorPrintTemplate';
 
 
 const AdminDashboard = () => {
-    const { logout } = useAuth();
+    const { user, logout } = useAuth();
     const { alert, confirm, prompt, toast } = useMessage();
-    // Auth State
+    
+    // Auth State (Derived from global AuthContext)
     const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
-    const [isSuperAdmin, setIsSuperAdmin] = useState(false);
-    const [authError, setAuthError] = useState(false);
     const [adminUser, setAdminUser] = useState(null);
+    const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
     // Navigation State
     const [currentView, setCurrentView] = useState('history');
@@ -161,36 +159,14 @@ const AdminDashboard = () => {
         });
     };
 
-    // --- AUTH ---
-    const handleLogin = async () => {
-        setSaving(true);
-        setAuthError(false);
-        try {
-            const { data, error } = await supabase
-                .from('app_users')
-                .select('*')
-                .eq('username', username)
-                .eq('password', password)
-                .eq('is_admin', true)
-                .maybeSingle();
-
-            if (error) throw error;
-
-            if (data) {
-                setAdminUser(data);
-                setIsAuthenticated(true);
-                setIsSuperAdmin(data.username === 'admin' || data.team_role === 'SuperAdmin');
-                setAuthError(false);
-            } else {
-                setAuthError(true);
-            }
-        } catch (e) {
-            console.error('Login failed:', e);
-            await alert("Login Error: " + e.message);
-        } finally {
-            setSaving(false);
+    // Auto-authenticate if user is already logged in as admin
+    useEffect(() => {
+        if (user && user.is_admin) {
+            setAdminUser(user);
+            setIsAuthenticated(true);
+            setIsSuperAdmin(user.username === 'admin' || user.team_role === 'SuperAdmin');
         }
-    };
+    }, [user]);
 
     // --- EFFECTS ---
     useEffect(() => {
@@ -1132,31 +1108,7 @@ const AdminDashboard = () => {
     const paginatedBin = binItems.slice((currentPage - 1) * ROWS_PER_PAGE, currentPage * ROWS_PER_PAGE);
 
     if (!isAuthenticated) {
-        return (
-            <div className={styles.authOverlay}>
-                <div className={styles.loginCard}>
-                    <h2 className={styles.loginTitle}>Admin Dashboard Login</h2>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                        <Input
-                            placeholder="Username"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                        />
-                        <Input
-                            type="password"
-                            placeholder="Password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-                        />
-                    </div>
-                    <div style={{ marginTop: '20px' }}>
-                        <Button onClick={handleLogin} style={{ width: '100%' }}>Login</Button>
-                    </div>
-                    {authError && <p style={{ color: 'var(--danger)', marginTop: '10px', textAlign: 'center' }}>Invalid Credentials!</p>}
-                </div>
-            </div>
-        );
+        return <LoadingOverlay message="Verifying Admin Access..." />;
     }
 
     return (
