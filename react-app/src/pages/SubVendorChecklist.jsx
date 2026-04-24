@@ -198,7 +198,8 @@ const SubVendorChecklist = () => {
                 bank_account_number: v.account_number || '',
                 bank_ifsc_code: v.ifsc_code || '',
                 bank_branch: v.bank_branch || '',
-                bank_name: v.bank_name || ''
+                bank_name: v.bank_name || '',
+                nature_of_work: v.nature_of_work || ''
             }));
             setIsSaved(false);
         } else {

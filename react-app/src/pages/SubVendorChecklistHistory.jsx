@@ -4,14 +4,12 @@ import { supabase } from '../lib/supabase';
 import { 
     ArrowLeft, 
     Search, 
-    Printer, 
     Trash2, 
     FileText, 
     Calendar,
-    User,
     Loader2
 } from 'lucide-react';
-import styles from './SubVendorChecklist.module.css';
+import styles from './SubVendorChecklistHistory.module.css';
 import { useMessage } from '../context/MessageContext';
 
 const SubVendorChecklistHistory = () => {
@@ -33,11 +31,11 @@ const SubVendorChecklistHistory = () => {
             setChecklists(data || []);
         } catch (err) {
             console.error('Error fetching history:', err);
-            toast.error('Failed to load history');
+            toast('Failed to load history');
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [toast]);
 
     useEffect(() => {
         fetchHistory();
@@ -54,12 +52,11 @@ const SubVendorChecklistHistory = () => {
 
             if (error) throw error;
             
-            // Instant update: reflect the change quickly without a full refresh
             setChecklists(prev => prev.filter(item => item.id !== id));
-            toast.success('Record deleted successfully');
+            toast('Record deleted successfully');
         } catch (err) {
             console.error('Error deleting record:', err);
-            toast.error('Failed to delete record');
+            toast('Failed to delete record');
         }
     };
 
@@ -70,88 +67,89 @@ const SubVendorChecklistHistory = () => {
 
     return (
         <div className={styles.container}>
-            <div className={styles.header}>
-                <button onClick={() => navigate('/sub-vendor-checklist')} className={styles.backBtn} style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}>
+            <header className={styles.header}>
+                <div>
+                    <h1 className={styles.title}>Checklist History</h1>
+                    <p className={styles.subtitle}>View and manage saved Sub Vendor Checklists</p>
+                </div>
+                <button onClick={() => navigate('/sub-vendor-checklist')} className={styles.backBtn}>
                     <ArrowLeft size={18} /> Back to Form
                 </button>
-                <h1 className={styles.title}>Checklist History</h1>
-                <p className={styles.subtitle}>View and manage saved Sub Vendor Checklists</p>
-            </div>
+            </header>
 
-            <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem' }}>
-                <div style={{ position: 'relative', flex: 1 }}>
-                    <Search style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} size={18} />
-                    <input 
-                        type="text" 
-                        placeholder="Search by project or vendor name..." 
-                        className={styles.input} 
-                        style={{ paddingLeft: '35px' }}
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                </div>
-            </div>
+            <main className={styles.content}>
+                <section className={styles.searchSection}>
+                    <div className={styles.searchWrapper}>
+                        <Search className={styles.searchIcon} size={20} />
+                        <input 
+                            type="text" 
+                            placeholder="Search by project or vendor name..." 
+                            className={styles.searchInput} 
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                </section>
 
-            <div className={styles.checklist} style={{ padding: '0' }}>
-                {loading ? (
-                    <div style={{ padding: '3rem', textAlign: 'center', color: '#64748b' }}>
-                        <Loader2 className="animate-spin" style={{ margin: '0 auto 1rem' }} />
-                        <p>Loading records...</p>
-                    </div>
-                ) : filteredChecklists.length === 0 ? (
-                    <div style={{ padding: '3rem', textAlign: 'center', color: '#64748b' }}>
-                        <FileText size={48} style={{ margin: '0 auto 1rem', opacity: 0.3 }} />
-                        <p>No records found.</p>
-                    </div>
-                ) : (
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                        <thead>
-                            <tr style={{ backgroundColor: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-                                <th style={{ padding: '1rem', textAlign: 'left' }}>Date</th>
-                                <th style={{ padding: '1rem', textAlign: 'left' }}>Project</th>
-                                <th style={{ padding: '1rem', textAlign: 'left' }}>Vendor</th>
-                                <th style={{ padding: '1rem', textAlign: 'left' }}>Value</th>
-                                <th style={{ padding: '1rem', textAlign: 'center' }}>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredChecklists.map((item) => (
-                                <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                    <td style={{ padding: '1rem' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                            <Calendar size={14} color="#94a3b8" />
-                                            {new Date(item.created_at).toLocaleDateString()}
-                                        </div>
-                                    </td>
-                                    <td style={{ padding: '1rem' }}><strong>{item.project_name}</strong></td>
-                                    <td style={{ padding: '1rem' }}>{item.vendor_name}</td>
-                                    <td style={{ padding: '1rem' }}>₹{item.total_value?.toLocaleString() || 0}</td>
-                                    <td style={{ padding: '1rem', textAlign: 'center' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
-                                            <button 
-                                                onClick={() => navigate(`/sub-vendor-checklist?id=${item.id}`)}
-                                                className={styles.printBtn} 
-                                                style={{ padding: '4px 8px', fontSize: '12px' }}
-                                                title="View/Edit"
-                                            >
-                                                <FileText size={14} />
-                                            </button>
-                                            <button 
-                                                onClick={() => handleDelete(item.id)}
-                                                className={styles.printBtn} 
-                                                style={{ padding: '4px 8px', fontSize: '12px', color: '#ef4444', borderColor: '#fee2e2' }}
-                                                title="Delete"
-                                            >
-                                                <Trash2 size={14} />
-                                            </button>
-                                        </div>
-                                    </td>
+                <div className={styles.tableCard}>
+                    {loading ? (
+                        <div className={styles.loadingWrapper}>
+                            <Loader2 className={styles.loadingSpinner} size={48} />
+                            <p>Loading records from database...</p>
+                        </div>
+                    ) : filteredChecklists.length === 0 ? (
+                        <div className={styles.emptyWrapper}>
+                            <FileText className={styles.emptyIcon} size={64} />
+                            <p>{searchTerm ? 'No matching records found' : 'No checklists created yet'}</p>
+                        </div>
+                    ) : (
+                        <table className={styles.table}>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Project</th>
+                                    <th>Vendor</th>
+                                    <th>Value</th>
+                                    <th style={{ textAlign: 'right' }}>Actions</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                )}
-            </div>
+                            </thead>
+                            <tbody>
+                                {filteredChecklists.map((item) => (
+                                    <tr key={item.id}>
+                                        <td>
+                                            <div className={styles.dateCell}>
+                                                <Calendar size={14} />
+                                                {new Date(item.created_at).toLocaleDateString()}
+                                            </div>
+                                        </td>
+                                        <td className={styles.projectCell}>{item.project_name}</td>
+                                        <td className={styles.vendorCell}>{item.vendor_name}</td>
+                                        <td className={styles.valueCell}>₹{item.total_value?.toLocaleString() || 0}</td>
+                                        <td>
+                                            <div className={styles.actionsCell}>
+                                                <button 
+                                                    onClick={() => navigate(`/sub-vendor-checklist?id=${item.id}`)}
+                                                    className={`${styles.actionBtn} ${styles.viewBtn}`} 
+                                                    title="View or Edit Details"
+                                                >
+                                                    <FileText size={18} />
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleDelete(item.id)}
+                                                    className={`${styles.actionBtn} ${styles.deleteBtn}`} 
+                                                    title="Delete Record"
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
+                </div>
+            </main>
         </div>
     );
 };
