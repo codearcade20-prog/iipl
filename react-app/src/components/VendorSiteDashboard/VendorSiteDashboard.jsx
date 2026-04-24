@@ -2745,6 +2745,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                                     setStatementMode('work_order');
                                                     setSelectedStatementWO(entry);
                                                 }}
+                                                title="View Detailed Record"
                                                 style={{
                                                     display: 'flex',
                                                     alignItems: 'center',
@@ -2759,7 +2760,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                                     cursor: 'pointer'
                                                 }}
                                             >
-                                                <FileText size={14} /> View
+                                                <FileText size={14} />
                                             </button>
                                             <button 
                                                 onClick={() => window.open(`#/vendor-dashboard?wo=${entry.wo_no}&direct=true`, '_blank')}
@@ -2778,7 +2779,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                                 }}
                                                 title="Quick Print Portrait"
                                             >
-                                                <Printer size={14} /> Print
+                                                <Printer size={14} />
                                             </button>
                                             <SafePdfBtn url={entry.wo_pdf_url} />
                                         </div>
