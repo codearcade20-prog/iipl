@@ -73,6 +73,14 @@ const Home = () => {
                         <p className={styles.cardText}>Access the external vendor and site management dashboard.</p>
                     </Link>
                 )}
+                
+                {hasPermission('register') && (
+                    <Link to="/master-register" className={styles.navCard}>
+                        <div className={styles.icon}><span role="img" aria-label="register">📋</span></div>
+                        <h3 className={styles.cardTitle}>Master Registration</h3>
+                        <p className={styles.cardText}>Manage master data for Sites and Vendors across the entire system.</p>
+                    </Link>
+                )}
 
                 {(hasPermission('invoice') || hasPermission('bill')) && (
                     <Link to="/bill-generator" className={styles.navCard}>
