@@ -245,6 +245,12 @@ const AdminDashboard = () => {
     };
 
     const deleteVendor = async (id) => {
+        const pwd = await prompt("Enter Admin Password to Delete this vendor:");
+        if (pwd === null) return;
+        if (pwd !== 'boss207') {
+            await alert("Incorrect Password!");
+            return;
+        }
         if (await confirm('Delete this vendor?')) {
             setSaving(true);
             try {
@@ -313,6 +319,12 @@ const AdminDashboard = () => {
     };
 
     const deleteSite = async (id) => {
+        const pwd = await prompt("Enter Admin Password to Delete this site:");
+        if (pwd === null) return;
+        if (pwd !== 'boss207') {
+            await alert("Incorrect Password!");
+            return;
+        }
         if (await confirm('Are you sure you want to delete this site?')) {
             setSaving(true);
             try {
@@ -439,6 +451,12 @@ const AdminDashboard = () => {
     };
 
     const deleteHistory = async (id) => {
+        const pwd = await prompt("Enter Admin Password to Delete this record:");
+        if (pwd === null) return;
+        if (pwd !== 'boss207') {
+            await alert("Incorrect Password!");
+            return;
+        }
         if (await confirm('Delete this record? It will be moved to the Bin.')) {
             try {
                 // 1. Fetch item to backup
@@ -687,14 +705,14 @@ const AdminDashboard = () => {
             });
         } else {
             setEditingUserId(null);
-            setUserForm({ 
-                username: '', 
-                password: '', 
-                is_admin: false, 
-                is_approved: true, 
-                is_pending: false, 
-                permissions: [], 
-                team_role: '' 
+            setUserForm({
+                username: '',
+                password: '',
+                is_admin: false,
+                is_approved: true,
+                is_pending: false,
+                permissions: [],
+                team_role: ''
             });
         }
         setUserModalOpen(true);
@@ -739,6 +757,12 @@ const AdminDashboard = () => {
     };
 
     const deleteAppUser = async (id) => {
+        const pwd = await prompt("Enter Admin Password to Delete this user:");
+        if (pwd === null) return;
+        if (pwd !== 'boss207') {
+            await alert("Incorrect Password!");
+            return;
+        }
         if (await confirm('Delete this user?')) {
             setSaving(true);
             try {
@@ -782,6 +806,12 @@ const AdminDashboard = () => {
     };
 
     const deleteSession = async (id) => {
+        const pwd = await prompt("Enter Admin Password to Delete this session:");
+        if (pwd === null) return;
+        if (pwd !== 'boss207') {
+            await alert("Incorrect Password!");
+            return;
+        }
         if (await confirm('Permanently delete this session record?')) {
             setSaving(true);
             try {
@@ -1059,14 +1089,14 @@ const AdminDashboard = () => {
     // --- FILTERED DATA ---
     const filteredUsers = useMemo(() => {
         return appUsers.filter(u => {
-            const matchesSearch = !userSearch || 
-                                 u.username?.toLowerCase().includes(userSearch.toLowerCase()) || 
-                                 u.team_role?.toLowerCase().includes(userSearch.toLowerCase());
-            
-            const matchesFilter = userFilter === 'all' || 
-                                 (userFilter === 'pending' && u.is_pending) || 
-                                 (userFilter === 'approved' && !u.is_pending && u.is_approved);
-            
+            const matchesSearch = !userSearch ||
+                u.username?.toLowerCase().includes(userSearch.toLowerCase()) ||
+                u.team_role?.toLowerCase().includes(userSearch.toLowerCase());
+
+            const matchesFilter = userFilter === 'all' ||
+                (userFilter === 'pending' && u.is_pending) ||
+                (userFilter === 'approved' && !u.is_pending && u.is_approved);
+
             return matchesSearch && matchesFilter;
         });
     }, [appUsers, userSearch, userFilter]);
@@ -1430,10 +1460,10 @@ const AdminDashboard = () => {
                                 )}
                             </table>
                         </div>
-                        <Pagination 
-                            currentPage={currentPage} 
-                            totalPages={totalPagesHistory} 
-                            onPageChange={setCurrentPage} 
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPagesHistory}
+                            onPageChange={setCurrentPage}
                         />
                     </div>
                 )}
@@ -1576,10 +1606,10 @@ const AdminDashboard = () => {
                                 )}
                             </table>
                         </div>
-                        <Pagination 
-                            currentPage={currentPage} 
-                            totalPages={totalPagesClearance} 
-                            onPageChange={setCurrentPage} 
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPagesClearance}
+                            onPageChange={setCurrentPage}
                         />
                     </div>
                 )}
@@ -1634,10 +1664,10 @@ const AdminDashboard = () => {
                                 </tbody>
                             </table>
                         </div>
-                        <Pagination 
-                            currentPage={currentPage} 
-                            totalPages={totalPagesVendors} 
-                            onPageChange={setCurrentPage} 
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPagesVendors}
+                            onPageChange={setCurrentPage}
                         />
                     </div>
                 )}
@@ -1700,10 +1730,10 @@ const AdminDashboard = () => {
                                 </tbody>
                             </table>
                         </div>
-                        <Pagination 
-                            currentPage={currentPage} 
-                            totalPages={totalPagesBin} 
-                            onPageChange={setCurrentPage} 
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPagesBin}
+                            onPageChange={setCurrentPage}
                         />
                     </div>
                 )}
@@ -1715,21 +1745,21 @@ const AdminDashboard = () => {
                             <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                                 <h3 className={styles.cardTitle}>App User Management</h3>
                                 <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '10px' }}>
-                                    <button 
+                                    <button
                                         onClick={() => setUserFilter('all')}
                                         className={`${styles.filterBtn} ${userFilter === 'all' ? styles.active : ''}`}
                                         style={{ border: 'none', padding: '6px 12px', fontSize: '0.8rem', borderRadius: '8px', cursor: 'pointer', background: userFilter === 'all' ? 'white' : 'transparent', boxShadow: userFilter === 'all' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none', fontWeight: 600 }}
                                     >
                                         All
                                     </button>
-                                    <button 
+                                    <button
                                         onClick={() => setUserFilter('pending')}
                                         className={`${styles.filterBtn} ${userFilter === 'pending' ? styles.active : ''}`}
                                         style={{ border: 'none', padding: '6px 12px', fontSize: '0.8rem', borderRadius: '8px', cursor: 'pointer', background: userFilter === 'pending' ? 'white' : 'transparent', boxShadow: userFilter === 'pending' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none', fontWeight: 600, color: userFilter === 'pending' ? '#ef4444' : '#64748b' }}
                                     >
                                         Pending Approval
                                     </button>
-                                    <button 
+                                    <button
                                         onClick={() => setUserFilter('approved')}
                                         className={`${styles.filterBtn} ${userFilter === 'approved' ? styles.active : ''}`}
                                         style={{ border: 'none', padding: '6px 12px', fontSize: '0.8rem', borderRadius: '8px', cursor: 'pointer', background: userFilter === 'approved' ? 'white' : 'transparent', boxShadow: userFilter === 'approved' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none', fontWeight: 600, color: userFilter === 'approved' ? '#10b981' : '#64748b' }}
@@ -1740,7 +1770,7 @@ const AdminDashboard = () => {
                             </div>
                             <Button onClick={() => openUserModal()}>+ Add User</Button>
                         </div>
-                        
+
                         <div style={{ padding: '15px 30px', background: '#f8fafc', borderBottom: '1px solid var(--border-color)' }}>
                             <div style={{ display: 'flex', gap: '15px' }}>
                                 <div style={{ flex: 1, position: 'relative' }}>
@@ -1754,7 +1784,7 @@ const AdminDashboard = () => {
                                     />
                                 </div>
                                 {userSearch && (
-                                    <button 
+                                    <button
                                         onClick={() => setUserSearch('')}
                                         style={{ padding: '0 12px', background: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.8rem', cursor: 'pointer' }}
                                     >
@@ -1795,8 +1825,8 @@ const AdminDashboard = () => {
                                             <td>
                                                 <div className="flex gap-2">
                                                     {u.is_pending && (
-                                                        <Button 
-                                                            style={{ background: '#10b981', padding: '4px 10px', fontSize: '0.8rem' }} 
+                                                        <Button
+                                                            style={{ background: '#10b981', padding: '4px 10px', fontSize: '0.8rem' }}
                                                             onClick={() => approveUser(u)}
                                                         >
                                                             Approve
@@ -1814,10 +1844,10 @@ const AdminDashboard = () => {
                                 </tbody>
                             </table>
                         </div>
-                        <Pagination 
-                            currentPage={currentPage} 
-                            totalPages={totalPagesUsers} 
-                            onPageChange={setCurrentPage} 
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPagesUsers}
+                            onPageChange={setCurrentPage}
                         />
                     </div>
                 )}
@@ -1875,10 +1905,10 @@ const AdminDashboard = () => {
                                 </tbody>
                             </table>
                         </div>
-                        <Pagination 
-                            currentPage={currentPage} 
-                            totalPages={totalPagesSites} 
-                            onPageChange={setCurrentPage} 
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPagesSites}
+                            onPageChange={setCurrentPage}
                         />
                     </div>
                 )}
@@ -1928,9 +1958,9 @@ const AdminDashboard = () => {
                                             </td>
                                             <td style={{ textAlign: 'center' }}>
                                                 <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                                                    <Button 
-                                                        variant={session.is_revoked ? "secondary" : "danger"} 
-                                                        size="small" 
+                                                    <Button
+                                                        variant={session.is_revoked ? "secondary" : "danger"}
+                                                        size="small"
                                                         onClick={() => revokeSession(session.id, session.is_revoked)}
                                                     >
                                                         {session.is_revoked ? 'Unblock' : 'Logout Device'}
@@ -1946,10 +1976,10 @@ const AdminDashboard = () => {
                                 </tbody>
                             </table>
                         </div>
-                        <Pagination 
-                            currentPage={currentPage} 
-                            totalPages={totalPagesSessions} 
-                            onPageChange={setCurrentPage} 
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPagesSessions}
+                            onPageChange={setCurrentPage}
                         />
                     </div>
                 )}

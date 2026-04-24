@@ -135,7 +135,8 @@
 
 .searchBar {
     position: relative;
-    width: 300px;
+    width: 320px;
+    margin-left: 2.5rem;
 }
 
 .filterBar {
@@ -706,6 +707,7 @@
     .searchBar {
         width: 100%;
         margin-top: 0.5rem;
+        margin-left: 0;
     }
 }
 

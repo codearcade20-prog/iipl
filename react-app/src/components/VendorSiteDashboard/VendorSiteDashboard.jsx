@@ -28,7 +28,9 @@ import {
     Table as TableIcon,
     Settings,
     Home,
-    ExternalLink
+    ExternalLink,
+    List,
+    Grid
 } from 'lucide-react';
 import { useMessage } from '../../context/MessageContext';
 import { formatDate } from '../../utils';
@@ -107,6 +109,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
     const [monthFilter, setMonthFilter] = useState('');
     const [yearFilter, setYearFilter] = useState('');
     const [entityFilter, setEntityFilter] = useState('');
+    const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
 
     const months = [
         "January", "February", "March", "April", "May", "June",
@@ -474,6 +477,15 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
     // 1. Delete
     const handleDelete = async (id) => {
         if (readOnly) return;
+
+        // Password Check
+        const pwd = await prompt("Enter Admin Password to Delete this record:");
+        if (pwd === null) return;
+        if (pwd !== 'boss207') {
+            await alert("Incorrect Password!");
+            return;
+        }
+
         if (!await confirm('Are you sure you want to PERMANENTLY delete this entry?')) return;
         setLoading(true);
         try {
@@ -736,55 +748,127 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
         )
     };
 
-    const renderSites = () => (
-        <div className={styles.gridContainer}>
-            {filteredSites.map(site => (
-                <div key={site.name} className={styles.infoCard} onClick={() => handleSwitchView('site_detail', site.name)}>
-                    <div className={styles.cardHeader}>
-                        <Building2 size={20} />
-                        <span>{site.name}</span>
-                        <ChevronRight size={16} />
-                    </div>
-                    <div className={styles.cardBody}>
-                        <div className={styles.listItem}>
-                            <span className={styles.listItemSub}>Total Value</span>
-                            <span className={styles.currency}>{formatCurrency(site.totalValue)}</span>
-                        </div>
-                        <div className={styles.listItem}>
-                            <span className={styles.listItemSub}>Vendors</span>
-                            <span style={{ fontWeight: 600 }}>{new Set(site.entries.map(e => e.vendor_name)).size}</span>
-                        </div>
-                        <div className={styles.tag} style={{ marginTop: '1rem', background: '#eff6ff', color: '#4f46e5' }}>Click for Details</div>
-                    </div>
+    const renderSites = () => {
+        if (viewMode === 'list') {
+            return (
+                <div className={styles.tableContainer} style={{ background: 'white', borderRadius: '12px', padding: '1rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+                    <table className={styles.adminTable}>
+                        <thead>
+                            <tr>
+                                <th style={{ textAlign: 'left' }}>Site Name</th>
+                                <th style={{ textAlign: 'right' }}>Total Value</th>
+                                <th style={{ textAlign: 'right' }}>Vendors</th>
+                                <th style={{ textAlign: 'center' }}>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filteredSites.map(site => (
+                                <tr key={site.name}>
+                                    <td style={{ fontWeight: 600, color: '#1e293b' }}>{site.name}</td>
+                                    <td style={{ textAlign: 'right', fontWeight: 600, color: '#4f46e5' }}>{formatCurrency(site.totalValue)}</td>
+                                    <td style={{ textAlign: 'right', fontWeight: 500 }}>{new Set(site.entries.map(e => e.vendor_name)).size}</td>
+                                    <td style={{ textAlign: 'center' }}>
+                                        <button 
+                                            className={styles.tag} 
+                                            style={{ background: '#eff6ff', color: '#4f46e5', border: 'none', cursor: 'pointer', padding: '4px 12px' }}
+                                            onClick={() => handleSwitchView('site_detail', site.name)}
+                                        >
+                                            View Details
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
-            ))}
-        </div>
-    );
+            );
+        }
+        return (
+            <div className={styles.gridContainer}>
+                {filteredSites.map(site => (
+                    <div key={site.name} className={styles.infoCard} onClick={() => handleSwitchView('site_detail', site.name)}>
+                        <div className={styles.cardHeader}>
+                            <Building2 size={20} />
+                            <span>{site.name}</span>
+                            <ChevronRight size={16} />
+                        </div>
+                        <div className={styles.cardBody}>
+                            <div className={styles.listItem}>
+                                <span className={styles.listItemSub}>Total Value</span>
+                                <span className={styles.currency}>{formatCurrency(site.totalValue)}</span>
+                            </div>
+                            <div className={styles.listItem}>
+                                <span className={styles.listItemSub}>Vendors</span>
+                                <span style={{ fontWeight: 600 }}>{new Set(site.entries.map(e => e.vendor_name)).size}</span>
+                            </div>
+                            <div className={styles.tag} style={{ marginTop: '1rem', background: '#eff6ff', color: '#4f46e5' }}>Click for Details</div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        );
+    };
 
-    const renderVendors = () => (
-        <div className={styles.gridContainer}>
-            {filteredVendors.map(vendor => (
-                <div key={vendor.name} className={styles.infoCard} onClick={() => handleSwitchView('vendor_detail', vendor.name)}>
-                    <div className={styles.cardHeader}>
-                        <Users size={20} />
-                        <span>{vendor.name}</span>
-                        <ChevronRight size={16} />
-                    </div>
-                    <div className={styles.cardBody}>
-                        <div className={styles.listItem}>
-                            <span className={styles.listItemSub}>Total Projects</span>
-                            <span className={styles.currency}>{formatCurrency(vendor.totalValue)}</span>
-                        </div>
-                        <div className={styles.listItem}>
-                            <span className={styles.listItemSub}>Active Sites</span>
-                            <span>{vendor.sites.size}</span>
-                        </div>
-                        <div className={styles.tag} style={{ marginTop: '1rem', background: '#eff6ff', color: '#4f46e5' }}>Click for Details</div>
-                    </div>
+    const renderVendors = () => {
+        if (viewMode === 'list') {
+            return (
+                <div className={styles.tableContainer} style={{ background: 'white', borderRadius: '12px', padding: '1rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+                    <table className={styles.adminTable}>
+                        <thead>
+                            <tr>
+                                <th style={{ textAlign: 'left' }}>Vendor Name</th>
+                                <th style={{ textAlign: 'right' }}>Total Projects Value</th>
+                                <th style={{ textAlign: 'right' }}>Active Sites</th>
+                                <th style={{ textAlign: 'center' }}>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filteredVendors.map(vendor => (
+                                <tr key={vendor.name}>
+                                    <td style={{ fontWeight: 600, color: '#1e293b' }}>{vendor.name}</td>
+                                    <td style={{ textAlign: 'right', fontWeight: 600, color: '#4f46e5' }}>{formatCurrency(vendor.totalValue)}</td>
+                                    <td style={{ textAlign: 'right', fontWeight: 500 }}>{vendor.sites.size}</td>
+                                    <td style={{ textAlign: 'center' }}>
+                                        <button 
+                                            className={styles.tag} 
+                                            style={{ background: '#eff6ff', color: '#4f46e5', border: 'none', cursor: 'pointer', padding: '4px 12px' }}
+                                            onClick={() => handleSwitchView('vendor_detail', vendor.name)}
+                                        >
+                                            View Details
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
-            ))}
-        </div>
-    );
+            );
+        }
+        return (
+            <div className={styles.gridContainer}>
+                {filteredVendors.map(vendor => (
+                    <div key={vendor.name} className={styles.infoCard} onClick={() => handleSwitchView('vendor_detail', vendor.name)}>
+                        <div className={styles.cardHeader}>
+                            <Users size={20} />
+                            <span>{vendor.name}</span>
+                            <ChevronRight size={16} />
+                        </div>
+                        <div className={styles.cardBody}>
+                            <div className={styles.listItem}>
+                                <span className={styles.listItemSub}>Total Projects</span>
+                                <span className={styles.currency}>{formatCurrency(vendor.totalValue)}</span>
+                            </div>
+                            <div className={styles.listItem}>
+                                <span className={styles.listItemSub}>Active Sites</span>
+                                <span>{vendor.sites.size}</span>
+                            </div>
+                            <div className={styles.tag} style={{ marginTop: '1rem', background: '#eff6ff', color: '#4f46e5' }}>Click for Details</div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        );
+    };
 
     const renderSiteDetail = () => {
         const site = sites.find(s => s.name === detailId);
@@ -797,79 +881,133 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                         <ArrowLeft size={16} /> Back to Sites
                     </Button>
                 </div>
-                <div className={styles.gridContainer}>
-                    {site.entries.filter(e => 
-                        e.vendor_name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) || 
-                        (e.wo_no || '').toLowerCase().includes(debouncedSearchQuery.toLowerCase())
-                    ).map(entry => {
-                        const allAdvs = parseAdvances(entry.advance_details);
-                        const totalAdv = allAdvs.reduce((a, b) => a + (parseFloat(b.amount) || 0), 0);
-                        return (
-                            <div key={entry.id || Math.random()} className={styles.infoCard} style={{ cursor: 'default' }}>
-                                <div className={styles.cardHeader}>
-                                    <span>{entry.vendor_name}</span>
-                                    <SafePdfBtn url={entry.wo_pdf_url} />
-                                </div>
-                                <div className={styles.cardBody}>
-                                    <div className={styles.listItem}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                                            <span className={styles.listItemSub}>Work Order No</span>
-                                            <StatusBadge status={entry.bill_status} url={entry.wo_status_url} extraStyles={{ fontSize: '0.7rem', padding: '2px 6px' }} />
-
-
-                                        </div>
-                                        <span className={styles.listItemTitle}>{entry.wo_no || 'N/A'}</span>
-                                    </div>
-                                    <div className={styles.listItem}>
-                                        <span className={styles.listItemSub}>Work Order Date</span>
-                                        <span style={{ fontWeight: 600, color: '#475569' }}>{formatDate(entry.wo_date)}</span>
-                                    </div>
-                                    <div className={styles.listItem}>
-                                        <span className={styles.listItemSub}>WO Value</span>
-                                        <span className={styles.currency}>{formatCurrency(entry.wo_value)}</span>
-                                    </div>
-                                    <div className={styles.listItem}>
-                                        <span className={styles.listItemSub}>Total Paid</span>
-                                        <span className={styles.currency} style={{ color: '#4f46e5' }}>{formatCurrency(totalAdv)}</span>
-                                    </div>
-                                    <div className={styles.listItem}
-                                        style={{ background: '#fef2f2', padding: '4px 8px', borderRadius: '4px', marginTop: '4px', cursor: 'pointer' }}
-                                        onClick={(e) => { e.stopPropagation(); setBalancePopup(entry); }}
-                                    >
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                                            <span className={styles.listItemSub} style={{ fontWeight: 600, color: '#b91c1c', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                Balance to Pay <div style={{ fontSize: '0.7em', border: '1px solid #b91c1c', borderRadius: '50%', width: '14px', height: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>i</div>
-                                            </span>
-                                            <span className={styles.currency} style={{ fontWeight: 700, color: '#b91c1c' }}>
-                                                {formatCurrency((parseFloat(entry.bill_certified_value) || 0) - (parseFloat(entry.housekeeping) || 0) - (parseFloat(entry.retention) || 0) - totalAdv)}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div style={{ marginTop: '1rem', borderTop: '1px solid #e2e8f0', paddingTop: '0.5rem' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                                            <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Payment History</div>
-                                            <button 
-                                                onClick={(e) => { e.stopPropagation(); setPaymentHistoryPopup(entry); }}
-                                                style={{ fontSize: '0.7rem', color: '#4f46e5', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, textDecoration: 'underline' }}
-                                            >
-                                                View Table
-                                            </button>
-                                        </div>
-                                        {allAdvs.length > 0 ? allAdvs.map((a, i) => (
-                                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '4px', padding: '4px', background: '#f8fafc', borderRadius: '4px' }}>
-                                                <div>
-                                                    <span style={{ display: 'block', fontWeight: 500 }}>{a.date || 'N/A'}</span>
-                                                    <span style={{ fontSize: '0.7rem', color: '#64748b' }}>{a.payment_mode || 'M1'}</span>
+                {viewMode === 'list' ? (
+                    <div className={styles.tableContainer} style={{ background: 'white', borderRadius: '12px', padding: '1rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+                        <table className={styles.adminTable}>
+                            <thead>
+                                <tr>
+                                    <th style={{ textAlign: 'left' }}>Vendor Name</th>
+                                    <th style={{ textAlign: 'left' }}>WO No / Status</th>
+                                    <th style={{ textAlign: 'left' }}>WO Date</th>
+                                    <th style={{ textAlign: 'right' }}>WO Value</th>
+                                    <th style={{ textAlign: 'right' }}>Total Paid</th>
+                                    <th style={{ textAlign: 'right' }}>Balance</th>
+                                    <th style={{ textAlign: 'center' }}>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {site.entries.filter(e => 
+                                    e.vendor_name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) || 
+                                    (e.wo_no || '').toLowerCase().includes(debouncedSearchQuery.toLowerCase())
+                                ).map(entry => {
+                                    const allAdvs = parseAdvances(entry.advance_details);
+                                    const totalAdv = allAdvs.reduce((a, b) => a + (parseFloat(b.amount) || 0), 0);
+                                    const balance = (parseFloat(entry.bill_certified_value) || 0) - (parseFloat(entry.housekeeping) || 0) - (parseFloat(entry.retention) || 0) - totalAdv;
+                                    return (
+                                        <tr key={entry.id || Math.random()}>
+                                            <td style={{ fontWeight: 600 }}>{entry.vendor_name}</td>
+                                            <td>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <span style={{ fontWeight: 600 }}>{entry.wo_no || 'N/A'}</span>
+                                                    <StatusBadge status={entry.bill_status} url={entry.wo_status_url} extraStyles={{ fontSize: '0.65rem' }} />
                                                 </div>
-                                                <span style={{ fontWeight: 600 }}>{formatCurrency(a.amount)}</span>
+                                            </td>
+                                            <td>{formatDate(entry.wo_date)}</td>
+                                            <td style={{ textAlign: 'right' }}>{formatCurrency(entry.wo_value)}</td>
+                                            <td style={{ textAlign: 'right', color: '#4f46e5', fontWeight: 500 }}>{formatCurrency(totalAdv)}</td>
+                                            <td style={{ textAlign: 'right', fontWeight: 700, color: balance > 0 ? '#b91c1c' : '#059669' }}>{formatCurrency(balance)}</td>
+                                            <td style={{ textAlign: 'center' }}>
+                                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                                                    <SafePdfBtn url={entry.wo_pdf_url} />
+                                                    <button 
+                                                        onClick={() => setPaymentHistoryPopup(entry)}
+                                                        style={{ background: '#f1f5f9', color: '#4f46e5', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600 }}
+                                                    >
+                                                        History
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                ) : (
+                    <div className={styles.gridContainer}>
+                        {site.entries.filter(e => 
+                            e.vendor_name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) || 
+                            (e.wo_no || '').toLowerCase().includes(debouncedSearchQuery.toLowerCase())
+                        ).map(entry => {
+                            const allAdvs = parseAdvances(entry.advance_details);
+                            const totalAdv = allAdvs.reduce((a, b) => a + (parseFloat(b.amount) || 0), 0);
+                            return (
+                                <div key={entry.id || Math.random()} className={styles.infoCard} style={{ cursor: 'default' }}>
+                                    <div className={styles.cardHeader}>
+                                        <span>{entry.vendor_name}</span>
+                                        <SafePdfBtn url={entry.wo_pdf_url} />
+                                    </div>
+                                    <div className={styles.cardBody}>
+                                        <div className={styles.listItem}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                                                <span className={styles.listItemSub}>Work Order No</span>
+                                                <StatusBadge status={entry.bill_status} url={entry.wo_status_url} extraStyles={{ fontSize: '0.7rem', padding: '2px 6px' }} />
+
+
                                             </div>
-                                        )) : <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic' }}>No payments</div>}
+                                            <span className={styles.listItemTitle}>{entry.wo_no || 'N/A'}</span>
+                                        </div>
+                                        <div className={styles.listItem}>
+                                            <span className={styles.listItemSub}>Work Order Date</span>
+                                            <span style={{ fontWeight: 600, color: '#475569' }}>{formatDate(entry.wo_date)}</span>
+                                        </div>
+                                        <div className={styles.listItem}>
+                                            <span className={styles.listItemSub}>WO Value</span>
+                                            <span className={styles.currency}>{formatCurrency(entry.wo_value)}</span>
+                                        </div>
+                                        <div className={styles.listItem}>
+                                            <span className={styles.listItemSub}>Total Paid</span>
+                                            <span className={styles.currency} style={{ color: '#4f46e5' }}>{formatCurrency(totalAdv)}</span>
+                                        </div>
+                                        <div className={styles.listItem}
+                                            style={{ background: '#fef2f2', padding: '4px 8px', borderRadius: '4px', marginTop: '4px', cursor: 'pointer' }}
+                                            onClick={(e) => { e.stopPropagation(); setBalancePopup(entry); }}
+                                        >
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                                                <span className={styles.listItemSub} style={{ fontWeight: 600, color: '#b91c1c', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                    Balance to Pay <div style={{ fontSize: '0.7em', border: '1px solid #b91c1c', borderRadius: '50%', width: '14px', height: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>i</div>
+                                                </span>
+                                                <span className={styles.currency} style={{ fontWeight: 700, color: '#b91c1c' }}>
+                                                    {formatCurrency((parseFloat(entry.bill_certified_value) || 0) - (parseFloat(entry.housekeeping) || 0) - (parseFloat(entry.retention) || 0) - totalAdv)}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div style={{ marginTop: '1rem', borderTop: '1px solid #e2e8f0', paddingTop: '0.5rem' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                                <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Payment History</div>
+                                                <button 
+                                                    onClick={(e) => { e.stopPropagation(); setPaymentHistoryPopup(entry); }}
+                                                    style={{ fontSize: '0.7rem', color: '#4f46e5', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, textDecoration: 'underline' }}
+                                                >
+                                                    View Table
+                                                </button>
+                                            </div>
+                                            {allAdvs.length > 0 ? allAdvs.map((a, i) => (
+                                                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '4px', padding: '4px', background: '#f8fafc', borderRadius: '4px' }}>
+                                                    <div>
+                                                        <span style={{ display: 'block', fontWeight: 500 }}>{a.date || 'N/A'}</span>
+                                                        <span style={{ fontSize: '0.7rem', color: '#64748b' }}>{a.payment_mode || 'M1'}</span>
+                                                    </div>
+                                                    <span style={{ fontWeight: 600 }}>{formatCurrency(a.amount)}</span>
+                                                </div>
+                                            )) : <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic' }}>No payments</div>}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        );
-                    })}
-                </div>
+                            );
+                        })}
+                    </div>
+                )}
             </div>
         );
     };
@@ -885,79 +1023,133 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                         <ArrowLeft size={16} /> Back to Vendors
                     </Button>
                 </div>
-                <div className={styles.gridContainer}>
-                    {vendor.entries.filter(e => 
-                        e.site_name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) || 
-                        (e.wo_no || '').toLowerCase().includes(debouncedSearchQuery.toLowerCase())
-                    ).map(entry => {
-                        const allAdvs = parseAdvances(entry.advance_details);
-                        const totalAdv = allAdvs.reduce((a, b) => a + (parseFloat(b.amount) || 0), 0);
-                        return (
-                            <div key={entry.id || Math.random()} className={styles.infoCard} style={{ cursor: 'default' }}>
-                                <div className={styles.cardHeader}>
-                                    <span>{entry.site_name}</span>
-                                    <SafePdfBtn url={entry.wo_pdf_url} />
-                                </div>
-                                <div className={styles.cardBody}>
-                                    <div className={styles.listItem}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                                            <span className={styles.listItemSub}>Work Order No</span>
-                                            <StatusBadge status={entry.bill_status} url={entry.wo_status_url} extraStyles={{ fontSize: '0.7rem', padding: '2px 6px' }} />
-
-
-                                        </div>
-                                        <span className={styles.listItemTitle}>{entry.wo_no || 'N/A'}</span>
-                                    </div>
-                                    <div className={styles.listItem}>
-                                        <span className={styles.listItemSub}>Work Order Date</span>
-                                        <span style={{ fontWeight: 600, color: '#475569' }}>{formatDate(entry.wo_date)}</span>
-                                    </div>
-                                    <div className={styles.listItem}>
-                                        <span className={styles.listItemSub}>WO Value</span>
-                                        <span className={styles.currency}>{formatCurrency(entry.wo_value)}</span>
-                                    </div>
-                                    <div className={styles.listItem}>
-                                        <span className={styles.listItemSub}>Total Paid</span>
-                                        <span className={styles.currency} style={{ color: '#4f46e5' }}>{formatCurrency(totalAdv)}</span>
-                                    </div>
-                                    <div className={styles.listItem}
-                                        style={{ background: '#fef2f2', padding: '4px 8px', borderRadius: '4px', marginTop: '4px', cursor: 'pointer' }}
-                                        onClick={(e) => { e.stopPropagation(); setBalancePopup(entry); }}
-                                    >
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                                            <span className={styles.listItemSub} style={{ fontWeight: 600, color: '#b91c1c', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                Balance to Pay <div style={{ fontSize: '0.7em', border: '1px solid #b91c1c', borderRadius: '50%', width: '14px', height: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>i</div>
-                                            </span>
-                                            <span className={styles.currency} style={{ fontWeight: 700, color: '#b91c1c' }}>
-                                                {formatCurrency((parseFloat(entry.bill_certified_value) || 0) - (parseFloat(entry.housekeeping) || 0) - (parseFloat(entry.retention) || 0) - totalAdv)}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div style={{ marginTop: '1rem', borderTop: '1px solid #e2e8f0', paddingTop: '0.5rem' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                                            <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Payment History</div>
-                                            <button 
-                                                onClick={(e) => { e.stopPropagation(); setPaymentHistoryPopup(entry); }}
-                                                style={{ fontSize: '0.7rem', color: '#4f46e5', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, textDecoration: 'underline' }}
-                                            >
-                                                View Table
-                                            </button>
-                                        </div>
-                                        {allAdvs.length > 0 ? allAdvs.map((a, i) => (
-                                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '4px', padding: '4px', background: '#f8fafc', borderRadius: '4px' }}>
-                                                <div>
-                                                    <span style={{ display: 'block', fontWeight: 500 }}>{a.date || 'N/A'}</span>
-                                                    <span style={{ fontSize: '0.7rem', color: '#64748b' }}>{a.payment_mode || 'M1'}</span>
+                {viewMode === 'list' ? (
+                    <div className={styles.tableContainer} style={{ background: 'white', borderRadius: '12px', padding: '1rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+                        <table className={styles.adminTable}>
+                            <thead>
+                                <tr>
+                                    <th style={{ textAlign: 'left' }}>Site Name</th>
+                                    <th style={{ textAlign: 'left' }}>WO No / Status</th>
+                                    <th style={{ textAlign: 'left' }}>WO Date</th>
+                                    <th style={{ textAlign: 'right' }}>WO Value</th>
+                                    <th style={{ textAlign: 'right' }}>Total Paid</th>
+                                    <th style={{ textAlign: 'right' }}>Balance</th>
+                                    <th style={{ textAlign: 'center' }}>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {vendor.entries.filter(e => 
+                                    e.site_name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) || 
+                                    (e.wo_no || '').toLowerCase().includes(debouncedSearchQuery.toLowerCase())
+                                ).map(entry => {
+                                    const allAdvs = parseAdvances(entry.advance_details);
+                                    const totalAdv = allAdvs.reduce((a, b) => a + (parseFloat(b.amount) || 0), 0);
+                                    const balance = (parseFloat(entry.bill_certified_value) || 0) - (parseFloat(entry.housekeeping) || 0) - (parseFloat(entry.retention) || 0) - totalAdv;
+                                    return (
+                                        <tr key={entry.id || Math.random()}>
+                                            <td style={{ fontWeight: 600 }}>{entry.site_name}</td>
+                                            <td>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <span style={{ fontWeight: 600 }}>{entry.wo_no || 'N/A'}</span>
+                                                    <StatusBadge status={entry.bill_status} url={entry.wo_status_url} extraStyles={{ fontSize: '0.65rem' }} />
                                                 </div>
-                                                <span style={{ fontWeight: 600 }}>{formatCurrency(a.amount)}</span>
+                                            </td>
+                                            <td>{formatDate(entry.wo_date)}</td>
+                                            <td style={{ textAlign: 'right' }}>{formatCurrency(entry.wo_value)}</td>
+                                            <td style={{ textAlign: 'right', color: '#4f46e5', fontWeight: 500 }}>{formatCurrency(totalAdv)}</td>
+                                            <td style={{ textAlign: 'right', fontWeight: 700, color: balance > 0 ? '#b91c1c' : '#059669' }}>{formatCurrency(balance)}</td>
+                                            <td style={{ textAlign: 'center' }}>
+                                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                                                    <SafePdfBtn url={entry.wo_pdf_url} />
+                                                    <button 
+                                                        onClick={() => setPaymentHistoryPopup(entry)}
+                                                        style={{ background: '#f1f5f9', color: '#4f46e5', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600 }}
+                                                    >
+                                                        History
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                ) : (
+                    <div className={styles.gridContainer}>
+                        {vendor.entries.filter(e => 
+                            e.site_name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) || 
+                            (e.wo_no || '').toLowerCase().includes(debouncedSearchQuery.toLowerCase())
+                        ).map(entry => {
+                            const allAdvs = parseAdvances(entry.advance_details);
+                            const totalAdv = allAdvs.reduce((a, b) => a + (parseFloat(b.amount) || 0), 0);
+                            return (
+                                <div key={entry.id || Math.random()} className={styles.infoCard} style={{ cursor: 'default' }}>
+                                    <div className={styles.cardHeader}>
+                                        <span>{entry.site_name}</span>
+                                        <SafePdfBtn url={entry.wo_pdf_url} />
+                                    </div>
+                                    <div className={styles.cardBody}>
+                                        <div className={styles.listItem}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                                                <span className={styles.listItemSub}>Work Order No</span>
+                                                <StatusBadge status={entry.bill_status} url={entry.wo_status_url} extraStyles={{ fontSize: '0.7rem', padding: '2px 6px' }} />
+
+
                                             </div>
-                                        )) : <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic' }}>No payments</div>}
+                                            <span className={styles.listItemTitle}>{entry.wo_no || 'N/A'}</span>
+                                        </div>
+                                        <div className={styles.listItem}>
+                                            <span className={styles.listItemSub}>Work Order Date</span>
+                                            <span style={{ fontWeight: 600, color: '#475569' }}>{formatDate(entry.wo_date)}</span>
+                                        </div>
+                                        <div className={styles.listItem}>
+                                            <span className={styles.listItemSub}>WO Value</span>
+                                            <span className={styles.currency}>{formatCurrency(entry.wo_value)}</span>
+                                        </div>
+                                        <div className={styles.listItem}>
+                                            <span className={styles.listItemSub}>Total Paid</span>
+                                            <span className={styles.currency} style={{ color: '#4f46e5' }}>{formatCurrency(totalAdv)}</span>
+                                        </div>
+                                        <div className={styles.listItem}
+                                            style={{ background: '#fef2f2', padding: '4px 8px', borderRadius: '4px', marginTop: '4px', cursor: 'pointer' }}
+                                            onClick={(e) => { e.stopPropagation(); setBalancePopup(entry); }}
+                                        >
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                                                <span className={styles.listItemSub} style={{ fontWeight: 600, color: '#b91c1c', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                    Balance to Pay <div style={{ fontSize: '0.7em', border: '1px solid #b91c1c', borderRadius: '50%', width: '14px', height: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>i</div>
+                                                </span>
+                                                <span className={styles.currency} style={{ fontWeight: 700, color: '#b91c1c' }}>
+                                                    {formatCurrency((parseFloat(entry.bill_certified_value) || 0) - (parseFloat(entry.housekeeping) || 0) - (parseFloat(entry.retention) || 0) - totalAdv)}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div style={{ marginTop: '1rem', borderTop: '1px solid #e2e8f0', paddingTop: '0.5rem' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                                <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Payment History</div>
+                                                <button 
+                                                    onClick={(e) => { e.stopPropagation(); setPaymentHistoryPopup(entry); }}
+                                                    style={{ fontSize: '0.7rem', color: '#4f46e5', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, textDecoration: 'underline' }}
+                                                >
+                                                    View Table
+                                                </button>
+                                            </div>
+                                            {allAdvs.length > 0 ? allAdvs.map((a, i) => (
+                                                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '4px', padding: '4px', background: '#f8fafc', borderRadius: '4px' }}>
+                                                    <div>
+                                                        <span style={{ display: 'block', fontWeight: 500 }}>{a.date || 'N/A'}</span>
+                                                        <span style={{ fontSize: '0.7rem', color: '#64748b' }}>{a.payment_mode || 'M1'}</span>
+                                                    </div>
+                                                    <span style={{ fontWeight: 600 }}>{formatCurrency(a.amount)}</span>
+                                                </div>
+                                            )) : <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic' }}>No payments</div>}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        );
-                    })}
-                </div>
+                            );
+                        })}
+                    </div>
+                )}
             </div>
         );
     };
@@ -3130,6 +3322,47 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
+                        </div>
+                    )}
+
+                    {(['sites', 'vendors', 'site_detail', 'vendor_detail'].includes(currentView)) && (
+                        <div style={{ display: 'flex', gap: '5px', background: '#f1f5f9', padding: '4px', borderRadius: '8px', border: '1px solid #e2e8f0', marginLeft: 'auto', marginRight: '1rem' }}>
+                            <button 
+                                onClick={() => setViewMode('list')}
+                                title="Row View"
+                                style={{ 
+                                    padding: '6px', 
+                                    borderRadius: '6px', 
+                                    border: 'none', 
+                                    background: viewMode === 'list' ? 'white' : 'transparent',
+                                    color: viewMode === 'list' ? '#4f46e5' : '#64748b',
+                                    boxShadow: viewMode === 'list' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                }}
+                            >
+                                <List size={18} />
+                            </button>
+                            <button 
+                                onClick={() => setViewMode('grid')}
+                                title="Box View"
+                                style={{ 
+                                    padding: '6px', 
+                                    borderRadius: '6px', 
+                                    border: 'none', 
+                                    background: viewMode === 'grid' ? 'white' : 'transparent',
+                                    color: viewMode === 'grid' ? '#4f46e5' : '#64748b',
+                                    boxShadow: viewMode === 'grid' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                }}
+                            >
+                                <Grid size={18} />
+                            </button>
                         </div>
                     )}
 
