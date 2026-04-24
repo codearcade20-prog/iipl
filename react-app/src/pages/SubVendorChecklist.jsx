@@ -56,8 +56,8 @@ const initialFormState = {
     // Payment Terms
     payment_terms: {
         "advance_pct": "",
-        "ra_bill_upto": "85%",
-        "final_bill_approval": "MD",
+        "ra_bill_upto": "",
+        "final_bill_approval": "",
         "work_done_other_vendor": "",
         "housekeeping_deduction": "YES/NO",
         "retention_5": "YES/NO",
@@ -360,6 +360,12 @@ const SubVendorChecklist = () => {
             </header>
 
             <form onSubmit={handleSubmit} className={styles.checklist}>
+                {/* Print Only Header */}
+                <div className={styles.printHeader}>
+                    <h1 className={styles.printTitle}>SUB VENDOR CHECKLIST</h1>
+                    <p className={styles.printSubtitle}>Comprehensive project & vendor agreement record</p>
+                </div>
+
                 {/* 1. PROJECT DETAILS */}
                 <div className={styles.section}>
                     <div className={styles.sectionHeader}>1. PROJECT DETAILS</div>
