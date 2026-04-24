@@ -86,6 +86,8 @@ const AdminDashboard = () => {
     const [siteForm, setSiteForm] = useState({ name: '', location: '', client: '' });
     const [siteSearch, setSiteSearch] = useState('');
     const [viewItem, setViewItem] = useState(null);
+    const [balancePopup, setBalancePopup] = useState(null);
+    const [fetchingBalance, setFetchingBalance] = useState(false);
     // --- SETTINGS STATE ---
     const [gmSignature, setGmSignature] = useState('');
     const [mdSignature, setMdSignature] = useState('');
@@ -847,6 +849,101 @@ const AdminDashboard = () => {
         }
     };
 
+    // --- BALANCE ACTIONS ---
+    const handleViewBalance = async (item) => {
+        setFetchingBalance(true);
+        try {
+            // Find the work order matching this history item
+            const { data, error } = await supabase
+                .from('work_orders')
+                .select('*')
+                .eq('wo_no', item.wo_no || item.invoice_no)
+                .maybeSingle();
+
+            if (error) throw error;
+            if (data) {
+                setBalancePopup(data);
+            } else {
+                await alert("Detailed balance breakdown is only available for records linked to a valid Work Order. Could not find a match for: " + (item.wo_no || item.invoice_no));
+            }
+        } catch (e) {
+            console.error(e);
+            await alert("Error fetching balance details: " + e.message);
+        } finally {
+            setFetchingBalance(false);
+        }
+    };
+
+    const renderBalancePopup = () => {
+        if (!balancePopup) return null;
+        const entry = balancePopup;
+        
+        // Basic calculation logic similar to VendorDashboard
+        const parseAdvances = (adv) => {
+            if (!adv) return [];
+            if (typeof adv === 'string') {
+                try { return JSON.parse(adv); } catch (e) { return []; }
+            }
+            return adv;
+        };
+
+        const advs = parseAdvances(entry.advance_details || []);
+        const totalAdv = advs.reduce((a, b) => a + (parseFloat(b.amount) || 0), 0);
+        const billCertified = parseFloat(entry.bill_certified_value) || 0;
+        const woValue = parseFloat(entry.wo_value) || 0;
+        const housekeeping = parseFloat(entry.housekeeping) || 0;
+        const retention = parseFloat(entry.retention) || 0;
+        const baseValue = billCertified;
+        const balance = baseValue - housekeeping - retention - totalAdv;
+
+        return (
+            <div className={styles.modalOverlay} onClick={() => setBalancePopup(null)} style={{ alignItems: 'center', justifyContent: 'center', display: 'flex' }}>
+                <div className={styles.modalContent} onClick={e => e.stopPropagation()} style={{ maxWidth: '450px', width: '90%' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem' }}>
+                        <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1e293b' }}>Balance Breakdown</h3>
+                        <button onClick={() => setBalancePopup(null)} style={{ background: '#f1f5f9', border: 'none', cursor: 'pointer', padding: '6px', borderRadius: '50%', color: '#64748b' }}>×</button>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        <div style={{ padding: '12px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                            <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '4px' }}>Work Order / Project</div>
+                            <div style={{ fontWeight: 700, color: '#1e293b' }}>{entry.wo_no}</div>
+                            <div style={{ fontSize: '0.85rem', color: '#475569' }}>{entry.site_name}</div>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.95rem' }}>
+                                <span style={{ color: '#64748b' }}>Bill Certified Value:</span>
+                                <span style={{ fontWeight: 600 }}>₹{billCertified.toLocaleString('en-IN')}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.95rem' }}>
+                                <span style={{ color: '#64748b' }}>(-) Housekeeping (1%):</span>
+                                <span style={{ fontWeight: 600, color: '#ef4444' }}>₹{housekeeping.toLocaleString('en-IN')}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.95rem' }}>
+                                <span style={{ color: '#64748b' }}>(-) Retention (5%):</span>
+                                <span style={{ fontWeight: 600, color: '#ef4444' }}>₹{retention.toLocaleString('en-IN')}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.95rem' }}>
+                                <span style={{ color: '#64748b' }}>(-) Total Paid (Advs):</span>
+                                <span style={{ fontWeight: 600, color: '#ef4444' }}>₹{totalAdv.toLocaleString('en-IN')}</span>
+                            </div>
+
+                            <div style={{ marginTop: '0.5rem', paddingTop: '1rem', borderTop: '2px dashed #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontWeight: 700, color: '#1e293b', fontSize: '1.05rem' }}>Final Balance:</span>
+                                <span style={{ fontWeight: 800, color: '#4f46e5', fontSize: '1.25rem' }}>₹{balance.toLocaleString('en-IN')}</span>
+                            </div>
+                        </div>
+
+                        <div style={{ marginTop: '1rem', padding: '10px', background: '#eff6ff', borderRadius: '8px', fontSize: '0.8rem', color: '#1d4ed8', fontStyle: 'italic', textAlign: 'center' }}>
+                            This breakdown is calculated based on the Work Order certified value minus standard deductions and all recorded payments.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
     // --- SETTINGS ACTIONS ---
     const fetchSettings = async () => {
         setSaving(true);
@@ -1366,7 +1463,16 @@ const AdminDashboard = () => {
                                                 ₹{(item.status === 'Paid' ? item.amount : (item.paid_amount || 0)).toLocaleString('en-IN')}
                                             </td>
                                             <td style={{ textAlign: 'right', color: (item.remaining_amount > 0 ? 'red' : 'inherit'), fontWeight: 600 }}>
-                                                ₹{(item.remaining_amount ?? (item.status === 'Paid' ? 0 : item.amount))?.toLocaleString('en-IN')}
+                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                                                    <span 
+                                                        onClick={() => handleViewBalance(item)}
+                                                        style={{ cursor: 'pointer', textDecoration: item.remaining_amount > 0 ? 'underline dotted' : 'none' }}
+                                                        title="Click to view balance breakdown"
+                                                    >
+                                                        ₹{(item.remaining_amount ?? (item.status === 'Paid' ? 0 : item.amount))?.toLocaleString('en-IN')}
+                                                    </span>
+                                                    {fetchingBalance && <span style={{ fontSize: '0.6rem', color: '#64748b' }}>loading...</span>}
+                                                </div>
                                             </td>
 
                                             <td>
@@ -2628,6 +2734,7 @@ const AdminDashboard = () => {
                     onClose={() => setPrintVendor(null)}
                 />
             )}
+            {renderBalancePopup()}
         </div >
     );
 };
