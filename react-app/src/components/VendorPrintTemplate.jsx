@@ -47,12 +47,16 @@ const VendorPrintTemplate = ({ vendor, onClose }) => {
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '30px' }}>
                         <div>
-                            <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '0 0 5px 0', textTransform: 'uppercase', fontWeight: 600 }}>Vendor Name</p>
+                            <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '0 0 5px 0', textTransform: 'uppercase', fontWeight: 600 }}>WO Vendor name</p>
                             <p style={{ margin: 0, fontSize: '1.05rem', fontWeight: 500 }}>{vendor.vendor_name || '-'}</p>
                         </div>
                         <div>
                             <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '0 0 5px 0', textTransform: 'uppercase', fontWeight: 600 }}>Vendor Company</p>
                             <p style={{ margin: 0, fontSize: '1.05rem', fontWeight: 500 }}>{vendor.vendor_company || '-'}</p>
+                        </div>
+                        <div>
+                            <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '0 0 5px 0', textTransform: 'uppercase', fontWeight: 600 }}>Nature of work</p>
+                            <p style={{ margin: 0, fontSize: '1.05rem', fontWeight: 500 }}>{vendor.nature_of_work || '-'}</p>
                         </div>
                         <div>
                             <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '0 0 5px 0', textTransform: 'uppercase', fontWeight: 600 }}>Phone Number</p>

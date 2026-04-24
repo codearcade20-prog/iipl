@@ -7,6 +7,7 @@ import { LoadingOverlay } from '../components/ui';
 import { Building2, Users, Search, ArrowLeft, Plus, Pencil, Trash2, Home, X, Printer, Share2, LayoutDashboard, ChevronRight } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import styles from './MasterRegister.module.css';
+import VendorPrintTemplate from '../components/VendorPrintTemplate';
 
 const MasterRegister = () => {
     const { user } = useAuth();
@@ -14,6 +15,7 @@ const MasterRegister = () => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [currentView, setCurrentView] = useState('sites'); // 'sites' or 'vendors'
+    const [printVendor, setPrintVendor] = useState(null);
 
     // Sites Data
     const [sites, setSites] = useState([]);
@@ -29,7 +31,7 @@ const MasterRegister = () => {
     const [editingVendorId, setEditingVendorId] = useState(null);
     const [vendorForm, setVendorForm] = useState({
         name: '', holderName: '', pan: '', phone: '', address: '', acc: '', bank: '', ifsc: '', vendorType: 'both',
-        vendorCompany: '', aadhaar: '', gst: '', bankBranch: ''
+        vendorCompany: '', aadhaar: '', gst: '', bankBranch: '', natureOfWork: ''
     });
 
     useEffect(() => {
@@ -118,13 +120,14 @@ const MasterRegister = () => {
                 vendorCompany: v.vendor_company || '',
                 aadhaar: v.aadhaar_no || '',
                 gst: v.gst_no || '',
-                bankBranch: v.bank_branch || ''
+                bankBranch: v.bank_branch || '',
+                natureOfWork: v.nature_of_work || ''
             });
         } else {
             setEditingVendorId(null);
             setVendorForm({
                 name: '', holderName: '', pan: '', phone: '', address: '', acc: '', bank: '', ifsc: '', vendorType: 'both',
-                vendorCompany: '', aadhaar: '', gst: '', bankBranch: ''
+                vendorCompany: '', aadhaar: '', gst: '', bankBranch: '', natureOfWork: ''
             });
         }
         setVendorModalOpen(true);
@@ -142,7 +145,8 @@ const MasterRegister = () => {
                 vendor_company: vendorForm.vendorCompany,
                 aadhaar_no: vendorForm.aadhaar,
                 gst_no: vendorForm.gst,
-                bank_branch: vendorForm.bankBranch
+                bank_branch: vendorForm.bankBranch,
+                nature_of_work: vendorForm.natureOfWork
             };
             let error;
             if (editingVendorId) {
@@ -311,6 +315,14 @@ const MasterRegister = () => {
                                                             >
                                                                 Edit
                                                             </button>
+                                                            <button 
+                                                                onClick={() => setPrintVendor(v)}
+                                                                className={styles.editBtn}
+                                                                title="Share Details"
+                                                                style={{ padding: '6px 10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                                            >
+                                                                <Share2 size={16} />
+                                                            </button>
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -370,12 +382,16 @@ const MasterRegister = () => {
                         <div className={styles.modalBody}>
                             <div className={styles.formGrid}>
                                 <div className={styles.formGroup}>
-                                    <label>Vendor Name</label>
+                                    <label>WO Vendor name</label>
                                     <input type="text" placeholder="Full name..." value={vendorForm.name} onChange={e => setVendorForm({ ...vendorForm, name: e.target.value })} />
                                 </div>
                                 <div className={styles.formGroup}>
                                     <label>Vendor Company Name</label>
                                     <input type="text" placeholder="Company name..." value={vendorForm.vendorCompany} onChange={e => setVendorForm({ ...vendorForm, vendorCompany: e.target.value })} />
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label>Nature of work</label>
+                                    <input type="text" placeholder="e.g. Electrical, Plumbing..." value={vendorForm.natureOfWork} onChange={e => setVendorForm({ ...vendorForm, natureOfWork: e.target.value })} />
                                 </div>
                                 <div className={styles.formGroup}>
                                     <label>Vendor Type</label>
@@ -441,6 +457,13 @@ const MasterRegister = () => {
             )}
 
             {loading && <LoadingOverlay message="Processing master data..." />}
+            {/* Vendor Print Template */}
+            {printVendor && (
+                <VendorPrintTemplate 
+                    vendor={printVendor} 
+                    onClose={() => setPrintVendor(null)} 
+                />
+            )}
         </div>
     );
 };

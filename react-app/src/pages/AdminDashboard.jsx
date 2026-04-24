@@ -35,7 +35,7 @@ const AdminDashboard = () => {
     const [editingVendorId, setEditingVendorId] = useState(null);
     const [vendorForm, setVendorForm] = useState({
         name: '', holderName: '', pan: '', phone: '', address: '', acc: '', bank: '', ifsc: '', vendorType: 'both',
-        vendorCompany: '', aadhaar: '', gst: '', bankBranch: ''
+        vendorCompany: '', aadhaar: '', gst: '', bankBranch: '', natureOfWork: ''
     });
 
     // --- HISTORY STATE ---
@@ -201,19 +201,20 @@ const AdminDashboard = () => {
         if (v) {
             setEditingVendorId(v.id);
             setVendorForm({
-                name: v.vendor_name, holderName: v.account_holder, pan: v.pan_no, phone: v.phone,
-                address: v.address, acc: v.account_number, bank: v.bank_name, ifsc: v.ifsc_code,
-                vendorType: v.vendor_type || 'both',
+                name: v.vendor_name || '', holderName: v.account_holder || '', pan: v.pan_no || '', 
+                phone: v.phone || '', address: v.address || '', acc: v.account_number || '', 
+                bank: v.bank_name || '', ifsc: v.ifsc_code || '', vendorType: v.vendor_type || 'both',
                 vendorCompany: v.vendor_company || '',
                 aadhaar: v.aadhaar_no || '',
                 gst: v.gst_no || '',
-                bankBranch: v.bank_branch || ''
+                bankBranch: v.bank_branch || '',
+                natureOfWork: v.nature_of_work || ''
             });
         } else {
             setEditingVendorId(null);
             setVendorForm({
                 name: '', holderName: '', pan: '', phone: '', address: '', acc: '', bank: '', ifsc: '', vendorType: 'both',
-                vendorCompany: '', aadhaar: '', gst: '', bankBranch: ''
+                vendorCompany: '', aadhaar: '', gst: '', bankBranch: '', natureOfWork: ''
             });
         }
         setVendorModalOpen(true);
@@ -221,14 +222,15 @@ const AdminDashboard = () => {
 
     const saveVendor = async () => {
         const payload = {
-            vendor_name: vendorForm.name, account_holder: vendorForm.holderName, pan_no: vendorForm.pan,
+            vendor_name: vendorForm.name.trim(), account_holder: vendorForm.holderName, pan_no: vendorForm.pan,
             phone: vendorForm.phone, address: vendorForm.address, account_number: vendorForm.acc,
             bank_name: vendorForm.bank, ifsc_code: vendorForm.ifsc.toUpperCase(),
             vendor_type: vendorForm.vendorType,
             vendor_company: vendorForm.vendorCompany,
             aadhaar_no: vendorForm.aadhaar,
             gst_no: vendorForm.gst,
-            bank_branch: vendorForm.bankBranch
+            bank_branch: vendorForm.bankBranch,
+            nature_of_work: vendorForm.natureOfWork
         };
         setSaving(true);
         try {
@@ -2173,8 +2175,9 @@ const AdminDashboard = () => {
                         <div className={styles.modalContent}>
                             <h3 className={styles.modalTitle}>{editingVendorId ? 'Edit Vendor' : 'Add Vendor'}</h3>
                             <div className="flex flex-col gap-3">
-                                <Input label="Vendor Name" value={vendorForm.name} onChange={e => setVendorForm({ ...vendorForm, name: e.target.value })} />
+                                <Input label="WO Vendor name" value={vendorForm.name} onChange={e => setVendorForm({ ...vendorForm, name: e.target.value })} />
                                 <Input label="Vendor Company Name" value={vendorForm.vendorCompany} onChange={e => setVendorForm({ ...vendorForm, vendorCompany: e.target.value })} />
+                                <Input label="Nature of work" placeholder="e.g. Electrical, Plumbing..." value={vendorForm.natureOfWork} onChange={e => setVendorForm({ ...vendorForm, natureOfWork: e.target.value })} />
                                 <Input label="Account Holder Name" value={vendorForm.holderName} onChange={e => setVendorForm({ ...vendorForm, holderName: e.target.value })} />
                                 <div style={{ marginBottom: '12px' }}>
                                     <label style={{ display: 'block', marginBottom: '6px', fontWeight: 500, fontSize: '0.9rem' }}>Vendor Type</label>
@@ -2484,7 +2487,8 @@ const AdminDashboard = () => {
                                                         { id: 'overview', label: 'Project Overview' },
                                                         { id: 'workorders', label: 'Work Orders' },
                                                         { id: 'sub_vendor_checklist', label: 'Sub Vendor Checklist' },
-                                                        { id: 'design_team_workflow', label: 'Design Team Workflow' }
+                                                        { id: 'design_team_workflow', label: 'Design Team Workflow' },
+                                                        { id: 'register', label: 'Master Register' }
                                                     ]
                                                 },
                                                 {
