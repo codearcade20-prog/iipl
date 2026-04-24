@@ -268,15 +268,9 @@ const MasterRegister = () => {
                                                         <div className={styles.actions}>
                                                             <button 
                                                                 onClick={() => openSiteModal(s)}
-                                                                style={{ background: '#f1f5f9', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', color: '#475569', fontWeight: 600 }}
+                                                                className={styles.editBtn}
                                                             >
                                                                 Edit
-                                                            </button>
-                                                            <button 
-                                                                onClick={() => deleteSite(s.id)}
-                                                                style={{ background: '#fee2e2', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', color: '#dc2626', fontWeight: 600 }}
-                                                            >
-                                                                Del
                                                             </button>
                                                         </div>
                                                     </td>
@@ -313,15 +307,9 @@ const MasterRegister = () => {
                                                         <div className={styles.actions}>
                                                             <button 
                                                                 onClick={() => openVendorModal(v)}
-                                                                style={{ background: '#f1f5f9', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', color: '#475569', fontWeight: 600 }}
+                                                                className={styles.editBtn}
                                                             >
                                                                 Edit
-                                                            </button>
-                                                            <button 
-                                                                onClick={() => deleteVendor(v.id)}
-                                                                style={{ background: '#fee2e2', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', color: '#dc2626', fontWeight: 600 }}
-                                                            >
-                                                                Del
                                                             </button>
                                                         </div>
                                                     </td>
