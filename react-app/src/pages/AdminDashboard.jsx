@@ -789,18 +789,17 @@ const AdminDashboard = () => {
         finally { setLoadingSessions(false); }
     };
 
-    const revokeSession = async (id, currentState) => {
-        const action = currentState ? 'Reactivate' : 'Logout/Revoke';
-        if (await confirm(`${action} this device/session?`)) {
+    const logoutDevice = async (id) => {
+        if (await confirm('Are you sure you want to log out this user/device?')) {
             setSaving(true);
             try {
                 const { error } = await supabase
                     .from('user_sessions')
-                    .update({ is_revoked: !currentState })
+                    .delete()
                     .eq('id', id);
                 if (error) throw error;
-                setSessions(sessions.map(s => s.id === id ? { ...s, is_revoked: !currentState } : s));
-                toast(`Session ${currentState ? 'reactivated' : 'revoked'} successfully!`);
+                setSessions(sessions.filter(s => s.id !== id));
+                toast('User logged out successfully.');
             } catch (e) { await alert(e.message); }
             finally { setSaving(false); }
         }
@@ -1918,7 +1917,7 @@ const AdminDashboard = () => {
                                 </thead>
                                 <tbody>
                                     {paginatedSessions.map(session => (
-                                        <tr key={session.id} style={{ opacity: session.is_revoked ? 0.6 : 1 }}>
+                                        <tr key={session.id}>
                                             <td style={{ fontWeight: 600 }}>{session.username}</td>
                                             <td style={{ fontSize: '0.8rem', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={session.device_info}>
                                                 {session.device_info}
@@ -1926,18 +1925,18 @@ const AdminDashboard = () => {
                                             <td>{formatDate(session.last_active_at)} {new Date(session.last_active_at).toLocaleTimeString()}</td>
                                             <td>{formatDate(session.login_at)}</td>
                                             <td>
-                                                <span className={`${styles.badge} ${session.is_revoked ? styles.badgeRejected : styles.badgeApproved}`}>
-                                                    {session.is_revoked ? 'REVOKED' : 'ACTIVE'}
+                                                <span className={`${styles.badge} ${styles.badgeApproved}`}>
+                                                    ACTIVE
                                                 </span>
                                             </td>
                                             <td style={{ textAlign: 'center' }}>
                                                 <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                                                     <Button
-                                                        variant={session.is_revoked ? "secondary" : "danger"}
+                                                        variant="danger"
                                                         size="small"
-                                                        onClick={() => revokeSession(session.id, session.is_revoked)}
+                                                        onClick={() => logoutDevice(session.id)}
                                                     >
-                                                        {session.is_revoked ? 'Unblock' : 'Logout Device'}
+                                                        Logout Device
                                                     </Button>
                                                     <button onClick={() => deleteSession(session.id)} className={styles.actionBtn} title="Delete Record">🗑️</button>
                                                 </div>

@@ -39,6 +39,13 @@ const LoginPage = () => {
                 throw new Error('Your account is pending administrator approval.');
             }
 
+            // Clean up any existing sessions for this user to keep only the latest login
+            try {
+                await supabase.from('user_sessions').delete().eq('user_id', data.id);
+            } catch (cleanupErr) {
+                console.warn('Failed to cleanup old sessions:', cleanupErr);
+            }
+
             // Record Session
             const { data: sessionData, error: sessionError } = await supabase
                 .from('user_sessions')

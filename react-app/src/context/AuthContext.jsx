@@ -21,7 +21,15 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const logout = () => {
+    const logout = async () => {
+        // Remove from database first
+        if (sessionId) {
+            try {
+                await supabase.from('user_sessions').delete().eq('id', sessionId);
+            } catch (e) {
+                console.error('Failed to delete session on logout:', e);
+            }
+        }
         setUser(null);
         setSessionId(null);
         localStorage.removeItem('app_user');
@@ -125,9 +133,22 @@ export const AuthProvider = ({ children }) => {
                     .eq('id', sessionId)
                     .maybeSingle();
 
-                if (error || !data || data.is_revoked) {
+                if (data && data.is_revoked) {
                     logout();
                     window.location.href = '/';
+                    return;
+                }
+
+                // If session is missing (deleted by another login or admin), logout
+                if (!data && !error) {
+                    logout();
+                    window.location.href = '/';
+                    return;
+                }
+
+                // If there's an error (network), don't logout immediately, just skip one heartbeat
+                if (error) {
+                    console.warn('Heartbeat check skipped due to error:', error);
                     return;
                 }
 
