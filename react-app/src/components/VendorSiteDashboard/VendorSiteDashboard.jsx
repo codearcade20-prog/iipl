@@ -3090,11 +3090,11 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                             <thead>
                                 <tr>
                                     <th>Date</th>
-                                    <th style={{ textAlign: 'right' }}>M1 (Acc)</th>
-                                    <th style={{ textAlign: 'right' }}>M2 (Cash)</th>
-                                    <th style={{ textAlign: 'right' }}>M3 (Mat)</th>
-                                    <th style={{ textAlign: 'right' }}>M4 (Wag)</th>
-                                    <th style={{ textAlign: 'right' }}>M5 (Rent)</th>
+                                    <th style={{ textAlign: 'right' }}>M1</th>
+                                    <th style={{ textAlign: 'right' }}>M2</th>
+                                    <th style={{ textAlign: 'right' }}>M3</th>
+                                    <th style={{ textAlign: 'right' }}>M4</th>
+                                    <th style={{ textAlign: 'right' }}>M5</th>
                                     <th style={{ textAlign: 'right' }}>Total</th>
                                 </tr>
                             </thead>
