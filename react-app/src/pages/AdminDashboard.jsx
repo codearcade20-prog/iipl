@@ -513,8 +513,8 @@ const AdminDashboard = () => {
         // Password Check
         const pwd = await prompt("Enter Admin Password to Clear All History:");
         if (pwd === null) return;
-        if (pwd !== 'sakthi207') {
-            await alert("Incorrect Password!");
+        if (pwd !== adminUser?.password) {
+            await alert("Incorrect Admin Password!");
             return;
         }
 
@@ -571,8 +571,8 @@ const AdminDashboard = () => {
         // Password Check
         const pwd = await prompt("Enter Admin Password to Clear Paid History:");
         if (pwd === null) return;
-        if (pwd !== 'sakthi207') {
-            await alert("Incorrect Password!");
+        if (pwd !== adminUser?.password) {
+            await alert("Incorrect Admin Password!");
             return;
         }
 
