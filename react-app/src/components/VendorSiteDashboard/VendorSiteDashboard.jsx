@@ -3081,6 +3081,8 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
             case 'site_detail': return renderSiteDetail();
             case 'vendor_detail': return renderVendorDetail();
             case 'add_entry': return renderAddEntry();
+            case 'add_site': return renderSiteEntry();
+            case 'add_vendor': return renderVendorEntry();
             case 'admin_panel': return renderAdminPanel();
             case 'statements': return renderStatements();
             case 'wo_search': return renderWOSearch();
@@ -3389,6 +3391,156 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
     const params = new URLSearchParams(location.search);
     const isDirectPrint = params.get('direct') === 'true';
 
+    const renderSiteEntry = () => {
+        return (
+            <div className={styles.card} style={{ maxWidth: '600px', margin: '0 auto', padding: '2.5rem', background: 'white', borderRadius: '20px', boxShadow: '0 15px 35px -5px rgba(0,0,0,0.08)' }}>
+                <div style={{ marginBottom: '2rem' }}>
+                    <h2 className={styles.cardTitle} style={{ fontSize: '1.75rem', fontWeight: 700, color: '#1e293b', marginBottom: '0.5rem' }}>
+                        {editingSiteId ? 'Update Site' : 'New Site Entry'}
+                    </h2>
+                    <p style={{ color: '#64748b' }}>Register a new project site to the system.</p>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155' }}>Site Name</label>
+                        <input
+                            type="text"
+                            value={siteForm.name}
+                            onChange={(e) => setSiteForm({ ...siteForm, name: e.target.value })}
+                            style={{ width: '100%', padding: '0.875rem', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '1rem' }}
+                            placeholder="e.g. AKKARAI RESIDENCE"
+                        />
+                    </div>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155' }}>Location</label>
+                        <input
+                            type="text"
+                            value={siteForm.location}
+                            onChange={(e) => setSiteForm({ ...siteForm, location: e.target.value })}
+                            style={{ width: '100%', padding: '0.875rem', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '1rem' }}
+                            placeholder="e.g. CHENNAI"
+                        />
+                    </div>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155' }}>Client Name</label>
+                        <input
+                            type="text"
+                            value={siteForm.client}
+                            onChange={(e) => setSiteForm({ ...siteForm, client: e.target.value })}
+                            style={{ width: '100%', padding: '0.875rem', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '1rem' }}
+                            placeholder="Enter client name..."
+                        />
+                    </div>
+
+                    <div style={{ marginTop: '1rem', display: 'flex', gap: '1rem' }}>
+                        <Button variant="secondary" style={{ flex: 1, padding: '0.875rem' }} onClick={() => handleSwitchView('sites')}>View List</Button>
+                        <Button style={{ flex: 2, padding: '0.875rem' }} onClick={saveSite}>
+                            {editingSiteId ? 'Update Record' : 'Save Site Details'}
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    const renderVendorEntry = () => {
+        return (
+            <div className={styles.card} style={{ maxWidth: '800px', margin: '0 auto', padding: '2.5rem', background: 'white', borderRadius: '20px', boxShadow: '0 15px 35px -5px rgba(0,0,0,0.08)' }}>
+                <div style={{ marginBottom: '2rem' }}>
+                    <h2 className={styles.cardTitle} style={{ fontSize: '1.75rem', fontWeight: 700, color: '#1e293b', marginBottom: '0.5rem' }}>
+                        {editingVendorId ? 'Update Vendor' : 'New Vendor Entry'}
+                    </h2>
+                    <p style={{ color: '#64748b' }}>Enter vendor credentials and banking details for payment processing.</p>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155' }}>Vendor Name</label>
+                        <input
+                            type="text"
+                            value={vendorForm.name}
+                            onChange={(e) => setVendorForm({ ...vendorForm, name: e.target.value })}
+                            style={{ width: '100%', padding: '0.875rem', borderRadius: '10px', border: '1px solid #e2e8f0' }}
+                            placeholder="Full name..."
+                        />
+                    </div>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155' }}>Vendor Type</label>
+                        <select
+                            value={vendorForm.vendorType}
+                            onChange={(e) => setVendorForm({ ...vendorForm, vendorType: e.target.value })}
+                            style={{ width: '100%', padding: '0.875rem', borderRadius: '10px', border: '1px solid #e2e8f0', background: 'white' }}
+                        >
+                            <option value="both">Both (Payment & Invoice)</option>
+                            <option value="payment">Payment Request Only</option>
+                            <option value="invoice">Invoice Only</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155' }}>Account Holder Name</label>
+                        <input
+                            type="text"
+                            value={vendorForm.holderName}
+                            onChange={(e) => setVendorForm({ ...vendorForm, holderName: e.target.value })}
+                            style={{ width: '100%', padding: '0.875rem', borderRadius: '10px', border: '1px solid #e2e8f0' }}
+                        />
+                    </div>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155' }}>Bank Name</label>
+                        <input
+                            type="text"
+                            value={vendorForm.bank}
+                            onChange={(e) => setVendorForm({ ...vendorForm, bank: e.target.value })}
+                            style={{ width: '100%', padding: '0.875rem', borderRadius: '10px', border: '1px solid #e2e8f0' }}
+                        />
+                    </div>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155' }}>Account Number</label>
+                        <input
+                            type="text"
+                            value={vendorForm.acc}
+                            onChange={(e) => setVendorForm({ ...vendorForm, acc: e.target.value })}
+                            style={{ width: '100%', padding: '0.875rem', borderRadius: '10px', border: '1px solid #e2e8f0' }}
+                        />
+                    </div>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155' }}>IFSC Code</label>
+                        <input
+                            type="text"
+                            value={vendorForm.ifsc}
+                            onChange={(e) => setVendorForm({ ...vendorForm, ifsc: e.target.value })}
+                            style={{ width: '100%', padding: '0.875rem', borderRadius: '10px', border: '1px solid #e2e8f0' }}
+                        />
+                    </div>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155' }}>PAN Number</label>
+                        <input
+                            type="text"
+                            value={vendorForm.pan}
+                            onChange={(e) => setVendorForm({ ...vendorForm, pan: e.target.value })}
+                            style={{ width: '100%', padding: '0.875rem', borderRadius: '10px', border: '1px solid #e2e8f0' }}
+                        />
+                    </div>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155' }}>GST Number</label>
+                        <input
+                            type="text"
+                            value={vendorForm.gst}
+                            onChange={(e) => setVendorForm({ ...vendorForm, gst: e.target.value })}
+                            style={{ width: '100%', padding: '0.875rem', borderRadius: '10px', border: '1px solid #e2e8f0' }}
+                        />
+                    </div>
+                </div>
+
+                <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                    <Button variant="secondary" onClick={() => handleSwitchView('vendors')}>View Vendors List</Button>
+                    <Button onClick={saveVendor}>{editingVendorId ? 'Update Vendor' : 'Save Vendor Details'}</Button>
+                </div>
+            </div>
+        );
+    };
+
     const renderSiteModal = () => {
         if (!siteModalOpen) return null;
         return (
@@ -3602,6 +3754,22 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                     >
                         <Users size={18} /> Vendors List
                     </button>
+                    {!readOnly && (
+                        <>
+                            <button
+                                className={`${styles.navItem} ${currentView === 'add_site' ? styles.navItemActive : ''}`}
+                                onClick={() => { setEditingSiteId(null); setSiteForm({ name: '', location: '', client: '' }); handleSwitchView('add_site'); }}
+                            >
+                                <Plus size={18} /> Site Entry
+                            </button>
+                            <button
+                                className={`${styles.navItem} ${currentView === 'add_vendor' ? styles.navItemActive : ''}`}
+                                onClick={() => { setEditingVendorId(null); setVendorForm({ name: '', holderName: '', pan: '', phone: '', address: '', acc: '', bank: '', ifsc: '', vendorType: 'both', vendorCompany: '', aadhaar: '', gst: '', bankBranch: '' }); handleSwitchView('add_vendor'); }}
+                            >
+                                <Plus size={18} /> Vendor Entry
+                            </button>
+                        </>
+                    )}
                     <button
                         className={`${styles.navItem} ${currentView === 'wo_search' ? styles.navItemActive : ''}`}
                         onClick={() => handleSwitchView('wo_search')}
