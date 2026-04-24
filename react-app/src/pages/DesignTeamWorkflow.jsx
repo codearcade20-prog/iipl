@@ -363,365 +363,367 @@ const DesignTeamWorkflow = () => {
                 </div>
                 {selectedProject && projectStartDate && (
                     <div className={styles.timerWidget}>
-                        <span className={styles.timerLabel}><Clock size={14} style={{verticalAlign: 'middle', marginRight: 4}}/> Time Elapsed</span>
+                        <span className={styles.timerLabel}><Clock size={12} style={{marginRight: 4}}/> Time Elapsed</span>
                         <div className={`${styles.timerValue} ${getTimerColorClass()}`}>
-                            {elapsedDays} <span style={{fontSize: '1rem', fontWeight: 'normal'}}>Days</span>
+                            {elapsedDays} <span style={{fontSize: '0.9rem', fontWeight: 'bold', color: '#94a3b8'}}>Days</span>
                         </div>
                         {elapsedDays > 11 && (
-                            <div style={{color:'#f87171', fontSize:'0.8rem', marginTop:'0.25rem', fontWeight:'bold'}}>
-                                <AlertTriangle size={12} /> Overdue Focus Required
+                            <div style={{color:'#ef4444', fontSize:'0.7rem', marginTop:'0.25rem', fontWeight:'800', textTransform: 'uppercase', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px'}}>
+                                <AlertTriangle size={12} /> Overdue
                             </div>
                         )}
                     </div>
                 )}
             </header>
 
-            <div className={styles.card}>
-                <div className={`${styles.viewToggleContainer} printHide`}>
-                    <button 
-                        className={`${styles.viewToggleBtn} ${viewMode === 'single' ? styles.viewToggleBtnActive : ''}`}
-                        onClick={() => setViewMode('single')}
-                    >
-                        <CheckSquare size={16} /> Detailed View
-                    </button>
-                    <button 
-                        className={`${styles.viewToggleBtn} ${viewMode === 'master' ? styles.viewToggleBtnActive : ''}`}
-                        onClick={() => {
-                            setViewMode('master');
-                            fetchMasterData(projects);
-                        }}
-                    >
-                        <TableProperties size={16} /> Master View
-                    </button>
-                </div>
-
-                {viewMode === 'single' && (
-                  <>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
-                        <select 
-                            className={styles.projectSelect} 
-                            value={selectedProject} 
-                            onChange={e => setSelectedProject(e.target.value)}
-                            style={{ marginBottom: 0 }}
+            <main className={styles.content}>
+                <div className={styles.card}>
+                    <div className={`${styles.viewToggleContainer} printHide`}>
+                        <button 
+                            className={`${styles.viewToggleBtn} ${viewMode === 'single' ? styles.viewToggleBtnActive : ''}`}
+                            onClick={() => setViewMode('single')}
                         >
-                        <option value="">-- Select Project --</option>
-                        {projects.map(p => (
-                            <option key={p.id} value={p.id}>{p.name}</option>
-                        ))}
-                    </select>
-
-                    {selectedProject && (
-                        <div className={styles.overallProgressWidget}>
-                            <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Overall Progress</span>
-                            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#3b82f6' }}>{calculateOverallProgress()}%</div>
-                        </div>
-                    )}
-                </div>
-
-                {selectedProject && (
-                    <div className={styles.workflowContainer}>
-                        {/* Phase 1 */}
-                        <div className={styles.stepContainer}>
-                            <div className={styles.stepHeader}>
-                                <h3 className={styles.stepTitle}>Step 1: Concept & Initial Development</h3>
-                                <div className={styles.stepProgressContainer}>
-                                    <div className={styles.stepProgressBarContainer}>
-                                        <div className={styles.stepProgressBar} style={{ width: `${calculateStepScore(workflow.step_1_concept).percentage}%` }} />
-                                    </div>
-                                    <span className={styles.stepProgress}>{calculateStepScore(workflow.step_1_concept).percentage}% ({calculateStepScore(workflow.step_1_concept).completed}/{calculateStepScore(workflow.step_1_concept).total})</span>
-                                </div>
-                            </div>
-                            <div className={styles.taskList}>
-                                {[
-                                    { key: 'delegation', label: 'Delegation of tasks' },
-                                    { key: 'line_drawing', label: 'Line drawing preparation' },
-                                    { key: 'architect_meeting', label: 'Architect & client meeting' },
-                                    { key: 'site_visit', label: 'Site visit' },
-                                    { key: 'site_marking', label: 'Site marking' },
-                                    { key: 'sample_mockup', label: 'Sample & mockup preparation' },
-                                    { key: 'mood_board', label: 'Mood board preparation' }
-                                ].map(task => (
-                                    <div key={task.key} className={styles.taskItem}>
-                                        <span className={styles.taskLabel}>{task.label}</span>
-                                        <select
-                                            className={`${styles.statusSelect} ${styles[`status_${workflow.step_1_concept[task.key]}`]}`}
-                                            value={workflow.step_1_concept[task.key]}
-                                            onChange={(e) => handleStatusChange('step_1_concept', task.key, e.target.value)}
-                                        >
-                                            <option value="pending">Pending</option>
-                                            <option value="process">In Process</option>
-                                            <option value="completed">Completed</option>
-                                        </select>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Phase 2 */}
-                        <div className={styles.stepContainer}>
-                            <div className={styles.stepHeader}>
-                                <h3 className={styles.stepTitle}>Step 2: Design Development</h3>
-                                <div className={styles.stepProgressContainer}>
-                                    <div className={styles.stepProgressBarContainer}>
-                                        <div className={styles.stepProgressBar} style={{ width: `${calculateStepScore(workflow.step_2_development).percentage}%` }} />
-                                    </div>
-                                    <span className={styles.stepProgress}>{calculateStepScore(workflow.step_2_development).percentage}% ({calculateStepScore(workflow.step_2_development).completed}/{calculateStepScore(workflow.step_2_development).total})</span>
-                                </div>
-                            </div>
-                            <div className={styles.taskList}>
-                                {[
-                                    { key: 'shop_drawing', label: 'Shop drawing creation' },
-                                    { key: 'planning', label: 'Planning' },
-                                    { key: 'revisions', label: 'Revisions based on feedback' },
-                                    { key: 'final_approval', label: 'Final drawing approval' }
-                                ].map(task => (
-                                    <div key={task.key} className={styles.taskItem}>
-                                        <span className={styles.taskLabel}>{task.label}</span>
-                                        <select
-                                            className={`${styles.statusSelect} ${styles[`status_${workflow.step_2_development[task.key]}`]}`}
-                                            value={workflow.step_2_development[task.key]}
-                                            onChange={(e) => handleStatusChange('step_2_development', task.key, e.target.value)}
-                                        >
-                                            <option value="pending">Pending</option>
-                                            <option value="process">In Process</option>
-                                            <option value="completed">Completed</option>
-                                        </select>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Phase 3 */}
-                        <div className={styles.stepContainer}>
-                            <div className={styles.stepHeader}>
-                                <h3 className={styles.stepTitle}>Step 3: Material Request Process</h3>
-                                <div className={styles.stepProgressContainer}>
-                                    <div className={styles.stepProgressBarContainer}>
-                                        <div className={styles.stepProgressBar} style={{ width: `${calculateStepScore(workflow.step_3_material).percentage}%` }} />
-                                    </div>
-                                    <span className={styles.stepProgress}>{calculateStepScore(workflow.step_3_material).percentage}% ({calculateStepScore(workflow.step_3_material).completed}/{calculateStepScore(workflow.step_3_material).total})</span>
-                                </div>
-                            </div>
-                            <div className={styles.taskList}>
-                                {[
-                                    { key: 'mrf_long_lead', label: 'MRF for long lead items' },
-                                    { key: 'mrf_regular', label: 'MRF for regular items' }
-                                ].map(task => (
-                                    <div key={task.key} className={styles.taskItem}>
-                                        <span className={styles.taskLabel}>{task.label}</span>
-                                        <select
-                                            className={`${styles.statusSelect} ${styles[`status_${workflow.step_3_material[task.key]}`]}`}
-                                            value={workflow.step_3_material[task.key]}
-                                            onChange={(e) => handleStatusChange('step_3_material', task.key, e.target.value)}
-                                        >
-                                            <option value="pending">Pending</option>
-                                            <option value="process">In Process</option>
-                                            <option value="completed">Completed</option>
-                                        </select>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Phase 4 */}
-                        <div className={styles.stepContainer}>
-                            <div className={styles.stepHeader}>
-                                <h3 className={styles.stepTitle}>Step 4: Production Preparation</h3>
-                                <div className={styles.stepProgressContainer}>
-                                    <div className={styles.stepProgressBarContainer}>
-                                        <div className={styles.stepProgressBar} style={{ width: `${calculateStepScore(workflow.step_4_production).percentage}%` }} />
-                                    </div>
-                                    <span className={styles.stepProgress}>{calculateStepScore(workflow.step_4_production).percentage}% ({calculateStepScore(workflow.step_4_production).completed}/{calculateStepScore(workflow.step_4_production).total})</span>
-                                </div>
-                            </div>
-                            <div className={styles.taskList}>
-                                {[
-                                    { key: 'cutting_list', label: 'Cutting list preparation' },
-                                    { key: 'factory_visit', label: 'Factory visit' },
-                                    { key: 'review_validation', label: 'Review and validation' }
-                                ].map(task => (
-                                    <div key={task.key} className={styles.taskItem}>
-                                        <span className={styles.taskLabel}>{task.label}</span>
-                                        <select
-                                            className={`${styles.statusSelect} ${styles[`status_${workflow.step_4_production[task.key]}`]}`}
-                                            value={workflow.step_4_production[task.key]}
-                                            onChange={(e) => handleStatusChange('step_4_production', task.key, e.target.value)}
-                                        >
-                                            <option value="pending">Pending</option>
-                                            <option value="process">In Process</option>
-                                            <option value="completed">Completed</option>
-                                        </select>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Phase 5 */}
-                        <div className={styles.stepContainer}>
-                            <div className={styles.stepHeader}>
-                                <h3 className={styles.stepTitle}>Step 5: Pre-Installation Coordination</h3>
-                                <div className={styles.stepProgressContainer}>
-                                    <div className={styles.stepProgressBarContainer}>
-                                        <div className={styles.stepProgressBar} style={{ width: `${calculateStepScore(workflow.step_5_installation).percentage}%` }} />
-                                    </div>
-                                    <span className={styles.stepProgress}>{calculateStepScore(workflow.step_5_installation).percentage}% ({calculateStepScore(workflow.step_5_installation).completed}/{calculateStepScore(workflow.step_5_installation).total})</span>
-                                </div>
-                            </div>
-                            <div className={styles.taskList}>
-                                {[
-                                    { key: 'knowledge_transfer', label: 'Knowledge transfer about installation' },
-                                    { key: 'site_visit', label: 'Site visit for execution readiness' }
-                                ].map(task => (
-                                    <div key={task.key} className={styles.taskItem}>
-                                        <span className={styles.taskLabel}>{task.label}</span>
-                                        <select
-                                            className={`${styles.statusSelect} ${styles[`status_${workflow.step_5_installation[task.key]}`]}`}
-                                            value={workflow.step_5_installation[task.key]}
-                                            onChange={(e) => handleStatusChange('step_5_installation', task.key, e.target.value)}
-                                        >
-                                            <option value="pending">Pending</option>
-                                            <option value="process">In Process</option>
-                                            <option value="completed">Completed</option>
-                                        </select>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        <button className={styles.saveBtn} onClick={handleSave} disabled={loading}>
-                            <Save size={20} />
-                            {loading ? 'Saving...' : 'Save Progress'}
+                            <CheckSquare size={16} /> Detailed View
+                        </button>
+                        <button 
+                            className={`${styles.viewToggleBtn} ${viewMode === 'master' ? styles.viewToggleBtnActive : ''}`}
+                            onClick={() => {
+                                setViewMode('master');
+                                fetchMasterData(projects);
+                            }}
+                        >
+                            <TableProperties size={16} /> Master View
                         </button>
                     </div>
-                )}
-                  </>
-                )}
 
-                {viewMode === 'master' && (
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }} className="printHide">
-                        <div className={styles.searchBar}>
-                            <Search size={18} color="#94a3b8" />
-                            <input
-                                type="text"
-                                placeholder="Search by project name..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                            />
-                        </div>
-                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    {viewMode === 'single' && (
+                      <>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem', flexWrap: 'wrap', gap: '1.5rem' }}>
                             <select 
-                                value={masterViewMode} 
-                                onChange={(e) => setMasterViewMode(e.target.value)}
-                                style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                                className={styles.projectSelect} 
+                                value={selectedProject} 
+                                onChange={e => setSelectedProject(e.target.value)}
                             >
-                                <option value="summary">Summary View</option>
-                                <option value="full">Full Fields View</option>
+                                <option value="">-- Select Project --</option>
+                                {projects.map(p => (
+                                    <option key={p.id} value={p.id}>{p.name}</option>
+                                ))}
                             </select>
-                            <button 
-                                className={`${styles.viewToggleBtn} ${styles.printBtn}`} 
-                                onClick={handleExportPDF}
-                            >
-                                <Download size={16} /> Export PDF
-                            </button>
-                        </div>
-                    </div>
 
-                    <div className={styles.tableWrapper}>
-                        <table className={styles.table}>
-                            <thead>
-                                <tr>
-                                    <th>Project Name</th>
-                                    <th>Start Date</th>
-                                    <th>Days</th>
-                                    {masterViewMode === 'summary' ? (
-                                        <>
-                                            <th>Phase 1</th>
-                                            <th>Phase 2</th>
-                                            <th>Phase 3</th>
-                                            <th>Phase 4</th>
-                                            <th>Phase 5</th>
-                                            <th>Overall</th>
-                                        </>
-                                    ) : (
-                                        FULL_FIELDS.map((f, i) => <th key={i} style={{ fontSize: '0.75rem', whiteSpace: 'nowrap' }}>{f.label}</th>)
-                                    )}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {allWorkflows
-                                    .filter(w => w.project_name.toLowerCase().includes(searchQuery.toLowerCase()))
-                                    .map(w => (
-                                    <tr key={w.project_id}>
-                                        <td style={{ fontWeight: 600 }}>{w.project_name}</td>
-                                        <td>{w.start_date || 'N/A'}</td>
-                                        <td>
-                                            <span style={{ 
-                                                color: w.elapsedDays > 11 ? '#dc2626' : (w.elapsedDays > 7 ? '#d97706' : '#16a34a'),
-                                                fontWeight: 'bold'
-                                            }}>
-                                                {w.elapsedDays}d
-                                            </span>
-                                        </td>
+                            {selectedProject && (
+                                <div className={styles.overallProgressWidget}>
+                                    <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Overall Progress</span>
+                                    <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#4f46e5', fontFamily: 'Outfit, sans-serif' }}>{calculateOverallProgress()}%</div>
+                                </div>
+                            )}
+                        </div>
+
+                        {selectedProject && (
+                            <div className={styles.workflowContainer}>
+                                {/* Phase 1 */}
+                                <div className={styles.stepContainer}>
+                                    <div className={styles.stepHeader}>
+                                        <h3 className={styles.stepTitle}>Phase 1: Concept & Initial Development</h3>
+                                        <div className={styles.stepProgressContainer}>
+                                            <div className={styles.stepProgressBarContainer}>
+                                                <div className={styles.stepProgressBar} style={{ width: `${calculateStepScore(workflow.step_1_concept).percentage}%` }} />
+                                            </div>
+                                            <span className={styles.stepProgress}>{calculateStepScore(workflow.step_1_concept).percentage}%</span>
+                                        </div>
+                                    </div>
+                                    <div className={styles.taskList}>
+                                        {[
+                                            { key: 'delegation', label: '1.1 Delegation of tasks' },
+                                            { key: 'line_drawing', label: '1.2 Line drawing preparation' },
+                                            { key: 'architect_meeting', label: '1.3 Architect & client meeting' },
+                                            { key: 'site_visit', label: '1.4 P1 Site visit' },
+                                            { key: 'site_marking', label: '1.5 Site marking' },
+                                            { key: 'sample_mockup', label: '1.6 Sample & mockup prep' },
+                                            { key: 'mood_board', label: '1.7 Mood board preparation' }
+                                        ].map(task => (
+                                            <div key={task.key} className={styles.taskItem}>
+                                                <span className={styles.taskLabel}>{task.label}</span>
+                                                <select
+                                                    className={`${styles.statusSelect} ${styles[`status_${workflow.step_1_concept[task.key]}`]}`}
+                                                    value={workflow.step_1_concept[task.key]}
+                                                    onChange={(e) => handleStatusChange('step_1_concept', task.key, e.target.value)}
+                                                >
+                                                    <option value="pending">Pending</option>
+                                                    <option value="process">In Process</option>
+                                                    <option value="completed">Completed</option>
+                                                </select>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Phase 2 */}
+                                <div className={styles.stepContainer}>
+                                    <div className={styles.stepHeader}>
+                                        <h3 className={styles.stepTitle}>Phase 2: Design Development</h3>
+                                        <div className={styles.stepProgressContainer}>
+                                            <div className={styles.stepProgressBarContainer}>
+                                                <div className={styles.stepProgressBar} style={{ width: `${calculateStepScore(workflow.step_2_development).percentage}%` }} />
+                                            </div>
+                                            <span className={styles.stepProgress}>{calculateStepScore(workflow.step_2_development).percentage}%</span>
+                                        </div>
+                                    </div>
+                                    <div className={styles.taskList}>
+                                        {[
+                                            { key: 'shop_drawing', label: '2.1 Shop drawing creation' },
+                                            { key: 'planning', label: '2.2 Planning' },
+                                            { key: 'revisions', label: '2.3 Revisions based on feedback' },
+                                            { key: 'final_approval', label: '2.4 Final drawing approval' }
+                                        ].map(task => (
+                                            <div key={task.key} className={styles.taskItem}>
+                                                <span className={styles.taskLabel}>{task.label}</span>
+                                                <select
+                                                    className={`${styles.statusSelect} ${styles[`status_${workflow.step_2_development[task.key]}`]}`}
+                                                    value={workflow.step_2_development[task.key]}
+                                                    onChange={(e) => handleStatusChange('step_2_development', task.key, e.target.value)}
+                                                >
+                                                    <option value="pending">Pending</option>
+                                                    <option value="process">In Process</option>
+                                                    <option value="completed">Completed</option>
+                                                </select>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Phase 3 */}
+                                <div className={styles.stepContainer}>
+                                    <div className={styles.stepHeader}>
+                                        <h3 className={styles.stepTitle}>Phase 3: Material Request Process</h3>
+                                        <div className={styles.stepProgressContainer}>
+                                            <div className={styles.stepProgressBarContainer}>
+                                                <div className={styles.stepProgressBar} style={{ width: `${calculateStepScore(workflow.step_3_material).percentage}%` }} />
+                                            </div>
+                                            <span className={styles.stepProgress}>{calculateStepScore(workflow.step_3_material).percentage}%</span>
+                                        </div>
+                                    </div>
+                                    <div className={styles.taskList}>
+                                        {[
+                                            { key: 'mrf_long_lead', label: '3.1 MRF for long lead items' },
+                                            { key: 'mrf_regular', label: '3.2 MRF for regular items' }
+                                        ].map(task => (
+                                            <div key={task.key} className={styles.taskItem}>
+                                                <span className={styles.taskLabel}>{task.label}</span>
+                                                <select
+                                                    className={`${styles.statusSelect} ${styles[`status_${workflow.step_3_material[task.key]}`]}`}
+                                                    value={workflow.step_3_material[task.key]}
+                                                    onChange={(e) => handleStatusChange('step_3_material', task.key, e.target.value)}
+                                                >
+                                                    <option value="pending">Pending</option>
+                                                    <option value="process">In Process</option>
+                                                    <option value="completed">Completed</option>
+                                                </select>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Phase 4 */}
+                                <div className={styles.stepContainer}>
+                                    <div className={styles.stepHeader}>
+                                        <h3 className={styles.stepTitle}>Phase 4: Production Preparation</h3>
+                                        <div className={styles.stepProgressContainer}>
+                                            <div className={styles.stepProgressBarContainer}>
+                                                <div className={styles.stepProgressBar} style={{ width: `${calculateStepScore(workflow.step_4_production).percentage}%` }} />
+                                            </div>
+                                            <span className={styles.stepProgress}>{calculateStepScore(workflow.step_4_production).percentage}%</span>
+                                        </div>
+                                    </div>
+                                    <div className={styles.taskList}>
+                                        {[
+                                            { key: 'cutting_list', label: '4.1 Cutting list preparation' },
+                                            { key: 'factory_visit', label: '4.2 Factory visit' },
+                                            { key: 'review_validation', label: '4.3 Review and validation' }
+                                        ].map(task => (
+                                            <div key={task.key} className={styles.taskItem}>
+                                                <span className={styles.taskLabel}>{task.label}</span>
+                                                <select
+                                                    className={`${styles.statusSelect} ${styles[`status_${workflow.step_4_production[task.key]}`]}`}
+                                                    value={workflow.step_4_production[task.key]}
+                                                    onChange={(e) => handleStatusChange('step_4_production', task.key, e.target.value)}
+                                                >
+                                                    <option value="pending">Pending</option>
+                                                    <option value="process">In Process</option>
+                                                    <option value="completed">Completed</option>
+                                                </select>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Phase 5 */}
+                                <div className={styles.stepContainer}>
+                                    <div className={styles.stepHeader}>
+                                        <h3 className={styles.stepTitle}>Phase 5: Pre-Installation Coordination</h3>
+                                        <div className={styles.stepProgressContainer}>
+                                            <div className={styles.stepProgressBarContainer}>
+                                                <div className={styles.stepProgressBar} style={{ width: `${calculateStepScore(workflow.step_5_installation).percentage}%` }} />
+                                            </div>
+                                            <span className={styles.stepProgress}>{calculateStepScore(workflow.step_5_installation).percentage}%</span>
+                                        </div>
+                                    </div>
+                                    <div className={styles.taskList}>
+                                        {[
+                                            { key: 'knowledge_transfer', label: '5.1 Knowledge transfer' },
+                                            { key: 'site_visit', label: '5.2 P5 Site visit' }
+                                        ].map(task => (
+                                            <div key={task.key} className={styles.taskItem}>
+                                                <span className={styles.taskLabel}>{task.label}</span>
+                                                <select
+                                                    className={`${styles.statusSelect} ${styles[`status_${workflow.step_5_installation[task.key]}`]}`}
+                                                    value={workflow.step_5_installation[task.key]}
+                                                    onChange={(e) => handleStatusChange('step_5_installation', task.key, e.target.value)}
+                                                >
+                                                    <option value="pending">Pending</option>
+                                                    <option value="process">In Process</option>
+                                                    <option value="completed">Completed</option>
+                                                </select>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <button className={styles.saveBtn} onClick={handleSave} disabled={loading}>
+                                    <Save size={20} />
+                                    {loading ? 'Saving...' : 'Save Progress'}
+                                </button>
+                            </div>
+                        )}
+                      </>
+                    )}
+
+                    {viewMode === 'master' && (
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }} className="printHide">
+                            <div className={styles.searchBar}>
+                                <Search size={20} color="#64748b" />
+                                <input
+                                    type="text"
+                                    placeholder="Search by project name..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                />
+                            </div>
+                            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                                <select 
+                                    value={masterViewMode} 
+                                    onChange={(e) => setMasterViewMode(e.target.value)}
+                                    style={{ padding: '0.6rem 1rem', borderRadius: '0.75rem', border: '1.5px solid #e2e8f0', fontSize: '0.875rem', fontWeight: 600, color: '#475569', background: '#f8fafc' }}
+                                >
+                                    <option value="summary">Summary View</option>
+                                    <option value="full">Full Fields View</option>
+                                </select>
+                                <button 
+                                    className={`${styles.viewToggleBtn} ${styles.printBtn}`} 
+                                    onClick={handleExportPDF}
+                                >
+                                    <Download size={16} /> Export PDF
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className={styles.tableWrapper}>
+                            <table className={styles.table}>
+                                <thead>
+                                    <tr>
+                                        <th>Project Name</th>
+                                        <th>Start Date</th>
+                                        <th>Days</th>
                                         {masterViewMode === 'summary' ? (
                                             <>
-                                                <td>{w.p1}%</td>
-                                                <td>{w.p2}%</td>
-                                                <td>{w.p3}%</td>
-                                                <td>{w.p4}%</td>
-                                                <td>{w.p5}%</td>
-                                                <td>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                        <div style={{ flex: 1, backgroundColor: '#e2e8f0', height: '6px', borderRadius: '4px' }}>
-                                                            <div style={{ width: `${w.overallProgress}%`, backgroundColor: '#3b82f6', height: '100%', borderRadius: '4px' }}></div>
-                                                        </div>
-                                                        <span style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>{w.overallProgress}%</span>
-                                                    </div>
-                                                </td>
+                                                <th>Phase 1</th>
+                                                <th>Phase 2</th>
+                                                <th>Phase 3</th>
+                                                <th>Phase 4</th>
+                                                <th>Phase 5</th>
+                                                <th>Overall</th>
                                             </>
                                         ) : (
-                                            FULL_FIELDS.map((f, i) => {
-                                                const status = w[f.group] ? w[f.group][f.key] : 'pending';
-                                                let bgColor = '#f1f5f9';
-                                                let color = '#64748b';
-                                                let text = '0%';
-                                                
-                                                if (status === 'completed' || status === true) {
-                                                    bgColor = '#dcfce7'; color = '#16a34a'; text = '100%';
-                                                } else if (status === 'process') {
-                                                    bgColor = '#fef3c7'; color = '#d97706'; text = '50%';
-                                                }
-                                                
-                                                return (
-                                                    <td key={i}>
-                                                        <span style={{
-                                                            backgroundColor: bgColor,
-                                                            color: color,
-                                                            padding: '2px 6px',
-                                                            borderRadius: '4px',
-                                                            fontSize: '0.7rem',
-                                                            fontWeight: '500',
-                                                            whiteSpace: 'nowrap'
-                                                        }}>
-                                                            {text}
-                                                        </span>
-                                                    </td>
-                                                );
-                                            })
+                                            FULL_FIELDS.map((f, i) => <th key={i} style={{ fontSize: '0.7rem', whiteSpace: 'nowrap' }}>{f.label}</th>)
                                         )}
                                     </tr>
-                                ))}
-                                {allWorkflows.length === 0 && (
-                                    <tr>
-                                        <td colSpan={masterViewMode === 'summary' ? 9 : 3 + FULL_FIELDS.length} style={{ textAlign: 'center', padding: '2rem' }}>No progression data found</td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                  </div>
-                )}
-            </div>
+                                </thead>
+                                <tbody>
+                                    {allWorkflows
+                                        .filter(w => w.project_name.toLowerCase().includes(searchQuery.toLowerCase()))
+                                        .map(w => (
+                                        <tr key={w.project_id}>
+                                            <td style={{ fontWeight: 700, color: '#0f172a' }}>{w.project_name}</td>
+                                            <td style={{ color: '#64748b', fontWeight: 500 }}>{w.start_date || 'N/A'}</td>
+                                            <td>
+                                                <span style={{ 
+                                                    color: w.elapsedDays > 11 ? '#ef4444' : (w.elapsedDays > 7 ? '#f59e0b' : '#10b981'),
+                                                    fontWeight: '800',
+                                                    fontFamily: 'Outfit, sans-serif'
+                                                }}>
+                                                    {w.elapsedDays}d
+                                                </span>
+                                            </td>
+                                            {masterViewMode === 'summary' ? (
+                                                <>
+                                                    <td style={{ fontWeight: 700, color: '#475569' }}>{w.p1}%</td>
+                                                    <td style={{ fontWeight: 700, color: '#475569' }}>{w.p2}%</td>
+                                                    <td style={{ fontWeight: 700, color: '#475569' }}>{w.p3}%</td>
+                                                    <td style={{ fontWeight: 700, color: '#475569' }}>{w.p4}%</td>
+                                                    <td style={{ fontWeight: 700, color: '#475569' }}>{w.p5}%</td>
+                                                    <td>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                            <div style={{ flex: 1, backgroundColor: '#f1f5f9', height: '8px', borderRadius: '999px' }}>
+                                                                <div style={{ width: `${w.overallProgress}%`, background: 'linear-gradient(90deg, #4f46e5, #818cf8)', height: '100%', borderRadius: '999px' }}></div>
+                                                            </div>
+                                                            <span style={{ fontSize: '0.875rem', fontWeight: 800, color: '#4f46e5', minWidth: '40px' }}>{w.overallProgress}%</span>
+                                                        </div>
+                                                    </td>
+                                                </>
+                                            ) : (
+                                                FULL_FIELDS.map((f, i) => {
+                                                    const status = w[f.group] ? w[f.group][f.key] : 'pending';
+                                                    let bgColor = '#f8fafc';
+                                                    let color = '#94a3b8';
+                                                    let text = '0%';
+                                                    
+                                                    if (status === 'completed' || status === true) {
+                                                        bgColor = '#f0fdf4'; color = '#10b981'; text = '100%';
+                                                    } else if (status === 'process') {
+                                                        bgColor = '#fffbeb'; color = '#f59e0b'; text = '50%';
+                                                    }
+                                                    
+                                                    return (
+                                                        <td key={i}>
+                                                            <span style={{
+                                                                backgroundColor: bgColor,
+                                                                color: color,
+                                                                padding: '4px 8px',
+                                                                borderRadius: '0.5rem',
+                                                                fontSize: '0.65rem',
+                                                                fontWeight: '800',
+                                                                whiteSpace: 'nowrap'
+                                                            }}>
+                                                                {text}
+                                                            </span>
+                                                        </td>
+                                                    );
+                                                })
+                                            )}
+                                        </tr>
+                                    ))}
+                                    {allWorkflows.length === 0 && (
+                                        <tr>
+                                            <td colSpan={masterViewMode === 'summary' ? 9 : 3 + FULL_FIELDS.length} style={{ textAlign: 'center', padding: '4rem', color: '#94a3b8', fontStyle: 'italic' }}>No progression data found</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                      </div>
+                    )}
+                </div>
+            </main>
         </div>
     );
 };

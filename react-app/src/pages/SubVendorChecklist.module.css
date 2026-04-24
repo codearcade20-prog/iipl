@@ -345,11 +345,12 @@
     text-align: center;
     margin-bottom: 1rem;
     padding-top: 3rem;
+    padding-bottom: 2rem;
 }
 
 .printTitle {
     font-size: 18pt;
-    font-weight: 600;
+    font-weight: 700;
     margin: 0;
     color: #000;
 }
