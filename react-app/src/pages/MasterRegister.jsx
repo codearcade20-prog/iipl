@@ -386,6 +386,10 @@ const MasterRegister = () => {
                                     <input type="text" placeholder="Full name..." value={vendorForm.name} onChange={e => setVendorForm({ ...vendorForm, name: e.target.value })} />
                                 </div>
                                 <div className={styles.formGroup}>
+                                    <label>Vendor Company Name</label>
+                                    <input type="text" placeholder="Company name..." value={vendorForm.vendorCompany} onChange={e => setVendorForm({ ...vendorForm, vendorCompany: e.target.value })} />
+                                </div>
+                                <div className={styles.formGroup}>
                                     <label>Vendor Type</label>
                                     <select value={vendorForm.vendorType} onChange={e => setVendorForm({ ...vendorForm, vendorType: e.target.value })}>
                                         <option value="both">Both (Payment & Invoice)</option>
@@ -394,16 +398,33 @@ const MasterRegister = () => {
                                     </select>
                                 </div>
                                 <div className={styles.formGroup}>
-                                    <label>Account Holder</label>
+                                    <label>Phone Number</label>
+                                    <input type="text" placeholder="Contact number..." value={vendorForm.phone} onChange={e => setVendorForm({ ...vendorForm, phone: e.target.value })} />
+                                </div>
+                                <div className={styles.formGroup} style={{ gridColumn: 'span 2' }}>
+                                    <label>Address</label>
+                                    <textarea 
+                                        value={vendorForm.address} 
+                                        onChange={e => setVendorForm({ ...vendorForm, address: e.target.value })}
+                                        style={{ width: '100%', padding: '0.75rem 1rem', border: '1px solid #e2e8f0', borderRadius: '0.75rem', outline: 'none', fontSze: '0.95rem', minHeight: '80px', resize: 'vertical' }}
+                                        placeholder="Full address details..."
+                                    />
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label>Account Holder Name</label>
                                     <input type="text" value={vendorForm.holderName} onChange={e => setVendorForm({ ...vendorForm, holderName: e.target.value })} />
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label>Account Number</label>
+                                    <input type="text" value={vendorForm.acc} onChange={e => setVendorForm({ ...vendorForm, acc: e.target.value })} />
                                 </div>
                                 <div className={styles.formGroup}>
                                     <label>Bank Name</label>
                                     <input type="text" value={vendorForm.bank} onChange={e => setVendorForm({ ...vendorForm, bank: e.target.value })} />
                                 </div>
                                 <div className={styles.formGroup}>
-                                    <label>Account Number</label>
-                                    <input type="text" value={vendorForm.acc} onChange={e => setVendorForm({ ...vendorForm, acc: e.target.value })} />
+                                    <label>Bank Branch</label>
+                                    <input type="text" value={vendorForm.bankBranch} onChange={e => setVendorForm({ ...vendorForm, bankBranch: e.target.value })} />
                                 </div>
                                 <div className={styles.formGroup}>
                                     <label>IFSC Code</label>
@@ -416,6 +437,10 @@ const MasterRegister = () => {
                                 <div className={styles.formGroup}>
                                     <label>GST Number</label>
                                     <input type="text" value={vendorForm.gst} onChange={e => setVendorForm({ ...vendorForm, gst: e.target.value })} />
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label>Aadhaar Number</label>
+                                    <input type="text" value={vendorForm.aadhaar} onChange={e => setVendorForm({ ...vendorForm, aadhaar: e.target.value })} />
                                 </div>
                             </div>
                         </div>
