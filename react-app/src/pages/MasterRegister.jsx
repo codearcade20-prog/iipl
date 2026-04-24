@@ -4,9 +4,9 @@ import { useAuth } from '../context/AuthContext';
 import { useMessage } from '../context/MessageContext';
 import { Button } from '../components/ui/Button';
 import { LoadingOverlay } from '../components/ui';
-import { Building2, Users, Search, ArrowLeft, Plus, Pencil, Trash2, Home, X, Printer, Share2 } from 'lucide-react';
+import { Building2, Users, Search, ArrowLeft, Plus, Pencil, Trash2, Home, X, Printer, Share2, LayoutDashboard, ChevronRight } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
-import styles from './AdminDashboard.module.css';
+import styles from './MasterRegister.module.css';
 
 const MasterRegister = () => {
     const { user } = useAuth();
@@ -188,112 +188,155 @@ const MasterRegister = () => {
     );
 
     return (
-        <div className={styles.container}>
-            <header className={styles.header}>
-                <div className={styles.headerLeft}>
-                    <Link to="/" className={styles.backBtn}><ArrowLeft size={20} /> Back</Link>
-                    <h1 className={styles.title}>Master Registration Hub</h1>
+        <div className={styles.dashboardContainer}>
+            {/* Sidebar */}
+            <aside className={styles.sidebar}>
+                <div className={styles.brand}>
+                    <LayoutDashboard size={28} />
+                    <span>IIPL Hub</span>
                 </div>
-                <nav className={styles.nav}>
-                    <button className={`${styles.navBtn} ${currentView === 'sites' ? styles.active : ''}`} onClick={() => setCurrentView('sites')}>Sites</button>
-                    <button className={`${styles.navBtn} ${currentView === 'vendors' ? styles.active : ''}`} onClick={() => setCurrentView('vendors')}>Vendors</button>
-                </nav>
-            </header>
 
-            <main className={styles.content}>
-                {currentView === 'sites' ? (
-                    <div className={styles.card}>
-                        <div className={styles.cardHeader}>
-                            <h3 className={styles.cardTitle}>Manage Project Sites</h3>
-                            <Button onClick={() => openSiteModal()}>+ Add New Site</Button>
-                        </div>
-                        <div className={styles.searchSection}>
+                <nav className={styles.navLinks}>
+                    <button
+                        className={`${styles.navItem} ${currentView === 'sites' ? styles.navItemActive : ''}`}
+                        onClick={() => setCurrentView('sites')}
+                    >
+                        <Building2 size={18} /> Sites Register
+                    </button>
+                    <button
+                        className={`${styles.navItem} ${currentView === 'vendors' ? styles.navItemActive : ''}`}
+                        onClick={() => setCurrentView('vendors')}
+                    >
+                        <Users size={18} /> Vendors Master
+                    </button>
+                </nav>
+
+                <div className={styles.sidebarFooter}>
+                    <p>Master Data Management</p>
+                    <Link to="/" style={{ color: '#4ade80', fontWeight: 600, textDecoration: 'none', display: 'block', marginTop: '1rem' }}>← Back to Home</Link>
+                </div>
+            </aside>
+
+            {/* Main Content */}
+            <main className={styles.mainContent}>
+                <header className={styles.topBar}>
+                    <div className={styles.pageTitle}>
+                        <h1>{currentView === 'sites' ? 'Sites Management' : 'Vendor Management'}</h1>
+                        <p className={styles.subtitle}>Register and update master credentials</p>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+                        <div className={styles.searchBar}>
+                            <Search size={18} />
                             <input
                                 type="text"
-                                placeholder="Search sites..."
-                                value={siteNameSearch}
-                                onChange={(e) => setSiteNameSearch(e.target.value)}
-                                className={styles.searchInput}
+                                placeholder={currentView === 'sites' ? "Search sites..." : "Search vendors..."}
+                                value={currentView === 'sites' ? siteNameSearch : vendorNameSearch}
+                                onChange={(e) => currentView === 'sites' ? setSiteNameSearch(e.target.value) : setVendorNameSearch(e.target.value)}
                             />
                         </div>
+                        <Button 
+                            onClick={currentView === 'sites' ? () => openSiteModal() : () => openVendorModal()}
+                            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.25rem', borderRadius: '2rem' }}
+                        >
+                            <Plus size={18} /> Add {currentView === 'sites' ? 'Site' : 'Vendor'}
+                        </Button>
+                    </div>
+                </header>
+
+                <div className={styles.contentArea}>
+                    <div className={styles.card}>
                         <div className={styles.tableWrapper}>
                             <table className={styles.table}>
-                                <thead>
-                                    <tr>
-                                        <th>Site Name</th>
-                                        <th>Location</th>
-                                        <th>Client</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {filteredSites.map(s => (
-                                        <tr key={s.id}>
-                                            <td style={{ fontWeight: 600 }}>{s.name}</td>
-                                            <td>{s.location || '-'}</td>
-                                            <td>{s.client || '-'}</td>
-                                            <td>
-                                                <div className={styles.actions}>
-                                                    <Button variant="secondary" style={{ padding: '4px 8px', fontSize: '0.8rem' }} onClick={() => openSiteModal(s)}>Edit</Button>
-                                                    <Button variant="danger" style={{ padding: '4px 8px', fontSize: '0.8rem' }} onClick={() => deleteSite(s.id)}>Del</Button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
+                                {currentView === 'sites' ? (
+                                    <>
+                                        <thead>
+                                            <tr>
+                                                <th>Site Name</th>
+                                                <th>Location</th>
+                                                <th>Client</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {filteredSites.map(s => (
+                                                <tr key={s.id}>
+                                                    <td style={{ fontWeight: 600, color: '#1e293b' }}>{s.name}</td>
+                                                    <td>{s.location || '-'}</td>
+                                                    <td>{s.client || '-'}</td>
+                                                    <td>
+                                                        <div className={styles.actions}>
+                                                            <button 
+                                                                onClick={() => openSiteModal(s)}
+                                                                style={{ background: '#f1f5f9', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', color: '#475569', fontWeight: 600 }}
+                                                            >
+                                                                Edit
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => deleteSite(s.id)}
+                                                                style={{ background: '#fee2e2', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', color: '#dc2626', fontWeight: 600 }}
+                                                            >
+                                                                Del
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                            {filteredSites.length === 0 && (
+                                                <tr><td colSpan="4" style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>No sites found matching your search.</td></tr>
+                                            )}
+                                        </tbody>
+                                    </>
+                                ) : (
+                                    <>
+                                        <thead>
+                                            <tr>
+                                                <th>Vendor Name</th>
+                                                <th>Type</th>
+                                                <th>Bank Name</th>
+                                                <th>Account No</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {filteredVendors.map(v => (
+                                                <tr key={v.id}>
+                                                    <td style={{ fontWeight: 600, color: '#1e293b' }}>{v.vendor_name}</td>
+                                                    <td>
+                                                        <span className={`${styles.badge} ${v.vendor_type === 'payment_request' ? styles.badgePayment : v.vendor_type === 'invoice' ? styles.badgeInvoice : styles.badgeBoth}`}>
+                                                            {v.vendor_type === 'payment_request' ? 'Payment' : v.vendor_type === 'invoice' ? 'Invoice' : 'Both'}
+                                                        </span>
+                                                    </td>
+                                                    <td>{v.bank_name || '-'}</td>
+                                                    <td style={{ fontFamily: 'monospace', color: '#64748b' }}>{v.account_number || '-'}</td>
+                                                    <td>
+                                                        <div className={styles.actions}>
+                                                            <button 
+                                                                onClick={() => openVendorModal(v)}
+                                                                style={{ background: '#f1f5f9', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', color: '#475569', fontWeight: 600 }}
+                                                            >
+                                                                Edit
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => deleteVendor(v.id)}
+                                                                style={{ background: '#fee2e2', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', color: '#dc2626', fontWeight: 600 }}
+                                                            >
+                                                                Del
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                            {filteredVendors.length === 0 && (
+                                                <tr><td colSpan="5" style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>No vendors found matching your search.</td></tr>
+                                            )}
+                                        </tbody>
+                                    </>
+                                )}
                             </table>
                         </div>
                     </div>
-                ) : (
-                    <div className={styles.card}>
-                        <div className={styles.cardHeader}>
-                            <h3 className={styles.cardTitle}>Manage Vendors</h3>
-                            <Button onClick={() => openVendorModal()}>+ Add Vendor</Button>
-                        </div>
-                        <div className={styles.searchSection}>
-                            <input
-                                type="text"
-                                placeholder="Search vendors..."
-                                value={vendorNameSearch}
-                                onChange={(e) => setVendorNameSearch(e.target.value)}
-                                className={styles.searchInput}
-                            />
-                        </div>
-                        <div className={styles.tableWrapper}>
-                            <table className={styles.table}>
-                                <thead>
-                                    <tr>
-                                        <th>Name</th>
-                                        <th>Type</th>
-                                        <th>Bank</th>
-                                        <th>Account</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {filteredVendors.map(v => (
-                                        <tr key={v.id}>
-                                            <td style={{ fontWeight: 600 }}>{v.vendor_name}</td>
-                                            <td>
-                                                <span className={`${styles.badge} ${v.vendor_type === 'payment_request' ? styles.badgePayment : v.vendor_type === 'invoice' ? styles.badgeInvoice : styles.badgeBoth}`}>
-                                                    {v.vendor_type === 'payment_request' ? 'Payment' : v.vendor_type === 'invoice' ? 'Invoice' : 'Both'}
-                                                </span>
-                                            </td>
-                                            <td>{v.bank_name}</td>
-                                            <td style={{ fontFamily: 'monospace' }}>{v.account_number}</td>
-                                            <td>
-                                                <div className={styles.actions}>
-                                                    <Button variant="secondary" style={{ padding: '4px 8px', fontSize: '0.8rem' }} onClick={() => openVendorModal(v)}>Edit</Button>
-                                                    <Button variant="danger" style={{ padding: '4px 8px', fontSize: '0.8rem' }} onClick={() => deleteVendor(v.id)}>Del</Button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                )}
+                </div>
             </main>
 
             {/* Site Modal */}
@@ -301,21 +344,23 @@ const MasterRegister = () => {
                 <div className={styles.modalOverlay}>
                     <div className={styles.modal}>
                         <div className={styles.modalHeader}>
-                            <h3>{editingSiteId ? 'Edit Site' : 'Add New Site'}</h3>
-                            <button onClick={() => setSiteModalOpen(false)} className={styles.closeBtn}><X /></button>
+                            <h3>{editingSiteId ? 'Edit Site Details' : 'Register New Site'}</h3>
+                            <button onClick={() => setSiteModalOpen(false)} className={styles.closeBtn}><X size={20} /></button>
                         </div>
                         <div className={styles.modalBody}>
-                            <div className={styles.formGroup}>
-                                <label>Site Name</label>
-                                <input type="text" value={siteForm.name} onChange={e => setSiteForm({ ...siteForm, name: e.target.value })} />
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label>Location</label>
-                                <input type="text" value={siteForm.location} onChange={e => setSiteForm({ ...siteForm, location: e.target.value })} />
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label>Client</label>
-                                <input type="text" value={siteForm.client} onChange={e => setSiteForm({ ...siteForm, client: e.target.value })} />
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                                <div className={styles.formGroup}>
+                                    <label>Site Name</label>
+                                    <input type="text" placeholder="e.g. AKKARAI RESIDENCE" value={siteForm.name} onChange={e => setSiteForm({ ...siteForm, name: e.target.value })} />
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label>Location</label>
+                                    <input type="text" placeholder="e.g. CHENNAI" value={siteForm.location} onChange={e => setSiteForm({ ...siteForm, location: e.target.value })} />
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label>Client Name</label>
+                                    <input type="text" placeholder="Enter client name..." value={siteForm.client} onChange={e => setSiteForm({ ...siteForm, client: e.target.value })} />
+                                </div>
                             </div>
                         </div>
                         <div className={styles.modalFooter}>
@@ -331,19 +376,19 @@ const MasterRegister = () => {
                 <div className={styles.modalOverlay}>
                     <div className={styles.modal} style={{ maxWidth: '800px' }}>
                         <div className={styles.modalHeader}>
-                            <h3>{editingVendorId ? 'Edit Vendor' : 'Add New Vendor'}</h3>
-                            <button onClick={() => setVendorModalOpen(false)} className={styles.closeBtn}><X /></button>
+                            <h3>{editingVendorId ? 'Edit Vendor Credentials' : 'Register New Vendor'}</h3>
+                            <button onClick={() => setVendorModalOpen(false)} className={styles.closeBtn}><X size={20} /></button>
                         </div>
                         <div className={styles.modalBody}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                            <div className={styles.formGrid}>
                                 <div className={styles.formGroup}>
                                     <label>Vendor Name</label>
-                                    <input type="text" value={vendorForm.name} onChange={e => setVendorForm({ ...vendorForm, name: e.target.value })} />
+                                    <input type="text" placeholder="Full name..." value={vendorForm.name} onChange={e => setVendorForm({ ...vendorForm, name: e.target.value })} />
                                 </div>
                                 <div className={styles.formGroup}>
                                     <label>Vendor Type</label>
                                     <select value={vendorForm.vendorType} onChange={e => setVendorForm({ ...vendorForm, vendorType: e.target.value })}>
-                                        <option value="both">Both</option>
+                                        <option value="both">Both (Payment & Invoice)</option>
                                         <option value="payment_request">Payment Only</option>
                                         <option value="invoice">Invoice Only</option>
                                     </select>
@@ -382,7 +427,7 @@ const MasterRegister = () => {
                 </div>
             )}
 
-            {loading && <LoadingOverlay message="Processing records..." />}
+            {loading && <LoadingOverlay message="Processing master data..." />}
         </div>
     );
 };
