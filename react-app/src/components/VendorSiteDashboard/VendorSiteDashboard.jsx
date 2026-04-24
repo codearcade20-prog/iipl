@@ -151,6 +151,21 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
     const [statementVendorSearch, setStatementVendorSearch] = useState(''); // Search for vendors within a site statement // Default to landscape for wide tables
     const [masterVendors, setMasterVendors] = useState([]); // Master list from admin
     const [masterSites, setMasterSites] = useState([]); // Master list of sites
+    
+    // --- SITES MANAGEMENT STATE ---
+    const [siteModalOpen, setSiteModalOpen] = useState(false);
+    const [editingSiteId, setEditingSiteId] = useState(null);
+    const [siteForm, setSiteForm] = useState({ name: '', location: '', client: '' });
+    const [siteNameSearch, setSiteNameSearch] = useState('');
+
+    // --- VENDORS MANAGEMENT STATE ---
+    const [vendorModalOpen, setVendorModalOpen] = useState(false);
+    const [editingVendorId, setEditingVendorId] = useState(null);
+    const [vendorForm, setVendorForm] = useState({
+        name: '', holderName: '', pan: '', phone: '', address: '', acc: '', bank: '', ifsc: '', vendorType: 'both',
+        vendorCompany: '', aadhaar: '', gst: '', bankBranch: ''
+    });
+    const [vendorNameSearch, setVendorNameSearch] = useState('');
     const contentAreaRef = useRef(null); // Ref for scroll reset
     const [summaryColumns, setSummaryColumns] = useState({
         index: true,
@@ -166,6 +181,128 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
     const [showColumnSettings, setShowColumnSettings] = useState(false);
     const [printOrientation, setPrintOrientation] = useState('portrait'); // 'portrait' or 'landscape'
     const [showPrintModal, setShowPrintModal] = useState(false);
+
+    const { user } = useAuth();
+
+    // --- SITES ACTIONS ---
+    const openSiteModal = (s = null) => {
+        if (s) {
+            setEditingSiteId(s.id);
+            setSiteForm({ name: s.name, location: s.location || '', client: s.client || '' });
+        } else {
+            setEditingSiteId(null);
+            setSiteForm({ name: '', location: '', client: '' });
+        }
+        setSiteModalOpen(true);
+    };
+
+    const saveSite = async () => {
+        if (!siteForm.name.trim()) return await alert("Site name is required.");
+        setLoading(true);
+        try {
+            const payload = { name: siteForm.name.trim(), location: siteForm.location, client: siteForm.client };
+            let error;
+            if (editingSiteId) {
+                const { error: err } = await vendorSupabase.from('sites').update(payload).eq('id', editingSiteId);
+                error = err;
+            } else {
+                const { error: err } = await vendorSupabase.from('sites').insert([payload]);
+                error = err;
+            }
+            if (error) throw error;
+            toast(editingSiteId ? "Site updated!" : "Site added!");
+            setSiteModalOpen(false);
+            fetchData(true);
+        } catch (e) { await alert(e.message); }
+        finally { setLoading(false); }
+    };
+
+    const deleteSite = async (id) => {
+        const pwd = await prompt("Enter Admin Password to Delete Site:");
+        if (pwd === null) return;
+        if (pwd !== user?.password) return await alert("Incorrect Admin Password!");
+        
+        if (await confirm("Delete this site?")) {
+            setLoading(true);
+            try {
+                const { error } = await vendorSupabase.from('sites').delete().eq('id', id);
+                if (error) throw error;
+                toast("Site deleted.");
+                fetchData(true);
+            } catch (e) { await alert(e.message); }
+            finally { setLoading(false); }
+        }
+    };
+
+    // --- VENDORS ACTIONS ---
+    const openVendorModal = (v = null) => {
+        if (v) {
+            setEditingVendorId(v.id);
+            setVendorForm({
+                name: v.vendor_name, holderName: v.account_holder, pan: v.pan_no, phone: v.phone,
+                address: v.address, acc: v.account_number, bank: v.bank_name, ifsc: v.ifsc_code,
+                vendorType: v.vendor_type || 'both',
+                vendorCompany: v.vendor_company || '',
+                aadhaar: v.aadhaar_no || '',
+                gst: v.gst_no || '',
+                bankBranch: v.bank_branch || ''
+            });
+        } else {
+            setEditingVendorId(null);
+            setVendorForm({
+                name: '', holderName: '', pan: '', phone: '', address: '', acc: '', bank: '', ifsc: '', vendorType: 'both',
+                vendorCompany: '', aadhaar: '', gst: '', bankBranch: ''
+            });
+        }
+        setVendorModalOpen(true);
+    };
+
+    const saveVendor = async () => {
+        if (!vendorForm.name.trim()) return await alert("Vendor name is required.");
+        setLoading(true);
+        try {
+            const payload = {
+                vendor_name: vendorForm.name.trim(), account_holder: vendorForm.holderName, pan_no: vendorForm.pan,
+                phone: vendorForm.phone, address: vendorForm.address, account_number: vendorForm.acc,
+                bank_name: vendorForm.bank, ifsc_code: vendorForm.ifsc.toUpperCase(),
+                vendor_type: vendorForm.vendorType,
+                vendor_company: vendorForm.vendorCompany,
+                aadhaar_no: vendorForm.aadhaar,
+                gst_no: vendorForm.gst,
+                bank_branch: vendorForm.bankBranch
+            };
+            let error;
+            if (editingVendorId) {
+                const { error: err } = await vendorSupabase.from('vendors').update(payload).eq('id', editingVendorId);
+                error = err;
+            } else {
+                const { error: err } = await vendorSupabase.from('vendors').insert([payload]);
+                error = err;
+            }
+            if (error) throw error;
+            toast(editingVendorId ? "Vendor updated!" : "Vendor added!");
+            setVendorModalOpen(false);
+            fetchData(true);
+        } catch (e) { await alert(e.message); }
+        finally { setLoading(false); }
+    };
+
+    const deleteVendor = async (id) => {
+        const pwd = await prompt("Enter Admin Password to Delete Vendor:");
+        if (pwd === null) return;
+        if (pwd !== user?.password) return await alert("Incorrect Admin Password!");
+
+        if (await confirm("Delete this vendor?")) {
+            setLoading(true);
+            try {
+                const { error } = await vendorSupabase.from('vendors').delete().eq('id', id);
+                if (error) throw error;
+                toast("Vendor deleted.");
+                fetchData(true);
+            } catch (e) { await alert(e.message); }
+            finally { setLoading(false); }
+        }
+    };
 
     const fetchData = async (isSilent = false) => {
         if (!isSilent) setLoading(true);
@@ -211,11 +348,12 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
 
             setRawData(flattened);
 
-            // Fetch Master Vendors
-            const { data: vData } = await vendorSupabase.from('vendors').select('vendor_name').order('vendor_name');
+            // Fetch Master Vendors (All details for management)
+            const { data: vData } = await vendorSupabase.from('vendors').select('*').order('vendor_name');
             setMasterVendors(vData || []);
 
-            const { data: sData } = await vendorSupabase.from('sites').select('name').order('name');
+            // Fetch Master Sites (All details for management)
+            const { data: sData } = await vendorSupabase.from('sites').select('*').order('name');
             setMasterSites(sData || []);
             
             return flattened;
@@ -749,123 +887,179 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
     };
 
     const renderSites = () => {
-        if (viewMode === 'list') {
-            return (
-                <div className={styles.tableContainer} style={{ background: 'white', borderRadius: '12px', padding: '1rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+        const filtered = masterSites.filter(s => 
+            s.name.toLowerCase().includes(siteNameSearch.toLowerCase()) ||
+            (s.location || '').toLowerCase().includes(siteNameSearch.toLowerCase()) ||
+            (s.client || '').toLowerCase().includes(siteNameSearch.toLowerCase())
+        );
+
+        return (
+            <div className={styles.card} style={{ padding: '2rem', background: 'white', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)' }}>
+                <div className={styles.cardHeader} style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                        <h3 className={styles.cardTitle} style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1e293b' }}>Master Site Management</h3>
+                        <p style={{ color: '#64748b', fontSize: '0.9rem' }}>Add and manage all project sites from here.</p>
+                    </div>
+                    {!readOnly && <Button onClick={() => openSiteModal()}>+ Add New Site</Button>}
+                </div>
+
+                <div className={styles.searchBar} style={{ marginBottom: '1.5rem', maxWidth: '100%' }}>
+                    <Search size={18} />
+                    <input
+                        type="text"
+                        placeholder="Search sites by name, location or client..."
+                        value={siteNameSearch}
+                        onChange={(e) => setSiteNameSearch(e.target.value)}
+                    />
+                </div>
+
+                <div className={styles.tableContainer} style={{ border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden' }}>
                     <table className={styles.adminTable}>
-                        <thead>
+                        <thead style={{ background: '#f8fafc' }}>
                             <tr>
-                                <th style={{ textAlign: 'left' }}>Site Name</th>
-                                <th style={{ textAlign: 'right' }}>Total Value</th>
-                                <th style={{ textAlign: 'right' }}>Vendors</th>
-                                <th style={{ textAlign: 'center' }}>Action</th>
+                                <th style={{ textAlign: 'left', padding: '1rem' }}>Site Name</th>
+                                <th style={{ textAlign: 'left', padding: '1rem' }}>Location</th>
+                                <th style={{ textAlign: 'left', padding: '1rem' }}>Client</th>
+                                <th style={{ textAlign: 'center', padding: '1rem' }}>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredSites.map(site => (
-                                <tr key={site.name}>
-                                    <td style={{ fontWeight: 600, color: '#1e293b' }}>{site.name}</td>
-                                    <td style={{ textAlign: 'right', fontWeight: 600, color: '#4f46e5' }}>{formatCurrency(site.totalValue)}</td>
-                                    <td style={{ textAlign: 'right', fontWeight: 500 }}>{new Set(site.entries.map(e => e.vendor_name)).size}</td>
-                                    <td style={{ textAlign: 'center' }}>
-                                        <button 
-                                            className={styles.tag} 
-                                            style={{ background: '#eff6ff', color: '#4f46e5', border: 'none', cursor: 'pointer', padding: '4px 12px' }}
-                                            onClick={() => handleSwitchView('site_detail', site.name)}
-                                        >
-                                            View Details
-                                        </button>
+                            {filtered.map(site => (
+                                <tr key={site.id}>
+                                    <td style={{ fontWeight: 600, color: '#1e293b', padding: '1rem' }}>{site.name}</td>
+                                    <td style={{ color: '#64748b', padding: '1rem' }}>{site.location || '-'}</td>
+                                    <td style={{ color: '#64748b', padding: '1rem' }}>{site.client || '-'}</td>
+                                    <td style={{ textAlign: 'center', padding: '1rem' }}>
+                                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                                            <button 
+                                                className={styles.tag} 
+                                                style={{ background: '#eff6ff', color: '#4f46e5', border: 'none', cursor: 'pointer', padding: '6px 12px' }}
+                                                onClick={() => handleSwitchView('site_detail', site.name)}
+                                            >
+                                                View
+                                            </button>
+                                            {!readOnly && (
+                                                <>
+                                                    <button 
+                                                        className={styles.tag} 
+                                                        style={{ background: '#f8fafc', color: '#64748b', border: '1px solid #e2e8f0', cursor: 'pointer', padding: '6px 12px' }}
+                                                        onClick={() => openSiteModal(site)}
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                    <button 
+                                                        className={styles.tag} 
+                                                        style={{ background: '#fef2f2', color: '#ef4444', border: 'none', cursor: 'pointer', padding: '6px 12px' }}
+                                                        onClick={() => deleteSite(site.id)}
+                                                    >
+                                                        Del
+                                                    </button>
+                                                </>
+                                            )}
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
+                            {filtered.length === 0 && (
+                                <tr>
+                                    <td colSpan="4" style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>No sites found.</td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>
-            );
-        }
-        return (
-            <div className={styles.gridContainer}>
-                {filteredSites.map(site => (
-                    <div key={site.name} className={styles.infoCard} onClick={() => handleSwitchView('site_detail', site.name)}>
-                        <div className={styles.cardHeader}>
-                            <Building2 size={20} />
-                            <span>{site.name}</span>
-                            <ChevronRight size={16} />
-                        </div>
-                        <div className={styles.cardBody}>
-                            <div className={styles.listItem}>
-                                <span className={styles.listItemSub}>Total Value</span>
-                                <span className={styles.currency}>{formatCurrency(site.totalValue)}</span>
-                            </div>
-                            <div className={styles.listItem}>
-                                <span className={styles.listItemSub}>Vendors</span>
-                                <span style={{ fontWeight: 600 }}>{new Set(site.entries.map(e => e.vendor_name)).size}</span>
-                            </div>
-                            <div className={styles.tag} style={{ marginTop: '1rem', background: '#eff6ff', color: '#4f46e5' }}>Click for Details</div>
-                        </div>
-                    </div>
-                ))}
             </div>
         );
     };
 
     const renderVendors = () => {
-        if (viewMode === 'list') {
-            return (
-                <div className={styles.tableContainer} style={{ background: 'white', borderRadius: '12px', padding: '1rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+        const filtered = masterVendors.filter(v => 
+            v.vendor_name.toLowerCase().includes(vendorNameSearch.toLowerCase()) ||
+            (v.vendor_company || '').toLowerCase().includes(vendorNameSearch.toLowerCase()) ||
+            (v.pan_no || '').toLowerCase().includes(vendorNameSearch.toLowerCase())
+        );
+
+        return (
+            <div className={styles.card} style={{ padding: '2rem', background: 'white', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)' }}>
+                <div className={styles.cardHeader} style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                        <h3 className={styles.cardTitle} style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1e293b' }}>Vendor Master List</h3>
+                        <p style={{ color: '#64748b', fontSize: '0.9rem' }}>Manage all registered vendors and their details.</p>
+                    </div>
+                    {!readOnly && <Button onClick={() => openVendorModal()}>+ Add New Vendor</Button>}
+                </div>
+
+                <div className={styles.searchBar} style={{ marginBottom: '1.5rem', maxWidth: '100%' }}>
+                    <Search size={18} />
+                    <input
+                        type="text"
+                        placeholder="Search vendors by name, company or PAN..."
+                        value={vendorNameSearch}
+                        onChange={(e) => setVendorNameSearch(e.target.value)}
+                    />
+                </div>
+
+                <div className={styles.tableContainer} style={{ border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden' }}>
                     <table className={styles.adminTable}>
-                        <thead>
+                        <thead style={{ background: '#f8fafc' }}>
                             <tr>
-                                <th style={{ textAlign: 'left' }}>Vendor Name</th>
-                                <th style={{ textAlign: 'right' }}>Total Projects Value</th>
-                                <th style={{ textAlign: 'right' }}>Active Sites</th>
-                                <th style={{ textAlign: 'center' }}>Action</th>
+                                <th style={{ textAlign: 'left', padding: '1rem' }}>Vendor Name</th>
+                                <th style={{ textAlign: 'left', padding: '1rem' }}>Type</th>
+                                <th style={{ textAlign: 'left', padding: '1rem' }}>Bank</th>
+                                <th style={{ textAlign: 'left', padding: '1rem' }}>Account No</th>
+                                <th style={{ textAlign: 'center', padding: '1rem' }}>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredVendors.map(vendor => (
-                                <tr key={vendor.name}>
-                                    <td style={{ fontWeight: 600, color: '#1e293b' }}>{vendor.name}</td>
-                                    <td style={{ textAlign: 'right', fontWeight: 600, color: '#4f46e5' }}>{formatCurrency(vendor.totalValue)}</td>
-                                    <td style={{ textAlign: 'right', fontWeight: 500 }}>{vendor.sites.size}</td>
-                                    <td style={{ textAlign: 'center' }}>
-                                        <button 
-                                            className={styles.tag} 
-                                            style={{ background: '#eff6ff', color: '#4f46e5', border: 'none', cursor: 'pointer', padding: '4px 12px' }}
-                                            onClick={() => handleSwitchView('vendor_detail', vendor.name)}
-                                        >
-                                            View Details
-                                        </button>
+                            {filtered.map(v => (
+                                <tr key={v.id}>
+                                    <td style={{ fontWeight: 600, color: '#1e293b', padding: '1rem' }}>{v.vendor_name}</td>
+                                    <td style={{ padding: '1rem' }}>
+                                        <span className={styles.tag} style={{ background: v.vendor_type === 'both' ? '#f0fdf4' : '#eff6ff', color: v.vendor_type === 'both' ? '#166534' : '#4f46e5', fontSize: '0.75rem' }}>
+                                            {(v.vendor_type || 'both').toUpperCase()}
+                                        </span>
+                                    </td>
+                                    <td style={{ color: '#64748b', padding: '1rem' }}>{v.bank_name || '-'}</td>
+                                    <td style={{ color: '#64748b', padding: '1rem', fontFamily: 'monospace' }}>{v.account_number || '-'}</td>
+                                    <td style={{ textAlign: 'center', padding: '1rem' }}>
+                                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                                            <button 
+                                                className={styles.tag} 
+                                                style={{ background: '#eff6ff', color: '#4f46e5', border: 'none', cursor: 'pointer', padding: '6px 12px' }}
+                                                onClick={() => handleSwitchView('vendor_detail', v.vendor_name)}
+                                            >
+                                                View
+                                            </button>
+                                            {!readOnly && (
+                                                <>
+                                                    <button 
+                                                        className={styles.tag} 
+                                                        style={{ background: '#f8fafc', color: '#64748b', border: '1px solid #e2e8f0', cursor: 'pointer', padding: '6px 12px' }}
+                                                        onClick={() => openVendorModal(v)}
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                    <button 
+                                                        className={styles.tag} 
+                                                        style={{ background: '#fef2f2', color: '#ef4444', border: 'none', cursor: 'pointer', padding: '6px 12px' }}
+                                                        onClick={() => deleteVendor(v.id)}
+                                                    >
+                                                        Del
+                                                    </button>
+                                                </>
+                                            )}
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
+                            {filtered.length === 0 && (
+                                <tr>
+                                    <td colSpan="5" style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>No vendors found.</td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>
-            );
-        }
-        return (
-            <div className={styles.gridContainer}>
-                {filteredVendors.map(vendor => (
-                    <div key={vendor.name} className={styles.infoCard} onClick={() => handleSwitchView('vendor_detail', vendor.name)}>
-                        <div className={styles.cardHeader}>
-                            <Users size={20} />
-                            <span>{vendor.name}</span>
-                            <ChevronRight size={16} />
-                        </div>
-                        <div className={styles.cardBody}>
-                            <div className={styles.listItem}>
-                                <span className={styles.listItemSub}>Total Projects</span>
-                                <span className={styles.currency}>{formatCurrency(vendor.totalValue)}</span>
-                            </div>
-                            <div className={styles.listItem}>
-                                <span className={styles.listItemSub}>Active Sites</span>
-                                <span>{vendor.sites.size}</span>
-                            </div>
-                            <div className={styles.tag} style={{ marginTop: '1rem', background: '#eff6ff', color: '#4f46e5' }}>Click for Details</div>
-                        </div>
-                    </div>
-                ))}
             </div>
         );
     };
@@ -3195,6 +3389,156 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
     const params = new URLSearchParams(location.search);
     const isDirectPrint = params.get('direct') === 'true';
 
+    const renderSiteModal = () => {
+        if (!siteModalOpen) return null;
+        return (
+            <div className={styles.modalOverlay} style={{ zIndex: 2000 }}>
+                <div className={styles.modalCard} style={{ maxWidth: '500px', width: '90%' }}>
+                    <div className={styles.modalHeader}>
+                        <h3 className={styles.modalTitle}>{editingSiteId ? 'Edit Site' : 'Add New Site'}</h3>
+                        <button onClick={() => setSiteModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
+                    </div>
+                    <div className={styles.modalBody} style={{ padding: '2rem' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155' }}>Site Name</label>
+                                <input
+                                    type="text"
+                                    value={siteForm.name}
+                                    onChange={(e) => setSiteForm({ ...siteForm, name: e.target.value })}
+                                    style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}
+                                    placeholder="Enter site name..."
+                                />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155' }}>Location</label>
+                                <input
+                                    type="text"
+                                    value={siteForm.location}
+                                    onChange={(e) => setSiteForm({ ...siteForm, location: e.target.value })}
+                                    style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}
+                                    placeholder="Enter location..."
+                                />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155' }}>Client Name</label>
+                                <input
+                                    type="text"
+                                    value={siteForm.client}
+                                    onChange={(e) => setSiteForm({ ...siteForm, client: e.target.value })}
+                                    style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}
+                                    placeholder="Enter client name..."
+                                />
+                            </div>
+                        </div>
+                    </div>
+                    <div className={styles.modalFooter} style={{ padding: '1.5rem 2rem', background: '#f8fafc', display: 'flex', justifyContent: 'flex-end', gap: '1rem', borderTop: '1px solid #e2e8f0' }}>
+                        <Button variant="secondary" onClick={() => setSiteModalOpen(false)}>Cancel</Button>
+                        <Button onClick={saveSite}>{editingSiteId ? 'Update Site' : 'Save Site'}</Button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    const renderVendorModal = () => {
+        if (!vendorModalOpen) return null;
+        return (
+            <div className={styles.modalOverlay} style={{ zIndex: 2000 }}>
+                <div className={styles.modalCard} style={{ maxWidth: '800px', width: '95%', maxHeight: '90vh', overflowY: 'auto' }}>
+                    <div className={styles.modalHeader}>
+                        <h3 className={styles.modalTitle}>{editingVendorId ? 'Edit Vendor' : 'Add New Vendor'}</h3>
+                        <button onClick={() => setVendorModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
+                    </div>
+                    <div className={styles.modalBody} style={{ padding: '2rem' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155' }}>Vendor Name</label>
+                                <input
+                                    type="text"
+                                    value={vendorForm.name}
+                                    onChange={(e) => setVendorForm({ ...vendorForm, name: e.target.value })}
+                                    style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}
+                                    placeholder="Full name..."
+                                />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155' }}>Vendor Type</label>
+                                <select
+                                    value={vendorForm.vendorType}
+                                    onChange={(e) => setVendorForm({ ...vendorForm, vendorType: e.target.value })}
+                                    style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white' }}
+                                >
+                                    <option value="both">Both (Payment & Invoice)</option>
+                                    <option value="payment">Payment Request Only</option>
+                                    <option value="invoice">Invoice Only</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155' }}>Account Holder Name</label>
+                                <input
+                                    type="text"
+                                    value={vendorForm.holderName}
+                                    onChange={(e) => setVendorForm({ ...vendorForm, holderName: e.target.value })}
+                                    style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}
+                                />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155' }}>Bank Name</label>
+                                <input
+                                    type="text"
+                                    value={vendorForm.bank}
+                                    onChange={(e) => setVendorForm({ ...vendorForm, bank: e.target.value })}
+                                    style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}
+                                />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155' }}>Account Number</label>
+                                <input
+                                    type="text"
+                                    value={vendorForm.acc}
+                                    onChange={(e) => setVendorForm({ ...vendorForm, acc: e.target.value })}
+                                    style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}
+                                />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155' }}>IFSC Code</label>
+                                <input
+                                    type="text"
+                                    value={vendorForm.ifsc}
+                                    onChange={(e) => setVendorForm({ ...vendorForm, ifsc: e.target.value })}
+                                    style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}
+                                />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155' }}>PAN Number</label>
+                                <input
+                                    type="text"
+                                    value={vendorForm.pan}
+                                    onChange={(e) => setVendorForm({ ...vendorForm, pan: e.target.value })}
+                                    style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}
+                                />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#334155' }}>GST Number</label>
+                                <input
+                                    type="text"
+                                    value={vendorForm.gst}
+                                    onChange={(e) => setVendorForm({ ...vendorForm, gst: e.target.value })}
+                                    style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                    <div className={styles.modalFooter} style={{ padding: '1.5rem 2rem', background: '#f8fafc', display: 'flex', justifyContent: 'flex-end', gap: '1rem', borderTop: '1px solid #e2e8f0' }}>
+                        <Button variant="secondary" onClick={() => setVendorModalOpen(false)}>Cancel</Button>
+                        <Button onClick={saveVendor}>{editingVendorId ? 'Update Vendor' : 'Save Vendor'}</Button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
     return (
         <div className={`${styles.dashboardContainer} ${sidebarOpen ? styles.sidebarOpen : ''} ${isDirectPrint ? styles.isDirectMode : ''}`}>
             {isDirectPrint && (
@@ -3398,6 +3742,8 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
             {renderBalancePopup()}
             {renderPaymentHistoryPopup()}
             {renderPrintModal()}
+            {renderSiteModal()}
+            {renderVendorModal()}
         </div>
     );
 };
