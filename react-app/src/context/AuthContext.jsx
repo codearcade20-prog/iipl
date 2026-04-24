@@ -34,45 +34,66 @@ export const AuthProvider = ({ children }) => {
         return user.permissions && user.permissions.includes(module);
     };
 
-    // Session Revocation Check
+    // Instant Session Revocation via Supabase Realtime
     useEffect(() => {
         if (!sessionId || !user) return;
 
+        // 1. Subscribe to changes for THIS specific session
+        const sessionChannel = supabase
+            .channel(`session-${sessionId}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: '*', // Listen for UPDATE and DELETE
+                    schema: 'public',
+                    table: 'user_sessions',
+                    filter: `id=eq.${sessionId}`
+                },
+                (payload) => {
+                    // console.log('Realtime session event:', payload);
+                    
+                    // If revoked or deleted, logout immediately
+                    if (payload.eventType === 'DELETE' || (payload.eventType === 'UPDATE' && payload.new.is_revoked)) {
+                        logout();
+                        window.location.href = '/'; // Force immediate redirect to login
+                    }
+                }
+            )
+            .subscribe();
+
+        // 2. Heartbeat & Fallback Check
         const checkSession = async () => {
             try {
                 const { data, error } = await supabase
                     .from('user_sessions')
-                    .select('is_revoked, last_active_at')
+                    .select('is_revoked')
                     .eq('id', sessionId)
-                    .single();
+                    .maybeSingle();
 
-                if (error) {
-                    // If session not found, logout?
-                    if (error.code === 'PGRST116') {
-                        logout();
-                    }
+                // If error, no data (deleted), or revoked, logout
+                if (error || !data || data.is_revoked) {
+                    logout();
+                    window.location.href = '/';
                     return;
                 }
 
-                if (data.is_revoked) {
-                    logout();
-                    window.location.reload(); // Force refresh to clear any state
-                } else {
-                    // Update heartbeat
-                    await supabase
-                        .from('user_sessions')
-                        .update({ last_active_at: new Date().toISOString() })
-                        .eq('id', sessionId);
-                }
+                // Update last active heartbeat
+                await supabase
+                    .from('user_sessions')
+                    .update({ last_active_at: new Date().toISOString() })
+                    .eq('id', sessionId);
             } catch (e) {
-                console.error('Session check failed', e);
+                console.error('Heartbeat failed', e);
             }
         };
 
-        const interval = setInterval(checkSession, 60000); // Check every minute
-        checkSession(); // Check on mount
+        const interval = setInterval(checkSession, 60000); // Fallback check every minute
+        checkSession(); 
 
-        return () => clearInterval(interval);
+        return () => {
+            supabase.removeChannel(sessionChannel);
+            clearInterval(interval);
+        };
     }, [sessionId, user]);
 
     return (
