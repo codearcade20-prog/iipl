@@ -2213,7 +2213,6 @@ const WagesPage = () => {
                         </div>
                     </div>
                 )}
-            </div>
 
             {/* Subcontractor Modal */}
             {subModalOpen && (
