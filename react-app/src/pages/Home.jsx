@@ -1,10 +1,43 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import styles from './Home.module.css';
 
 const Home = () => {
     const { user, logout, hasPermission } = useAuth();
+    const [searchQuery, setSearchQuery] = useState('');
+
+    const allModules = [
+        { id: 'invoice', path: '/invoice-generator', title: 'Invoice Generator', icon: '📄', text: 'Create and print professional vendor invoices with auto-fill technology.', permission: 'invoice' },
+        { id: 'payment', path: '/payment-request', title: 'Payment Request', icon: '💸', text: 'Generate standardized sub-vendor payment request forms with cloud autofill.', permission: 'payment' },
+        { id: 'history', path: '/history', title: 'Payment & Invoice History', icon: '📜', text: 'View and track the status of all vendor invoices and payment requests.', permission: 'history' },
+        { id: 'workorders', path: '/work-orders', title: 'Work Orders', icon: '📁', text: 'Access and view all project work orders directly via Google Drive repository.', permission: 'workorders' },
+        { id: 'admin', path: '/admin', title: 'Admin Control', icon: '⚙️', text: 'Manage cloud records, update bank details, PAN numbers, and vendor profiles.', permission: 'admin' },
+        { id: 'overview', path: '/project-overview', title: 'Project Overview', icon: '📋', text: 'View project status, site management, and vendor lists in read-only mode.', permission: 'overview' },
+        { id: 'vendor', path: '/vendor-dashboard', title: 'Vendor & Site Dashboard', icon: '📊', text: 'Access the external vendor and site management dashboard.', permission: 'vendor' },
+        { id: 'register', path: '/master-register', title: 'Master Registration', icon: '📋', text: 'Manage master data for Sites and Vendors across the entire system.', permission: 'register' },
+        { id: 'bill', path: '/bill-generator', title: 'Bill Preparation', icon: '📝', text: 'Prepare Running Account Bills (RAB) and Final Bills with detailed tracking.', permission: ['invoice', 'bill'] },
+        { id: 'md', path: '/md', title: 'Managing Director', icon: '👔', text: 'Review and approve petty cash payments with digital signatures and amount adjustment.', permission: ['md', 'admin'] },
+        { id: 'gm', path: '/gm', title: 'General Manager', icon: '👔', text: 'Review payment and invoice history with approval workflows and digital signatures.', permission: ['gm', 'admin'] },
+        { id: 'approved_payments', path: '/approved-payments', title: 'Approved Payments', icon: '✅', text: 'View and print GM-approved payments and invoices with digital signatures.', permission: ['approved_payments', 'admin'] },
+        { id: 'hr', path: '/hr-dashboard', title: 'HR Module', icon: '👥', text: 'Manage employee registrations, details, and payroll information.', permission: ['hr', 'admin'] },
+        { id: 'wages', path: '/wages', title: 'Wages', icon: '💰', text: 'Calculate and manage daily/weekly wages for site workers and labor.', permission: ['wages', 'admin'] },
+        { id: 'accounts', path: '/accounts', title: 'Accounts', icon: '🏦', text: 'Financial management, generalized ledger, and profit & loss reporting.', permission: ['accounts', 'admin'] },
+        { id: 'project_entry', path: '/project-status/entry', title: 'Project Entry', icon: '🏗️', text: 'Create and manage new interior projects, assign coordinators, designers, and site engineers.', permission: 'project_entry' },
+        { id: 'project_status', path: '/project-status/update', title: 'Project Status Update', icon: '📊', text: 'Track project progress, completion percentages, and log daily status updates.', permission: 'project_status' },
+        { id: 'sub_vendor_checklist', path: '/sub-vendor-checklist', title: 'Sub Vendor Checklist', icon: '📋', text: 'Create and manage detailed sub-vendor agreements and project checklists.', permission: 'sub_vendor_checklist' },
+        { id: 'design_team_workflow', path: '/design-team', title: 'Design Team', icon: '🖌️', text: 'Track 11-day design phase workflows, assignments, and approvals.', permission: 'design_team_workflow' }
+    ];
+
+
+
+    const filteredModules = allModules.filter(mod => {
+        const permissions = Array.isArray(mod.permission) ? mod.permission : [mod.permission];
+        const hasPerm = permissions.some(p => hasPermission(p));
+        if (!hasPerm) return false;
+        if (searchQuery && !mod.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+        return true;
+    });
 
     return (
         <div className={styles.container}>
@@ -15,159 +48,33 @@ const Home = () => {
                 </div>
                 <h1 className={styles.companyName}>Innovative Interiors</h1>
                 <div className={styles.dashboardLabel}>IIPL Team Dashboard</div>
+                
+                <div className={styles.searchContainer}>
+                    <span className={styles.searchIcon}>🔍</span>
+                    <input 
+                        type="text" 
+                        placeholder="Search for a module (e.g. Wages, Admin, Invoice...)" 
+                        className={styles.searchInput}
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                </div>
             </header>
 
             <div className={styles.navGrid}>
-                {hasPermission('invoice') && (
-                    <Link to="/invoice-generator" className={styles.navCard}>
-                        <div className={styles.icon}><span role="img" aria-label="invoice">📄</span></div>
-                        <h3 className={styles.cardTitle}>Invoice Generator</h3>
-                        <p className={styles.cardText}>Create and print professional vendor invoices with auto-fill technology.</p>
+                {filteredModules.map(mod => (
+                    <Link key={mod.path} to={mod.path} className={styles.navCard}>
+                        <div className={styles.icon}><span role="img" aria-label={mod.id}>{mod.icon}</span></div>
+                        <h3 className={styles.cardTitle}>{mod.title}</h3>
+                        <p className={styles.cardText}>{mod.text}</p>
                     </Link>
-                )}
-
-                {hasPermission('payment') && (
-                    <Link to="/payment-request" className={styles.navCard}>
-                        <div className={styles.icon}><span role="img" aria-label="payment">💸</span></div>
-                        <h3 className={styles.cardTitle}>Payment Request</h3>
-                        <p className={styles.cardText}>Generate standardized sub-vendor payment request forms with cloud autofill.</p>
-                    </Link>
-                )}
-
-                {hasPermission('history') && (
-                    <Link to="/history" className={styles.navCard}>
-                        <div className={styles.icon}><span role="img" aria-label="history">📜</span></div>
-                        <h3 className={styles.cardTitle}>Payment & Invoice History</h3>
-                        <p className={styles.cardText}>View and track the status of all vendor invoices and payment requests.</p>
-                    </Link>
-                )}
-
-                {hasPermission('workorders') && (
-                    <Link to="/work-orders" className={styles.navCard}>
-                        <div className={styles.icon}><span role="img" aria-label="work orders">📁</span></div>
-                        <h3 className={styles.cardTitle}>Work Orders</h3>
-                        <p className={styles.cardText}>Access and view all project work orders directly via Google Drive repository.</p>
-                    </Link>
-                )}
-
-                {hasPermission('admin') && (
-                    <Link to="/admin" className={styles.navCard}>
-                        <div className={styles.icon}><span role="img" aria-label="admin">⚙️</span></div>
-                        <h3 className={styles.cardTitle}>Admin Control</h3>
-                        <p className={styles.cardText}>Manage cloud records, update bank details, PAN numbers, and vendor profiles.</p>
-                    </Link>
-                )}
-
-                {hasPermission('overview') && (
-                    <Link to="/project-overview" className={styles.navCard}>
-                        <div className={styles.icon}><span role="img" aria-label="overview">📋</span></div>
-                        <h3 className={styles.cardTitle}>Project Overview</h3>
-                        <p className={styles.cardText}>View project status, site management, and vendor lists in read-only mode.</p>
-                    </Link>
-                )}
-
-                {hasPermission('vendor') && (
-                    <Link to="/vendor-dashboard" className={styles.navCard}>
-                        <div className={styles.icon}><span role="img" aria-label="dashboard">📊</span></div>
-                        <h3 className={styles.cardTitle}>Vendor & Site Dashboard</h3>
-                        <p className={styles.cardText}>Access the external vendor and site management dashboard.</p>
-                    </Link>
-                )}
-                
-                {hasPermission('register') && (
-                    <Link to="/master-register" className={styles.navCard}>
-                        <div className={styles.icon}><span role="img" aria-label="register">📋</span></div>
-                        <h3 className={styles.cardTitle}>Master Registration</h3>
-                        <p className={styles.cardText}>Manage master data for Sites and Vendors across the entire system.</p>
-                    </Link>
-                )}
-
-                {(hasPermission('invoice') || hasPermission('bill')) && (
-                    <Link to="/bill-generator" className={styles.navCard}>
-                        <div className={styles.icon}><span role="img" aria-label="bill">📝</span></div>
-                        <h3 className={styles.cardTitle}>Bill Preparation</h3>
-                        <p className={styles.cardText}>Prepare Running Account Bills (RAB) and Final Bills with detailed tracking.</p>
-                    </Link>
-                )}
-
-                {(hasPermission('md') || hasPermission('admin')) && (
-                    <Link to="/md" className={styles.navCard}>
-                        <div className={styles.icon}><span role="img" aria-label="managing director">👔</span></div>
-                        <h3 className={styles.cardTitle}>Managing Director</h3>
-                        <p className={styles.cardText}>Review and approve petty cash payments with digital signatures and amount adjustment.</p>
-                    </Link>
-                )}
-
-                {(hasPermission('gm') || hasPermission('admin')) && (
-                    <Link to="/gm" className={styles.navCard}>
-                        <div className={styles.icon}><span role="img" aria-label="general manager">👔</span></div>
-                        <h3 className={styles.cardTitle}>General Manager</h3>
-                        <p className={styles.cardText}>Review payment and invoice history with approval workflows and digital signatures.</p>
-                    </Link>
-                )}
-
-                {(hasPermission('approved_payments') || hasPermission('admin')) && (
-                    <Link to="/approved-payments" className={styles.navCard}>
-                        <div className={styles.icon}><span role="img" aria-label="approved">✅</span></div>
-                        <h3 className={styles.cardTitle}>Approved Payments</h3>
-                        <p className={styles.cardText}>View and print GM-approved payments and invoices with digital signatures.</p>
-                    </Link>
-                )}
-
-                {(hasPermission('hr') || hasPermission('admin')) && (
-                    <Link to="/hr-dashboard" className={styles.navCard}>
-                        <div className={styles.icon}><span role="img" aria-label="hr">👥</span></div>
-                        <h3 className={styles.cardTitle}>HR Module</h3>
-                        <p className={styles.cardText}>Manage employee registrations, details, and payroll information.</p>
-                    </Link>
-                )}
-
-                {(hasPermission('wages') || hasPermission('admin')) && (
-                    <Link to="/wages" className={styles.navCard}>
-                        <div className={styles.icon}><span role="img" aria-label="wages">💰</span></div>
-                        <h3 className={styles.cardTitle}>Wages</h3>
-                        <p className={styles.cardText}>Calculate and manage daily/weekly wages for site workers and labor.</p>
-                    </Link>
-                )}
-
-                {(hasPermission('accounts') || hasPermission('admin')) && (
-                    <Link to="/accounts" className={styles.navCard}>
-                        <div className={styles.icon}><span role="img" aria-label="accounts">🏦</span></div>
-                        <h3 className={styles.cardTitle}>Accounts</h3>
-                        <p className={styles.cardText}>Financial management, generalized ledger, and profit & loss reporting.</p>
-                    </Link>
-                )}
-
-                {hasPermission('project_entry') && (
-                    <Link to="/project-status/entry" className={styles.navCard}>
-                        <div className={styles.icon}><span role="img" aria-label="project entry">🏗️</span></div>
-                        <h3 className={styles.cardTitle}>Project Entry</h3>
-                        <p className={styles.cardText}>Create and manage new interior projects, assign coordinators, designers, and site engineers.</p>
-                    </Link>
-                )}
-
-                {hasPermission('project_status') && (
-                    <Link to="/project-status/update" className={styles.navCard}>
-                        <div className={styles.icon}><span role="img" aria-label="project status">📊</span></div>
-                        <h3 className={styles.cardTitle}>Project Status Update</h3>
-                        <p className={styles.cardText}>Track project progress, completion percentages, and log daily status updates.</p>
-                    </Link>
-                )}
-
-                {hasPermission('sub_vendor_checklist') && (
-                    <Link to="/sub-vendor-checklist" className={styles.navCard}>
-                        <div className={styles.icon}><span role="img" aria-label="checklist">📋</span></div>
-                        <h3 className={styles.cardTitle}>Sub Vendor Checklist</h3>
-                        <p className={styles.cardText}>Create and manage detailed sub-vendor agreements and project checklists.</p>
-                    </Link>
-                )}
-
-                {hasPermission('design_team_workflow') && (
-                    <Link to="/design-team" className={styles.navCard}>
-                        <div className={styles.icon}><span role="img" aria-label="design">🖌️</span></div>
-                        <h3 className={styles.cardTitle}>Design Team</h3>
-                        <p className={styles.cardText}>Track 11-day design phase workflows, assignments, and approvals.</p>
-                    </Link>
+                ))}
+                {filteredModules.length === 0 && (
+                    <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '60px', color: '#64748b' }}>
+                        <div style={{ fontSize: '3rem', marginBottom: '12px' }}>🔍</div>
+                        <h3>No modules found matching "{searchQuery}"</h3>
+                        <p>Try searching for something else or browse all modules.</p>
+                    </div>
                 )}
             </div>
 
