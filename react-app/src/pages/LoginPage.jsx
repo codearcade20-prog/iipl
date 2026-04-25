@@ -4,7 +4,6 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui';
-import QuoteBot from '../components/QuoteBot';
 import styles from './LoginPage.module.css';
 
 const LoginPage = () => {
@@ -111,7 +110,6 @@ const LoginPage = () => {
                     <p>© 2026 Innovative Interiors</p>
                 </div>
             </div>
-            <QuoteBot />
         </div>
     );
 };

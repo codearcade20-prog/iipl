@@ -11,8 +11,10 @@ import {
     Building,
     MapPin,
     Mail,
-    Phone
+    Phone,
+    FileSpreadsheet
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import styles from './EmployeeList.module.css';
 
 const EmployeeList = () => {
@@ -286,6 +288,36 @@ const EmployeeList = () => {
             emp.location?.toLowerCase().includes(searchTerm.toLowerCase())
         );
     }, [employees, searchTerm]);
+    
+    const downloadExcel = () => {
+        if (filteredEmployees.length === 0) return toast("No data to export");
+        
+        const data = filteredEmployees.map(emp => ({
+            'Employee ID': emp.employee_id,
+            'Full Name': emp.full_name,
+            'Department': emp.department || 'N/A',
+            'Designation': emp.designation || 'N/A',
+            'Location': emp.location || 'N/A',
+            'Phone': emp.phone || 'N/A',
+            'Email': emp.email || 'N/A',
+            'PAN No': emp.pan_no || 'N/A',
+            'Aadhaar No': emp.aadhaar_no || 'N/A',
+            'Bank Name': emp.bank_name || 'N/A',
+            'Account No': emp.account_no || 'N/A',
+            'IFSC Code': emp.ifsc_code || 'N/A',
+            'Basic Salary': emp.basic_salary || 0,
+            'HRA': emp.hra || 0,
+            'PF': emp.pf || 0,
+            'ESI': emp.esi || 0,
+            'Joined Date': emp.created_at ? new Date(emp.created_at).toLocaleDateString() : 'N/A'
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(data);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Employees");
+        XLSX.writeFile(workbook, `IIPL_Employee_Directory_${new Date().toISOString().slice(0, 10)}.xlsx`);
+        toast("Excel file downloaded successfully!");
+    };
 
     return (
         <div className={styles.container}>
@@ -300,6 +332,13 @@ const EmployeeList = () => {
                 </div>
 
                 <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+                    <button 
+                        onClick={downloadExcel} 
+                        className={styles.exportBtn}
+                        style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}
+                    >
+                        <FileSpreadsheet size={18} /> Export Excel
+                    </button>
                     <div className={styles.monthSelector}>
                         <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#64748b' }}>PAY MONTH:</label>
                         <input
@@ -337,31 +376,31 @@ const EmployeeList = () => {
                         {filteredEmployees.length > 0 ? (
                             filteredEmployees.map(emp => (
                                 <tr key={emp.id}>
-                                    <td>
+                                    <td data-label="Employee Details">
                                         <div className={styles.empName}>{emp.full_name}</div>
                                         <div className={styles.empId}>{emp.employee_id}</div>
                                     </td>
-                                    <td>
+                                    <td data-label="Role & Department">
                                         <div style={{ fontWeight: 600 }}>{emp.designation || 'N/A'}</div>
                                         <div className={styles.empId}>{emp.department || 'N/A'}</div>
                                     </td>
-                                    <td>
+                                    <td data-label="Location">
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                                             <MapPin size={12} /> {emp.location || 'N/A'}
                                         </div>
                                     </td>
-                                    <td>
+                                    <td data-label="Contact Info">
                                         <div style={{ fontSize: '0.8rem' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Mail size={12} /> {emp.email || '-'}</div>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Phone size={12} /> {emp.phone || '-'}</div>
                                         </div>
                                     </td>
-                                    <td>
+                                    <td data-label="Basic Salary">
                                         <span className={`${styles.badge} ${styles.blueBadge}`}>
                                             ₹{(parseFloat(emp.basic_salary) || 0).toLocaleString('en-IN')}
                                         </span>
                                     </td>
-                                    <td>
+                                    <td data-label="Actions">
                                         <div style={{ display: 'flex', gap: '8px' }}>
                                             <button
                                                 onClick={() => handleProcessPayroll(emp)}

@@ -1,6 +1,6 @@
 import React from 'react';
-import { HashRouter as Router, Routes, Route } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
+import { HashRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Home from './pages/Home';
 import AdminDashboard from './pages/AdminDashboard';
@@ -44,6 +44,7 @@ import DesignTeamWorkflow from './pages/DesignTeamWorkflow';
 import FinishesList from './pages/FinishesList';
 import LaborPortal from './pages/LaborPortal';
 import MasterRegister from './pages/MasterRegister';
+import AssistantBot from './components/AssistantBot';
 import { MessageProvider } from './context/MessageContext';
 
 function App() {
@@ -105,11 +106,30 @@ function App() {
             {/* Labor Portal - No standard admin auth required */}
             <Route path="/portal" element={<LaborPortal />} />
           </Routes>
-
+          <AssistantBotWrapper />
         </Router>
       </MessageProvider>
     </AuthProvider>
   );
 }
+
+const AssistantBotWrapper = () => {
+  const location = useLocation();
+  const { user } = useAuth();
+  const hidePaths = ['/login', '/signup'];
+  
+  if (hidePaths.includes(location.pathname)) return null;
+  
+  // Enforce Bot Access Permission
+  if (user) {
+    if (!user.is_admin && !user.permissions?.includes('bot_access')) {
+        return null;
+    }
+  } else {
+    return null; // Hide if not logged in
+  }
+
+  return <AssistantBot />;
+};
 
 export default App;

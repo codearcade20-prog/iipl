@@ -3,7 +3,6 @@ import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui';
-import QuoteBot from '../components/QuoteBot';
 import styles from './SignUpPage.module.css';
 
 const SignUpPage = () => {
@@ -88,7 +87,6 @@ const SignUpPage = () => {
                         <Link to="/login" className={styles.loginLink}>Return to Login</Link>
                     </div>
                 </div>
-                <QuoteBot />
             </div>
         );
     }
@@ -157,7 +155,6 @@ const SignUpPage = () => {
                     <p className={styles.copyright}>© 2026 Innovative Interiors</p>
                 </div>
             </div>
-            <QuoteBot />
         </div>
     );
 };

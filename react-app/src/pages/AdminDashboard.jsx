@@ -2505,6 +2505,7 @@ const AdminDashboard = () => {
                                                         { id: 'gm', label: 'General Manager' },
                                                         { id: 'md', label: 'Managing Director' },
                                                         { id: 'approved_payments', label: 'MD Approved Payments' },
+                                                        { id: 'bot_access', label: 'AI Assistant Bot' },
                                                         { id: 'admin', label: 'Admin Access' }
                                                     ]
                                                 }
