@@ -1,8 +1,7 @@
 .container {
-    padding: 30px;
-    max-width: 1600px;
-    margin: 0 auto;
+    width: 100%;
     min-height: 100vh;
+    background-color: #f8fafc;
 }
 
 .authOverlay {
@@ -37,15 +36,18 @@
 
 /* Navbar & Header */
 .topBar {
-    background: white;
-    padding: 20px 30px;
-    border-radius: 16px;
-    box-shadow: var(--shadow-sm);
+    background: #0f172a;
+    padding: 1.5rem 2.5rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 30px;
-    border: 1px solid var(--border-color);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.mainContent {
+    padding: 2rem 2.5rem;
+    width: 100%;
 }
 
 .titleSection {
@@ -57,38 +59,38 @@
 .pageTitle {
     font-size: 1.5rem;
     font-weight: 700;
-    color: var(--text-main);
+    color: white;
 }
 
 .navGroup {
     display: flex;
-    background: var(--bg);
-    padding: 4px;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 6px;
     border-radius: 12px;
-    gap: 4px;
+    gap: 6px;
 }
 
 .navButton {
-    padding: 8px 20px;
+    padding: 10px 24px;
     border-radius: 8px;
     border: none;
     background: transparent;
-    color: var(--text-muted);
+    color: rgba(255, 255, 255, 0.6);
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
-    font-size: 0.9rem;
+    font-size: 0.875rem;
 }
 
 .navButton:hover {
-    color: var(--text-main);
-    background: rgba(255, 255, 255, 0.5);
+    color: white;
+    background: rgba(255, 255, 255, 0.1);
 }
 
 .navButtonActive {
     background: white;
-    color: var(--primary);
-    box-shadow: var(--shadow-sm);
+    color: #0f172a;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 /* Cards & Tables */
@@ -192,6 +194,16 @@
 .badgeBoth {
     background: #fef3c7;
     color: #92400e;
+}
+
+.badgeApproved {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.badgeRejected {
+    background: #fef2f2;
+    color: #b91c1c;
 }
 
 /* Status Select */

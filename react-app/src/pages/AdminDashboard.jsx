@@ -1160,11 +1160,11 @@ const AdminDashboard = () => {
                 </div>
                 <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                     <Link to="/"><Button variant="secondary">Home</Button></Link>
-                    <Button variant="danger" onClick={logout}>Logout</Button>
+                    <Button variant="secondary" onClick={logout} style={{ color: '#ef4444' }}>Logout</Button>
                 </div>
             </div>
 
-            <div className="px-6">
+            <div className={styles.mainContent}>
                 {/* --- HISTORY VIEW --- */}
                 {currentView === 'history' && (
                     <div className={styles.card}>
