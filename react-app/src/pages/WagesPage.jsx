@@ -2057,83 +2057,59 @@ const WagesPage = () => {
         <div className={styles.container}>
             {(loading || isInitialLoad) && <LoadingOverlay message={isInitialLoad ? "Synchronizing Personnel Registry..." : "Fetching Worker Logs..."} />}
             <div className={styles.header}>
-                <div>
-                    <button onClick={() => navigate('/')} className={styles.attnBtn} style={{ background: 'none', border: 'none', color: '#64748b', marginBottom: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', padding: 0 }}>
-                        <ArrowLeft size={16} /> Home
-                    </button>
+                <div className={styles.titleSection} style={{ display: 'flex', gap: '30px', alignItems: 'center' }}>
                     <h1 className={styles.title}>Wages & Personnel</h1>
+                    <div className={styles.tabs} style={{ marginBottom: 0 }}>
+                        <div className={`${styles.tab} ${activeTab === 'attendance' ? styles.activeTab : ''}`} onClick={() => setActiveTab('attendance')}>
+                            <ClipboardList size={18} /> Attendance
+                        </div>
+                        <div className={`${styles.tab} ${activeTab === 'reports' ? styles.activeTab : ''}`} onClick={() => setActiveTab('reports')}>
+                            <DollarSign size={18} /> Payments
+                        </div>
+                        <div className={`${styles.tab} ${activeTab === 'summary' ? styles.activeTab : ''}`} onClick={() => setActiveTab('summary')}>
+                            <BarChart2 size={18} /> Analytics
+                        </div>
+                        <div className={`${styles.tab} ${activeTab === 'engineers' ? styles.activeTab : ''}`} onClick={() => setActiveTab('engineers')}>
+                            <Briefcase size={18} /> Subcontractors
+                        </div>
+                        <div className={`${styles.tab} ${activeTab === 'labors' ? styles.activeTab : ''}`} onClick={() => setActiveTab('labors')}>
+                            <Users size={18} /> Labors
+                        </div>
+                        <div className={`${styles.tab} ${activeTab === 'portalLogs' ? styles.activeTab : ''}`} onClick={() => setActiveTab('portalLogs')}>
+                            <Smartphone size={18} /> Portal Logs
+                        </div>
+                    </div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                    <div className={styles.muted}>Innovative Interiors Pvt Ltd</div>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                    <Button variant="secondary" onClick={() => navigate('/')}>Home</Button>
+                    <Button variant="secondary" onClick={() => setGuideModalOpen(true)}>Guide</Button>
+                </div>
+            </div>
+
+            <div className={styles.mainContent}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
                     <div className={styles.strong} style={{ color: '#2563eb' }}>{new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
-                    <button 
-                        onClick={() => setGuideModalOpen(true)}
-                        style={{
-                            marginTop: '8px',
-                            background: '#eff6ff',
-                            border: '1px solid #bfdbfe',
-                            color: '#1d4ed8',
-                            padding: '4px 12px',
-                            borderRadius: '20px',
-                            fontSize: '0.8rem',
-                            fontWeight: 'bold',
-                            cursor: 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            transition: 'all 0.2s ease',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-                        }}
-                        onMouseOver={(e) => { e.currentTarget.style.background = '#dbeafe'; }}
-                        onMouseOut={(e) => { e.currentTarget.style.background = '#eff6ff'; }}
-                    >
-                        📖 Guide & Notes
-                    </button>
+                    
+                    {activeTab === 'summary' && (
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 600, color: '#475569', fontSize: '0.9rem', background: 'white', padding: '10px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                            <input 
+                                type="checkbox" 
+                                checked={showRawData} 
+                                onChange={e => setShowRawData(e.target.checked)} 
+                                style={{ width: '16px', height: '16px', accentColor: '#2563eb', cursor: 'pointer' }}
+                            />
+                            Show Raw Data (Calc Units & Raw Wages)
+                        </label>
+                    )}
                 </div>
-            </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
-                <div className={styles.tabs} style={{ marginBottom: 0 }}>
-                    <div className={`${styles.tab} ${activeTab === 'attendance' ? styles.activeTab : ''}`} onClick={() => setActiveTab('attendance')}>
-                        <ClipboardList size={18} /> Attendance
-                    </div>
-                    <div className={`${styles.tab} ${activeTab === 'reports' ? styles.activeTab : ''}`} onClick={() => setActiveTab('reports')}>
-                        <DollarSign size={18} /> Payments
-                    </div>
-                    <div className={`${styles.tab} ${activeTab === 'summary' ? styles.activeTab : ''}`} onClick={() => setActiveTab('summary')}>
-                        <BarChart2 size={18} /> Analytics
-                    </div>
-                    <div className={`${styles.tab} ${activeTab === 'engineers' ? styles.activeTab : ''}`} onClick={() => setActiveTab('engineers')}>
-                        <Briefcase size={18} /> Subcontractors
-                    </div>
-                    <div className={`${styles.tab} ${activeTab === 'labors' ? styles.activeTab : ''}`} onClick={() => setActiveTab('labors')}>
-                        <Users size={18} /> Labors
-                    </div>
-                    <div className={`${styles.tab} ${activeTab === 'portalLogs' ? styles.activeTab : ''}`} onClick={() => setActiveTab('portalLogs')}>
-                        <Smartphone size={18} /> Portal Logs
-                    </div>
-                </div>
-                
-                {activeTab === 'summary' && (
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 600, color: '#475569', fontSize: '0.9rem', background: 'white', padding: '10px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-                        <input 
-                            type="checkbox" 
-                            checked={showRawData} 
-                            onChange={e => setShowRawData(e.target.checked)} 
-                            style={{ width: '16px', height: '16px', accentColor: '#2563eb', cursor: 'pointer' }}
-                        />
-                        Show Raw Data (Calc Units & Raw Wages)
-                    </label>
-                )}
-            </div>
-
-            <div className={styles.content}>
                 {activeTab === 'attendance' && renderAttendance()}
                 {activeTab === 'reports' && renderReports()}
                 {activeTab === 'summary' && renderSummary()}
                 {activeTab === 'engineers' && renderSubcontractors()}
                 {activeTab === 'labors' && renderLaborsList()}
                 {activeTab === 'portalLogs' && renderPortalLogs()}
+            </div>
                 {/* --- CORRECTION MODAL --- */}
                 {correctionModalOpen && (
                     <div className={styles.modalOverlay}>
