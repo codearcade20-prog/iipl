@@ -509,7 +509,66 @@
 }
 
 @media (max-width: 768px) {
+    .classicTitle {
+        font-size: 2rem;
+    }
+
+    .classicBadge {
+        font-size: 0.75rem;
+        padding: 6px 16px;
+    }
+
+    .classicSearchSection {
+        max-width: 90%;
+    }
+
+    .classicSearchInput {
+        padding: 0.8rem 1.5rem;
+        font-size: 0.9rem;
+    }
+
+    .classicSearchIcon {
+        right: 1.2rem;
+        font-size: 1.1rem;
+    }
+
     .navGrid {
         grid-template-columns: 1fr;
+        gap: 20px;
+        padding: 0 20px 60px 20px;
+    }
+
+    .classicTopRow {
+        position: relative;
+        top: 0;
+        right: 0;
+        justify-content: space-between;
+        padding: 1rem 1.5rem;
+        width: 100%;
+        background: rgba(255, 255, 255, 0.5);
+        backdrop-filter: blur(5px);
+        margin-bottom: 1rem;
+    }
+
+    .welcomeInfo {
+        font-size: 0.75rem;
+    }
+
+    .topBar {
+        padding: 0.5rem 1rem;
+        flex-direction: column;
+        height: auto;
+        gap: 10px;
+    }
+
+    .searchSection {
+        margin: 0;
+        max-width: 100%;
+        width: 100%;
+    }
+
+    .userControls {
+        width: 100%;
+        justify-content: space-between;
     }
 }

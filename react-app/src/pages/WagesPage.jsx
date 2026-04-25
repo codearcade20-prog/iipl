@@ -2001,16 +2001,16 @@ const WagesPage = () => {
                                 </tr>
                             ) : portalLogs.map(log => (
                                 <tr key={log.id}>
-                                    <td style={{ paddingLeft: '24px' }}>
+                                    <td data-label="Labor Name" style={{ paddingLeft: '24px' }}>
                                         <div className={styles.strong}>{log.labors?.name || 'Unknown'}</div>
                                         <div className={styles.muted}>{log.labors?.phone || '-'}</div>
                                     </td>
-                                    <td>
+                                    <td data-label="Reported Site">
                                         <span className={styles.badge} style={{ background: '#f1f5f9', color: '#475569' }}>
                                             {log.sites?.name || 'Unknown Site'}
                                         </span>
                                     </td>
-                                    <td>
+                                    <td data-label="Time In Snapshot">
                                         {log.time_in_timestamp ? (
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                                 <div style={{ width: '40px', height: '40px', borderRadius: '8px', overflow: 'hidden', background: '#e2e8f0', cursor: 'pointer', border: '1px solid #cbd5e1', flexShrink: 0 }}
@@ -2040,7 +2040,7 @@ const WagesPage = () => {
                                             <span className={styles.muted}>---</span>
                                         )}
                                     </td>
-                                    <td>
+                                    <td data-label="Time Out Snapshot">
                                         {log.time_out_timestamp ? (
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                                 <div style={{ width: '40px', height: '40px', borderRadius: '8px', overflow: 'hidden', background: '#e2e8f0', cursor: 'pointer', border: '1px solid #cbd5e1', flexShrink: 0 }}
@@ -2070,7 +2070,7 @@ const WagesPage = () => {
                                             <span className={styles.muted}>---</span>
                                         )}
                                     </td>
-                                    <td style={{ paddingRight: '24px', textAlign: 'center' }}>
+                                    <td data-label="Action" style={{ paddingRight: '24px', textAlign: 'center' }}>
                                         <button 
                                             onClick={() => deleteAttendanceRecordAndPhotos(log, 'portal')}
                                             style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '8px', borderRadius: '8px', transition: 'all 0.2s' }}
@@ -2174,8 +2174,8 @@ const WagesPage = () => {
                                     <tbody>
                                         {correctionRecords.map((r, idx) => (
                                             <tr key={r.id}>
-                                                <td><div className={styles.strong}>{formatDate(r.work_date)}</div></td>
-                                                <td>
+                                                <td data-label="Work Date"><div className={styles.strong}>{formatDate(r.work_date)}</div></td>
+                                                <td data-label="Site">
                                                     <div style={{ minWidth: '180px' }}>
                                                         <SearchableSelect 
                                                             placeholder="Select Site..."
@@ -2185,7 +2185,7 @@ const WagesPage = () => {
                                                         />
                                                     </div>
                                                 </td>
-                                                <td>
+                                                <td data-label="Category">
                                                     <div style={{ minWidth: '180px' }}>
                                                         <SearchableSelect 
                                                             placeholder="Select Category..."
@@ -2195,14 +2195,14 @@ const WagesPage = () => {
                                                         />
                                                     </div>
                                                 </td>
-                                                <td>
-                                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                                <td data-label="Time (In/Out)">
+                                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
                                                         <TimePicker className={styles.input} value={r.new_time_in} onChange={val => handleCorrectionChange(idx, 'new_time_in', val)} />
-                                                        <span>to</span>
+                                                        <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>to</span>
                                                         <TimePicker className={styles.input} value={r.new_time_out} onChange={val => handleCorrectionChange(idx, 'new_time_out', val)} />
                                                     </div>
                                                 </td>
-                                                <td style={{ textAlign: 'center' }}>
+                                                <td data-label="Attendance Units" style={{ textAlign: 'center' }}>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
                                                         <span style={{ color: '#64748b', fontSize: '0.85rem' }} title="Calculated Units">
                                                             {calculateAttendanceValue(r.new_time_in, r.new_time_out).toFixed(2)}
@@ -2219,16 +2219,16 @@ const WagesPage = () => {
                                                         />
                                                     </div>
                                                 </td>
-                                                <td>
+                                                <td data-label="Raw Wages">
                                                     <input type="number" readOnly className={styles.input} style={{ width: '90px', background: '#f8fafc', color: '#64748b' }} value={r.new_actual_wages} />
                                                 </td>
-                                                <td>
+                                                <td data-label="Final Wages">
                                                     <input type="number" className={styles.input} style={{ width: '100px', fontWeight: 700 }} value={r.new_wages} onChange={e => handleCorrectionChange(idx, 'new_wages', e.target.value)} />
                                                 </td>
-                                                <td>
+                                                <td data-label="Remarks">
                                                     <input type="text" className={styles.input} style={{ width: '100%' }} value={r.new_remarks} onChange={e => handleCorrectionChange(idx, 'new_remarks', e.target.value)} />
                                                 </td>
-                                                <td style={{ textAlign: 'right' }}>
+                                                <td data-label="Actions" style={{ textAlign: 'right' }}>
                                                     <button 
                                                         onClick={() => deleteAttendanceRecordAndPhotos(r, 'correction')} 
                                                         className={`${styles.attnBtn} ${styles.btnA}`} 
