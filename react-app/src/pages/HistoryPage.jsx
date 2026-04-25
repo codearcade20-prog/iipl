@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
@@ -18,6 +19,7 @@ const HistoryPage = () => {
     const [projectSearch, setProjectSearch] = useState('');
     const [viewItem, setViewItem] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
+    const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 });
     const ROWS_PER_PAGE = 10;
     const { alert, confirm, prompt, toast } = useMessage();
     
@@ -368,6 +370,12 @@ const HistoryPage = () => {
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
+                                                        const rect = e.currentTarget.getBoundingClientRect();
+                                                        setDropdownPos({
+                                                            top: rect.bottom + window.scrollY + 4,
+                                                            left: rect.left + window.scrollX,
+                                                            width: rect.width
+                                                        });
                                                         setOpenStatusDropdown(openStatusDropdown === item.id ? null : item.id);
                                                     }}
                                                     className={`${styles.statusSelect} ${styles['status' + (item.status || 'Pending')]}`}
@@ -377,17 +385,17 @@ const HistoryPage = () => {
                                                     <span style={{ fontSize: '0.7rem', opacity: 0.5 }}>▼</span>
                                                 </button>
 
-                                                {openStatusDropdown === item.id && (
+                                                {openStatusDropdown === item.id && ReactDOM.createPortal(
                                                     <>
                                                         <div
-                                                            style={{ position: 'fixed', inset: 0, zIndex: 40 }}
+                                                            style={{ position: 'fixed', inset: 0, zIndex: 9998 }}
                                                             onClick={() => setOpenStatusDropdown(null)}
                                                         />
                                                         <div style={{
                                                             position: 'absolute',
-                                                            top: 'calc(100% + 4px)',
-                                                            left: 0,
-                                                            zIndex: 50,
+                                                            top: dropdownPos.top,
+                                                            left: dropdownPos.left,
+                                                            zIndex: 9999,
                                                             background: 'white',
                                                             border: '1px solid #e2e8f0',
                                                             borderRadius: '12px',
@@ -424,7 +432,8 @@ const HistoryPage = () => {
                                                                 </button>
                                                             ))}
                                                         </div>
-                                                    </>
+                                                    </>,
+                                                    document.body
                                                 )}
                                             </div>
                                             {item.paid_date && <div style={{ fontSize: '0.7rem', color: '#059669', marginTop: '4px', fontWeight: 600 }}>Paid: {formatDate(item.paid_date)}</div>}
