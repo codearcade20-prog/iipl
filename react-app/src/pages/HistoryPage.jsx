@@ -238,6 +238,27 @@ const HistoryPage = () => {
         finally { setLoading(false); }
     };
 
+    const handleRemarksEdit = async (item) => {
+        const text = await prompt(`Edit Remarks for ${item.vendor_name}:`, item.remarks || "");
+        if (text === null) return;
+        
+        setLoading(true);
+        try {
+            const { error } = await supabase
+                .from('payment_history')
+                .update({ remarks: text })
+                .eq('id', item.id);
+            if (error) throw error;
+            
+            setHistory(history.map(h => h.id === item.id ? { ...h, remarks: text } : h));
+            toast('Remarks updated');
+        } catch (e) {
+            alert(e.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     // Filter Logic
     const filteredHistory = history.filter(item => {
         if (statusFilter !== 'All' && item.status !== statusFilter) return false;
@@ -343,6 +364,7 @@ const HistoryPage = () => {
                                     <th style={{ textAlign: 'right' }}>Paid</th>
                                     <th style={{ textAlign: 'right' }}>Remaining</th>
                                     <th>Status</th>
+                                    <th style={{ textAlign: 'center' }}>Remarks</th>
                                     <th style={{ textAlign: 'center' }}>Actions</th>
                                 </tr>
                             </thead>
@@ -437,6 +459,39 @@ const HistoryPage = () => {
                                                 )}
                                             </div>
                                             {item.paid_date && <div style={{ fontSize: '0.7rem', color: '#059669', marginTop: '4px', fontWeight: 600 }}>Paid: {formatDate(item.paid_date)}</div>}
+                                        </td>
+                                        <td style={{ textAlign: 'center' }}>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleRemarksEdit(item);
+                                                }}
+                                                title={item.remarks || "No remarks added"}
+                                                style={{
+                                                    background: item.remarks ? '#f0f9ff' : '#f8fafc',
+                                                    border: '1px solid',
+                                                    borderColor: item.remarks ? '#bae6fd' : '#e2e8f0',
+                                                    color: item.remarks ? '#0369a1' : '#94a3b8',
+                                                    padding: '8px',
+                                                    borderRadius: '10px',
+                                                    cursor: 'pointer',
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    transition: 'all 0.2s',
+                                                    boxShadow: item.remarks ? '0 2px 4px rgba(0,0,0,0.05)' : 'none'
+                                                }}
+                                                onMouseOver={(e) => {
+                                                    e.currentTarget.style.background = '#e0f2fe';
+                                                    e.currentTarget.style.borderColor = '#7dd3fc';
+                                                }}
+                                                onMouseOut={(e) => {
+                                                    e.currentTarget.style.background = item.remarks ? '#f0f9ff' : '#f8fafc';
+                                                    e.currentTarget.style.borderColor = item.remarks ? '#bae6fd' : '#e2e8f0';
+                                                }}
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                                            </button>
                                         </td>
                                         <td style={{ textAlign: 'center' }}>
                                             <Button
