@@ -953,8 +953,8 @@ const WagesPage = () => {
                 labor_id: r.labor_id, // Include required columns
                 work_date: r.work_date,
                 subcontractor_id: r.subcontractor_id,
-                time_in: r.new_time_in,
-                time_out: r.new_time_out,
+                time_in: r.new_time_in || null,
+                time_out: r.new_time_out || null,
                 attendance_value: r.new_attn_val,
                 calculated_attendance_value: calculateAttendanceValue(r.new_time_in, r.new_time_out),
                 wages_amount: parseFloat(r.new_wages) || 0,
