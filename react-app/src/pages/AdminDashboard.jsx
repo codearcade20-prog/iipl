@@ -87,6 +87,7 @@ const AdminDashboard = () => {
     // --- SETTINGS STATE ---
     const [gmSignature, setGmSignature] = useState('');
     const [mdSignature, setMdSignature] = useState('');
+    const [homeTheme, setHomeTheme] = useState('modern');
     const [uploading, setUploading] = useState(false);
     const [uploadingMd, setUploadingMd] = useState(false);
 
@@ -831,13 +832,15 @@ const AdminDashboard = () => {
             const { data, error } = await supabase
                 .from('app_settings')
                 .select('*')
-                .in('setting_key', ['gm_signature_url', 'md_signature_url']);
+                .in('setting_key', ['gm_signature_url', 'md_signature_url', 'home_theme']);
             if (error) throw error;
             if (data) {
                 const gm = data.find(s => s.setting_key === 'gm_signature_url');
                 const md = data.find(s => s.setting_key === 'md_signature_url');
+                const theme = data.find(s => s.setting_key === 'home_theme');
                 if (gm) setGmSignature(gm.setting_value);
                 if (md) setMdSignature(md.setting_value);
+                if (theme) setHomeTheme(theme.setting_value);
             }
         } catch (e) { console.error(e); }
         finally { setSaving(false); }
@@ -919,6 +922,22 @@ const AdminDashboard = () => {
             await alert('Upload failed: ' + e.message);
         } finally {
             setUploadingMd(false);
+        }
+    };
+
+    const updateHomeTheme = async (newTheme) => {
+        setSaving(true);
+        try {
+            const { error } = await supabase
+                .from('app_settings')
+                .upsert({ setting_key: 'home_theme', setting_value: newTheme }, { onConflict: 'setting_key' });
+            if (error) throw error;
+            setHomeTheme(newTheme);
+            toast(`Home page template updated to ${newTheme.toUpperCase()}!`);
+        } catch (e) {
+            await alert('Failed to update theme: ' + e.message);
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -2159,6 +2178,66 @@ const AdminDashboard = () => {
                                         <p style={{ marginTop: '10px', fontSize: '0.75rem', color: '#64748b' }}>
                                             Used for Petty Cash approvals.
                                         </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style={{ marginTop: '40px', paddingTop: '30px', borderTop: '1px solid #e2e8f0' }}>
+                                <h4 style={{ marginBottom: '15px', color: '#1e293b', fontWeight: 700 }}>Home Page Template Management</h4>
+                                <div style={{
+                                    background: '#f8fafc',
+                                    padding: '25px',
+                                    borderRadius: '16px',
+                                    border: '1px solid #e2e8f0',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '15px'
+                                }}>
+                                    <p style={{ fontSize: '0.9rem', color: '#64748b' }}>Select the preferred layout for the team dashboard. Changes are applied globally for all users immediately.</p>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                        <div 
+                                            onClick={() => updateHomeTheme('classic')}
+                                            style={{
+                                                padding: '20px',
+                                                borderRadius: '12px',
+                                                border: '2px solid',
+                                                borderColor: homeTheme === 'classic' ? '#2563eb' : '#e2e8f0',
+                                                background: homeTheme === 'classic' ? '#eff6ff' : 'white',
+                                                cursor: 'pointer',
+                                                transition: 'all 0.2s',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                alignItems: 'center',
+                                                gap: '10px',
+                                                boxShadow: homeTheme === 'classic' ? '0 4px 12px rgba(37, 99, 235, 0.1)' : 'none'
+                                            }}
+                                        >
+                                            <div style={{ fontSize: '2rem' }}>🏛️</div>
+                                            <div style={{ fontWeight: 700, color: homeTheme === 'classic' ? '#2563eb' : '#475569' }}>Classic Template</div>
+                                            <div style={{ fontSize: '0.75rem', color: '#94a3b8', textAlign: 'center' }}>Centered titles, large search, and hero typography.</div>
+                                        </div>
+                                        
+                                        <div 
+                                            onClick={() => updateHomeTheme('modern')}
+                                            style={{
+                                                padding: '20px',
+                                                borderRadius: '12px',
+                                                border: '2px solid',
+                                                borderColor: homeTheme === 'modern' ? '#2563eb' : '#e2e8f0',
+                                                background: homeTheme === 'modern' ? '#eff6ff' : 'white',
+                                                cursor: 'pointer',
+                                                transition: 'all 0.2s',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                alignItems: 'center',
+                                                gap: '10px',
+                                                boxShadow: homeTheme === 'modern' ? '0 4px 12px rgba(37, 99, 235, 0.1)' : 'none'
+                                            }}
+                                        >
+                                            <div style={{ fontSize: '2rem' }}>⚡</div>
+                                            <div style={{ fontWeight: 700, color: homeTheme === 'modern' ? '#2563eb' : '#475569' }}>Modern Template</div>
+                                            <div style={{ fontSize: '0.75rem', color: '#94a3b8', textAlign: 'center' }}>Fixed top bar with integrated search and compact branding.</div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

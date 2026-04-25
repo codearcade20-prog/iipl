@@ -611,6 +611,13 @@ const WagesPage = () => {
         });
     };
 
+    const toNullableTime = (timeStr) => {
+        if (!timeStr || timeStr.trim() === '' || timeStr === '00:00') return null;
+        // Basic HH:mm validation
+        if (/^\d{2}:\d{2}$/.test(timeStr)) return timeStr;
+        return null;
+    };
+
     const saveAttendance = async () => {
         setLoading(true);
         try {
@@ -631,8 +638,8 @@ const WagesPage = () => {
                     site_id: selectedSite,
                     subcontractor_id: labor.subcontractor_id || null,
                     work_date: selectedDate,
-                    time_in: entry.time_in || null,
-                    time_out: entry.time_out || null,
+                    time_in: toNullableTime(entry.time_in),
+                    time_out: toNullableTime(entry.time_out),
                     attendance_value: entry.attn_val || 0,
                     calculated_attendance_value: entry.calc_attn_val !== undefined ? entry.calc_attn_val : calculateAttendanceValue(entry.time_in, entry.time_out),
                     wages_amount: parseFloat(entry.wages) || 0,
@@ -953,8 +960,8 @@ const WagesPage = () => {
                 labor_id: r.labor_id, // Include required columns
                 work_date: r.work_date,
                 subcontractor_id: r.subcontractor_id,
-                time_in: r.new_time_in || null,
-                time_out: r.new_time_out || null,
+                time_in: toNullableTime(r.new_time_in),
+                time_out: toNullableTime(r.new_time_out),
                 attendance_value: r.new_attn_val,
                 calculated_attendance_value: calculateAttendanceValue(r.new_time_in, r.new_time_out),
                 wages_amount: parseFloat(r.new_wages) || 0,
@@ -1444,6 +1451,7 @@ const WagesPage = () => {
                             <th>Days Worked</th>
                             <th>Weekly Wages</th>
                             <th>Payment Status</th>
+                            <th>Remarks</th>
                             <th style={{ textAlign: 'right' }}>Management</th>
                         </tr>
                     </thead>
@@ -1491,6 +1499,23 @@ const WagesPage = () => {
                                     <span className={`${styles.badge} ${r.status === 'Paid' ? styles.badgePaid : styles.badgePending}`}>
                                         <DollarSign size={12} style={{ marginRight: 4 }} /> {r.status}
                                     </span>
+                                </td>
+                                <td>
+                                    <div style={{ position: 'relative' }}>
+                                        <button 
+                                            className={styles.remarksHoverBtn}
+                                            onMouseEnter={(e) => {
+                                                const allRemarks = r.records.map(rec => rec.remarks).filter(Boolean).join(' | ');
+                                                if (allRemarks) {
+                                                    setHoveredLabor({ name: 'Aggregate Remarks', remarks: allRemarks });
+                                                    setMousePos({ x: e.clientX, y: e.clientY });
+                                                }
+                                            }}
+                                            onMouseLeave={() => setHoveredLabor(null)}
+                                        >
+                                            👁️ View
+                                        </button>
+                                    </div>
                                 </td>
                                 <td style={{ textAlign: 'right' }}>
                                     <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
@@ -1901,7 +1926,20 @@ const WagesPage = () => {
                                         </td>
                                         <td data-label="Time In" style={{ fontWeight: 600, color: '#2563eb' }}>{formatTime12h(r.time_in)}</td>
                                         <td data-label="Time Out" style={{ fontWeight: 600, color: '#2563eb' }}>{formatTime12h(r.time_out)}</td>
-                                        <td data-label="Remarks" style={{ fontSize: '0.85rem' }}>{r.remarks || '---'}</td>
+                                        <td data-label="Remarks" style={{ fontSize: '0.85rem' }}>
+                                            {r.remarks ? (
+                                                <button 
+                                                    className={styles.remarksHoverBtn}
+                                                    onMouseEnter={(e) => {
+                                                        setHoveredLabor({ name: 'Entry Remark', remarks: r.remarks });
+                                                        setMousePos({ x: e.clientX, y: e.clientY });
+                                                    }}
+                                                    onMouseLeave={() => setHoveredLabor(null)}
+                                                >
+                                                    📝 Note
+                                                </button>
+                                            ) : '---'}
+                                        </td>
                                         {showRawData && <td data-label="Calc Attn" style={{ textAlign: 'center', color: '#8b5cf6', fontWeight: 600 }}>{r.calculated_attendance_value !== undefined && r.calculated_attendance_value !== null ? parseFloat(r.calculated_attendance_value).toFixed(3) : calculateAttendanceValue(r.time_in, r.time_out).toFixed(3)}</td>}
                                         <td data-label="Attn Val" style={{ textAlign: 'center' }}>{r.attendance_value}</td>
                                         {showRawData && <td data-label="Raw Wages" style={{ textAlign: 'right', color: '#8b5cf6', fontWeight: 600 }}>₹{(r.raw_wages_amount !== undefined && r.raw_wages_amount !== null ? parseFloat(r.raw_wages_amount) : (parseFloat(r.attendance_value) || 0) * (r.labors?.daily_rate || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>}
@@ -2435,7 +2473,7 @@ const WagesPage = () => {
                 </div>
             )}
 
-            {hoveredLabor && hoveredLabor.photo_url && (
+            {hoveredLabor && (hoveredLabor.photo_url || hoveredLabor.remarks) && (
                 <div 
                     style={{
                         position: 'fixed',
@@ -2443,49 +2481,77 @@ const WagesPage = () => {
                         top: mousePos.y - 120,
                         zIndex: 9999,
                         background: 'white',
-                        padding: '10px',
-                        borderRadius: '20px',
-                        boxShadow: '0 25px 60px rgba(0,0,0,0.4)',
-                        border: '3px solid #3b82f6',
+                        padding: '12px',
+                        borderRadius: '16px',
+                        boxShadow: '0 20px 50px rgba(0,0,0,0.25)',
+                        border: '1px solid #e2e8f0',
                         pointerEvents: 'none',
                         animation: 'fadeIn 0.2s ease-out',
                         display: 'flex',
                         flexDirection: 'column',
-                        alignItems: 'center'
+                        width: 'max-content',
+                        maxWidth: '300px'
                     }}
                 >
-                    <div style={{ 
-                        width: '200px', 
-                        height: '200px', 
-                        borderRadius: '12px', 
-                        background: '#f1f5f9', 
-                        overflow: 'hidden',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        position: 'relative'
-                    }}>
-                        <img 
-                            src={getPhotoUrl(hoveredLabor.photo_url)} 
-                            alt={hoveredLabor.name} 
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                            referrerPolicy="no-referrer"
-                            onError={(e) => { 
-                                // Use an inline SVG instead of an external placeholder to avoid "Local Network Access" prompts
-                                e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23f1f5f9'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='14' fill='%2364748b'%3EPhoto Unavailable%3C/text%3E%3C/svg%3E";
-                            }}
-                        />
-                    </div>
-                    <div style={{ marginTop: '10px', textAlign: 'center' }}>
-                        <div style={{ fontWeight: 800, fontSize: '14px', color: '#1e3a8a' }}>{hoveredLabor.name}</div>
-                        <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>
-                            {hoveredLabor.photo_url.includes('drive.google') ? '⚠️ Check Drive Permissions' : 'Supabase Storage'}
+                    {hoveredLabor.photo_url ? (
+                        <div style={{ 
+                            width: '200px', 
+                            height: '200px', 
+                            borderRadius: '12px', 
+                            background: '#f1f5f9', 
+                            overflow: 'hidden',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            position: 'relative',
+                            marginBottom: '10px'
+                        }}>
+                            <img 
+                                src={getPhotoUrl(hoveredLabor.photo_url)} 
+                                alt={hoveredLabor.name} 
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                                referrerPolicy="no-referrer"
+                                onError={(e) => { 
+                                    e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23f1f5f9'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='14' fill='%2364748b'%3EPhoto Unavailable%3C/text%3E%3C/svg%3E";
+                                }}
+                            />
                         </div>
-                    </div>
+                    ) : (
+                        <div style={{ background: '#f8fafc', padding: '8px', borderRadius: '8px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div style={{ padding: '6px', background: '#3b82f6', borderRadius: '6px', color: 'white' }}>
+                                <ClipboardList size={14} />
+                            </div>
+                            <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e3a8a' }}>{hoveredLabor.name}</span>
+                        </div>
+                    )}
+                    
+                    {hoveredLabor.remarks && (
+                        <div style={{ 
+                            background: '#f1f5f9', 
+                            padding: '10px', 
+                            borderRadius: '10px', 
+                            fontSize: '13px', 
+                            color: '#475569',
+                            lineHeight: '1.4',
+                            borderLeft: '4px solid #3b82f6'
+                        }}>
+                            {hoveredLabor.remarks}
+                        </div>
+                    )}
+
+                    {!hoveredLabor.remarks && (
+                        <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontWeight: 800, fontSize: '14px', color: '#1e3a8a' }}>{hoveredLabor.name}</div>
+                            <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>
+                                {hoveredLabor.photo_url?.includes('drive.google') ? '⚠️ Check Drive Permissions' : 'Supabase Storage'}
+                            </div>
+                        </div>
+                    )}
+                    
                     <style>{`
                         @keyframes fadeIn {
-                            from { opacity: 0; transform: scale(0.9); }
-                            to { opacity: 1; transform: scale(1); }
+                            from { opacity: 0; transform: scale(0.95) translateY(10px); }
+                            to { opacity: 1; transform: scale(1) translateY(0); }
                         }
                     `}</style>
                 </div>
