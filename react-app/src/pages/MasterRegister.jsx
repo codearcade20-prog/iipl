@@ -205,13 +205,13 @@ const MasterRegister = () => {
                         className={`${styles.navItem} ${currentView === 'sites' ? styles.navItemActive : ''}`}
                         onClick={() => setCurrentView('sites')}
                     >
-                        <Building2 size={18} /> Sites Register
+                        <Building2 size={18} /> <span>Sites Register</span>
                     </button>
                     <button
                         className={`${styles.navItem} ${currentView === 'vendors' ? styles.navItemActive : ''}`}
                         onClick={() => setCurrentView('vendors')}
                     >
-                        <Users size={18} /> Vendors Master
+                        <Users size={18} /> <span>Vendors Master</span>
                     </button>
                 </nav>
 
@@ -229,7 +229,7 @@ const MasterRegister = () => {
                         <p className={styles.subtitle}>Register and update master credentials</p>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+                    <div className={styles.topBarActions}>
                         <div className={styles.searchBar}>
                             <Search size={18} />
                             <input
@@ -241,7 +241,7 @@ const MasterRegister = () => {
                         </div>
                         <Button 
                             onClick={currentView === 'sites' ? () => openSiteModal() : () => openVendorModal()}
-                            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.25rem', borderRadius: '2rem' }}
+                            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.25rem', borderRadius: '2rem', whiteSpace: 'nowrap', justifyContent: 'center' }}
                         >
                             <Plus size={18} /> Add {currentView === 'sites' ? 'Site' : 'Vendor'}
                         </Button>
@@ -265,10 +265,10 @@ const MasterRegister = () => {
                                         <tbody>
                                             {filteredSites.map(s => (
                                                 <tr key={s.id}>
-                                                    <td style={{ fontWeight: 600, color: '#1e293b' }}>{s.name}</td>
-                                                    <td>{s.location || '-'}</td>
-                                                    <td>{s.client || '-'}</td>
-                                                    <td>
+                                                    <td data-label="Site Name" style={{ fontWeight: 600, color: '#1e293b' }}>{s.name}</td>
+                                                    <td data-label="Location">{s.location || '-'}</td>
+                                                    <td data-label="Client">{s.client || '-'}</td>
+                                                    <td data-label="Actions">
                                                         <div className={styles.actions}>
                                                             <button 
                                                                 onClick={() => openSiteModal(s)}
@@ -299,15 +299,15 @@ const MasterRegister = () => {
                                         <tbody>
                                             {filteredVendors.map(v => (
                                                 <tr key={v.id}>
-                                                    <td style={{ fontWeight: 600, color: '#1e293b' }}>{v.vendor_name}</td>
-                                                    <td>
+                                                    <td data-label="Vendor Name" style={{ fontWeight: 600, color: '#1e293b' }}>{v.vendor_name}</td>
+                                                    <td data-label="Type">
                                                         <span className={`${styles.badge} ${v.vendor_type === 'payment_request' ? styles.badgePayment : v.vendor_type === 'invoice' ? styles.badgeInvoice : styles.badgeBoth}`}>
                                                             {v.vendor_type === 'payment_request' ? 'Payment' : v.vendor_type === 'invoice' ? 'Invoice' : 'Both'}
                                                         </span>
                                                     </td>
-                                                    <td>{v.bank_name || '-'}</td>
-                                                    <td style={{ fontFamily: 'monospace', color: '#64748b' }}>{v.account_number || '-'}</td>
-                                                    <td>
+                                                    <td data-label="Bank Name">{v.bank_name || '-'}</td>
+                                                    <td data-label="Account No" style={{ fontFamily: 'monospace', color: '#64748b' }}>{v.account_number || '-'}</td>
+                                                    <td data-label="Actions">
                                                         <div className={styles.actions}>
                                                             <button 
                                                                 onClick={() => openVendorModal(v)}

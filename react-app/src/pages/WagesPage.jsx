@@ -1038,10 +1038,10 @@ const WagesPage = () => {
         return (
             <div className={styles.card}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '20px', marginBottom: '32px' }}>
-                    <div style={{ flex: '1', minWidth: '300px' }}>
+                    <div style={{ flex: '1', minWidth: 'unset' }}>
                         {renderFilterBar(true, true, true)}
                     </div>
-                    <div style={{ position: 'relative', minWidth: '280px', marginTop: '4px' }}>
+                    <div style={{ position: 'relative', minWidth: 'unset', marginTop: '4px' }}>
                         <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', color: '#94a3b8', marginBottom: '8px', letterSpacing: '0.1em' }}>Find Worker</label>
                         <div style={{ position: 'relative' }}>
                             <input
@@ -1288,14 +1288,14 @@ const WagesPage = () => {
                         <tbody>
                             {filtered.map(e => (
                                 <tr key={e.id}>
-                                    <td><span className={styles.strong}>{e.name}</span></td>
-                                    <td>{e.phone}</td>
-                                    <td>
+                                    <td data-label="Subcontractor Name"><span className={styles.strong}>{e.name}</span></td>
+                                    <td data-label="Contact Info">{e.phone}</td>
+                                    <td data-label="Status">
                                         <span className={`${styles.badge} ${e.status === 'Active' ? styles.badgePaid : styles.badgePending}`}>
                                             {e.status}
                                         </span>
                                     </td>
-                                    <td style={{ textAlign: 'right' }}>
+                                    <td data-label="Actions" style={{ textAlign: 'right' }}>
                                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                                             <button onClick={() => openSubModal(e)} className={styles.attnBtn} title="Edit"><Edit size={16} /></button>
                                             <button onClick={() => deleteItem('subcontractors', e.id)} className={`${styles.attnBtn} ${styles.btnA}`} title="Delete"><Trash2 size={16} /></button>
@@ -1324,14 +1324,14 @@ const WagesPage = () => {
 
         return (
             <div className={styles.card}>
-                <div className={styles.header}>
-                    <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flex: 1 }}>
+                <div className={styles.header} style={{ flexWrap: 'wrap', gap: '16px' }}>
+                    <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flex: '1', minWidth: '280px' }}>
                         <h3 className={styles.title} style={{ fontSize: '1.25rem', margin: 0 }}>Labor Personnel Directory</h3>
-                        <div style={{ position: 'relative', flex: 0.6 }}>
+                        <div style={{ position: 'relative', flex: '1' }}>
                             <input
                                 type="text"
                                 className={styles.input}
-                                placeholder="Search by name, phone or site..."
+                                placeholder="Search..."
                                 value={searchLabor}
                                 onChange={e => setSearchLabor(e.target.value)}
                                 style={{ paddingLeft: '35px' }}
@@ -1359,17 +1359,17 @@ const WagesPage = () => {
                         <tbody>
                             {filtered.map(l => (
                                 <tr key={l.id}>
-                                    <td><span className={styles.strong}>{l.name}</span></td>
-                                    <td>{l.phone}</td>
-                                    <td>
+                                    <td data-label="Labor Name"><span className={styles.strong}>{l.name}</span></td>
+                                    <td data-label="Contact">{l.phone}</td>
+                                    <td data-label="Role">
                                         <div className={styles.strong}>{l.role || '-'}</div>
                                         <div className={styles.muted} style={{ fontSize: '0.8rem' }}>{l.designation || '-'}</div>
                                     </td>
-                                    <td>
+                                    <td data-label="Subcontractor">
                                         <div className={styles.strong}>{l.subcontractors?.name || 'Unassigned'}</div>
                                     </td>
-                                    <td><span className={styles.price}>₹{l.daily_rate}</span></td>
-                                    <td>
+                                    <td data-label="Rate"><span className={styles.price}>₹{l.daily_rate}</span></td>
+                                    <td data-label="Status">
                                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                                             <span className={`${styles.badge} ${l.status === 'Active' ? styles.badgePaid : styles.badgePending}`}>
                                                 {l.status}
@@ -1388,7 +1388,7 @@ const WagesPage = () => {
                                             )}
                                         </div>
                                     </td>
-                                    <td style={{ textAlign: 'right' }}>
+                                    <td data-label="Actions" style={{ textAlign: 'right' }}>
                                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                                             <button onClick={() => openLaborModal(l)} className={styles.attnBtn} title="Edit"><Edit size={16} /></button>
                                             <button onClick={() => deleteItem('labors', l.id)} className={`${styles.attnBtn} ${styles.btnA}`} title="Delete"><Trash2 size={16} /></button>
@@ -1443,7 +1443,7 @@ const WagesPage = () => {
                     </div>
                 </div>
             </div>
-            <div className={styles.tableContainer}>
+            <div className={styles.tableContainer} style={{ overflowX: 'hidden' }}>
                 <table className={styles.table}>
                     <thead>
                         <tr>
@@ -1460,7 +1460,7 @@ const WagesPage = () => {
                             const laborObj = labors.find(l => l.id === r.labor_id);
                             return (
                             <tr key={i}>
-                                <td>
+                                <td data-label="Labor Name / Contact">
                                     <div 
                                         className={styles.strong}
                                         style={{ cursor: 'pointer', display: 'inline-block' }}
@@ -1487,20 +1487,20 @@ const WagesPage = () => {
                                     </div>
                                     <div className={styles.muted}>{r.phone}</div>
                                 </td>
-                                <td>
+                                <td data-label="Days Worked">
                                     <span style={{ fontWeight: 600 }}>{r.days_present}</span> <span className={styles.muted}>days</span>
                                 </td>
-                                <td>
+                                <td data-label="Weekly Wages">
                                     <span className={styles.price} style={{ fontSize: '1.1rem', color: '#0f172a' }}>
                                         ₹{parseFloat(r.total_wages).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                     </span>
                                 </td>
-                                <td>
+                                <td data-label="Payment Status">
                                     <span className={`${styles.badge} ${r.status === 'Paid' ? styles.badgePaid : styles.badgePending}`}>
                                         <DollarSign size={12} style={{ marginRight: 4 }} /> {r.status}
                                     </span>
                                 </td>
-                                <td>
+                                <td data-label="Remarks">
                                     <div style={{ position: 'relative' }}>
                                         <button 
                                             className={styles.remarksHoverBtn}
@@ -1517,8 +1517,8 @@ const WagesPage = () => {
                                         </button>
                                     </div>
                                 </td>
-                                <td style={{ textAlign: 'right' }}>
-                                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                <td data-label="Management" style={{ textAlign: 'right' }}>
+                                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                                         <Button size="sm" variant="outline" onClick={() => openCorrectionModal(r)}>
                                             <Edit size={14} style={{ marginRight: 4 }} /> Correction
                                         </Button>
@@ -2095,9 +2095,9 @@ const WagesPage = () => {
         <div className={styles.container}>
             {(loading || isInitialLoad) && <LoadingOverlay message={isInitialLoad ? "Synchronizing Personnel Registry..." : "Fetching Worker Logs..."} />}
             <div className={styles.header}>
-                <div className={styles.titleSection} style={{ display: 'flex', gap: '30px', alignItems: 'center' }}>
+                <div className={styles.titleSection}>
                     <h1 className={styles.title}>Wages & Personnel</h1>
-                    <div className={styles.tabs} style={{ marginBottom: 0 }}>
+                    <div className={styles.tabs}>
                         <div className={`${styles.tab} ${activeTab === 'attendance' ? styles.activeTab : ''}`} onClick={() => setActiveTab('attendance')}>
                             <ClipboardList size={18} /> Attendance
                         </div>

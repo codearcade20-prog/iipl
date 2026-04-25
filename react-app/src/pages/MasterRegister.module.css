@@ -5,7 +5,7 @@
     background-color: #f8fafc;
     height: 100vh;
     display: flex;
-    overflow: hidden;
+    overflow-x: hidden;
 }
 
 .dashboardContainer * {
@@ -367,4 +367,117 @@
     justify-content: flex-end;
     gap: 1rem;
     flex-shrink: 0;
+}
+@media (max-width: 1024px) {
+    .sidebar {
+        width: 80px;
+        padding: 1rem 0.5rem;
+    }
+    .brand span, .sidebarFooter p, .navItem span, .sidebarFooter Link {
+        display: none;
+    }
+    .brand { justify-content: center; margin-bottom: 2rem; }
+    .navItem { justify-content: center; padding: 0.75rem; }
+    .sidebarFooter { padding-top: 1rem; }
+}
+
+@media (max-width: 768px) {
+    .dashboardContainer {
+        flex-direction: column;
+        height: auto;
+        overflow-y: auto;
+    }
+    .sidebar {
+        width: 100%;
+        flex-direction: row;
+        height: auto;
+        padding: 0.75rem 1rem;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        align-items: center;
+        gap: 1rem;
+    }
+    .brand {
+        margin-bottom: 0;
+        font-size: 1.1rem;
+    }
+    .brand span { display: block; font-size: 0.9rem; }
+    .navLinks {
+        flex-direction: row;
+        margin-left: auto;
+        gap: 0.5rem;
+    }
+    .navItem {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.8rem;
+    }
+    .navItem span { display: none; }
+    .sidebarFooter { display: none; }
+
+    .mainContent {
+        overflow: visible;
+    }
+    .topBar {
+        flex-direction: column;
+        padding: 1.5rem 1rem;
+        gap: 1.5rem;
+        align-items: flex-start;
+    }
+    .searchBar {
+        width: 100%;
+    }
+    .topBar > div:last-child {
+        width: 100%;
+        justify-content: space-between;
+    }
+    .contentArea {
+        padding: 1rem;
+    }
+
+    .table thead { display: none; }
+    .table tr {
+        display: block;
+        background: white;
+        border: 1px solid #f1f5f9;
+        border-radius: 1rem;
+        margin-bottom: 1.5rem;
+        padding: 1rem;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+    }
+    .table td {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #f1f5f9;
+        gap: 4px;
+    }
+    .table td:last-child { border-bottom: none; }
+    .table td::before {
+        content: attr(data-label);
+        font-weight: 700;
+        color: #94a3b8;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .table td[data-label="Actions"] {
+        flex-direction: row;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 1rem;
+    }
+    .table td[data-label="Actions"]::before {
+        margin-right: auto;
+    }
+
+    .modal {
+        width: 100%;
+        margin: 0;
+        max-height: 95vh;
+        border-radius: 1.5rem 1.5rem 0 0;
+        position: fixed;
+        bottom: 0;
+    }
 }

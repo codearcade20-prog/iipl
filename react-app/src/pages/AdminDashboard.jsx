@@ -1132,7 +1132,7 @@ const AdminDashboard = () => {
     }
 
     return (
-        <div className={styles.container}>
+        <div className={styles.container} style={{ overflowX: 'hidden' }}>
             {(loadingVendors || loadingHistory || loadingBin || loadingSites || saving) && <LoadingOverlay message={saving ? "Saving Changes..." : "Fetching Data..."} />}
             {/* Navbar */}
             <div className={styles.topBar}>
@@ -1311,9 +1311,9 @@ const AdminDashboard = () => {
                                         <th>Type</th>
                                         <th>Vendor</th>
                                         <th>Project</th>
-                                        <th style={{ textAlign: 'right' }}>Total Amount</th>
-                                        <th style={{ textAlign: 'right' }}>Paid</th>
-                                        <th style={{ textAlign: 'right' }}>Remaining</th>
+                                        <th>Total Amount</th>
+                                        <th>Paid</th>
+                                        <th>Remaining</th>
                                         <th>Status</th>
                                         <th style={{ textAlign: 'center' }}>Actions</th>
                                     </tr>
@@ -1327,13 +1327,13 @@ const AdminDashboard = () => {
                                                     {item.type === 'invoice' ? 'INVOICE' : 'PAYMENT'}
                                                 </span>
                                             </td>
-                                            <td data-label="Vendor" style={{ fontWeight: 500 }}>{item.vendor_name}</td>
+                                            <td data-label="Vendor">{item.vendor_name}</td>
                                             <td data-label="Project">{item.project}</td>
-                                            <td data-label="Total Amount" style={{ textAlign: 'right', fontWeight: 700 }}>₹{item.amount?.toLocaleString('en-IN')}</td>
-                                            <td data-label="Paid" style={{ textAlign: 'right', color: 'green', fontWeight: 600 }}>
+                                            <td data-label="Total Amount" style={{ textAlign: 'right' }}>₹{item.amount?.toLocaleString('en-IN')}</td>
+                                            <td data-label="Paid" style={{ textAlign: 'right' }}>
                                                 ₹{(item.status === 'Paid' ? item.amount : (item.paid_amount || 0)).toLocaleString('en-IN')}
                                             </td>
-                                            <td data-label="Remaining" style={{ textAlign: 'right', color: (item.remaining_amount > 0 ? 'red' : 'inherit'), fontWeight: 600 }}>
+                                            <td data-label="Remaining" style={{ textAlign: 'right' }}>
                                                 ₹{(item.remaining_amount ?? (item.status === 'Paid' ? 0 : item.amount))?.toLocaleString('en-IN')}
                                             </td>
                                             <td data-label="Status">
@@ -1413,7 +1413,7 @@ const AdminDashboard = () => {
                                                 </div>
                                                 {item.paid_date && <div style={{ fontSize: '0.7rem', color: 'green', marginTop: '2px' }}>Paid: {item.paid_date}</div>}
                                             </td>
-                                            <td style={{ textAlign: 'center', display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                                            <td data-label="Actions" style={{ textAlign: 'center', display: 'flex', gap: '8px', justifyContent: 'center' }}>
                                                 <button
                                                     onClick={() => setViewItem(item)}
                                                     className={styles.actionBtn}
@@ -1526,46 +1526,38 @@ const AdminDashboard = () => {
                                         <th>Type</th>
                                         <th>Vendor</th>
                                         <th>Details</th>
-                                        <th style={{ textAlign: 'right' }}>Amount Paid</th>
-                                        <th style={{ textAlign: 'center' }}>Status</th>
+                                        <th>Amount Paid</th>
+                                        <th>Status</th>
                                         <th style={{ textAlign: 'center' }}>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {paginatedClearance.map(item => (
                                         <tr key={item.id}>
-                                            <td data-label="Paid Date" style={{ fontWeight: 600 }}>{item.paid_date || item.date}</td>
-                                            <td data-label="Type" style={{ textTransform: 'uppercase', fontSize: '0.8rem' }}>{item.type?.replace('_', ' ')}</td>
-                                            <td data-label="Vendor" style={{ fontWeight: 600 }}>{item.vendor_name}</td>
-                                            <td data-label="Details" style={{ color: 'var(--text-muted)' }}>
+                                            <td data-label="Paid Date">{item.paid_date || item.date}</td>
+                                            <td data-label="Type">{item.type?.replace('_', ' ')}</td>
+                                            <td data-label="Vendor">{item.vendor_name}</td>
+                                            <td data-label="Details">
                                                 {item.project} <br />
-                                                <span style={{ fontSize: '0.8rem' }}>
-                                                    <strong>WO:</strong> {item.wo_no || item.invoice_no || '-'}
-                                                </span>
+                                                <span>{item.wo_no || item.invoice_no || '-'}</span>
                                             </td>
-                                            <td data-label="Amount Paid" style={{ textAlign: 'right', fontWeight: 700, color: 'var(--accent)' }}>₹{item.amount?.toLocaleString('en-IN')}</td>
-                                            <td data-label="Status" style={{ textAlign: 'center' }}>
-                                                <span className={`${styles.badge} ${styles.badgePaid}`}>PAID</span>
-                                            </td>
+                                            <td data-label="Amount Paid">₹{item.amount?.toLocaleString('en-IN')}</td>
+                                            <td data-label="Status">PAID</td>
                                             <td data-label="Actions" style={{ textAlign: 'center' }}>
                                                 {!item.is_moved && (
                                                     <button
                                                         onClick={() => openMoveModal(item)}
                                                         className={styles.actionBtn}
                                                         title="Move to Vendor Advances"
-                                                        style={{ background: 'var(--primary)', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}
                                                     >
                                                         Move ➡️
                                                     </button>
                                                 )}
-                                                {item.is_moved && (
-                                                    <span style={{ fontSize: '0.8rem', color: '#059669', fontWeight: 600 }}>Moved ✅</span>
-                                                )}
+                                                {item.is_moved && <span>Moved ✅</span>}
                                                 <button
                                                     onClick={() => setViewItem(item)}
                                                     className={styles.actionBtn}
                                                     title="View Template"
-                                                    style={{ marginLeft: '8px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }}
                                                 >
                                                     👁️
                                                 </button>
@@ -1573,7 +1565,6 @@ const AdminDashboard = () => {
                                                     onClick={() => deleteHistory(item.id)}
                                                     className={styles.actionBtn}
                                                     title="Delete Record"
-                                                    style={{ marginLeft: '8px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }}
                                                 >
                                                     🗑️
                                                 </button>
@@ -1584,17 +1575,6 @@ const AdminDashboard = () => {
                                         <tr><td colSpan="7" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>No paid items in clearance list yet.</td></tr>
                                     )}
                                 </tbody>
-                                {clearanceList.length > 0 && (
-                                    <tfoot style={{ background: '#f0fdf4', borderTop: '2px solid #bbf7d0' }}>
-                                        <tr>
-                                            <td colSpan="4" style={{ textAlign: 'right', fontWeight: 'bold', padding: '15px', color: '#166534' }}>Total Clearance Amount:</td>
-                                            <td style={{ textAlign: 'right', fontWeight: 'bold', fontSize: '1.1rem', color: '#15803d', padding: '15px' }}>
-                                                ₹{clearanceTotal.toLocaleString('en-IN')}
-                                            </td>
-                                            <td colSpan="2"></td>
-                                        </tr>
-                                    </tfoot>
-                                )}
                             </table>
                         </div>
                         <Pagination
@@ -1635,19 +1615,15 @@ const AdminDashboard = () => {
                                 <tbody>
                                     {paginatedVendors.map(v => (
                                         <tr key={v.id}>
-                                            <td data-label="Name" style={{ fontWeight: 500 }}>{v.vendor_name}</td>
-                                            <td data-label="Type">
-                                                <span className={`${styles.badge} ${v.vendor_type === 'payment_request' ? styles.badgePayment : v.vendor_type === 'invoice' ? styles.badgeInvoice : styles.badgeBoth}`}>
-                                                    {v.vendor_type === 'payment_request' ? 'Payment' : v.vendor_type === 'invoice' ? 'Invoice' : 'Both'}
-                                                </span>
-                                            </td>
+                                            <td data-label="Name">{v.vendor_name}</td>
+                                            <td data-label="Type">{v.vendor_type}</td>
                                             <td data-label="Bank">{v.bank_name}</td>
-                                            <td data-label="Account" style={{ fontFamily: 'monospace' }}>{v.account_number}</td>
+                                            <td data-label="Account">{v.account_number}</td>
                                             <td data-label="Actions">
                                                 <div className={styles.actions}>
-                                                    <Button variant="outline" style={{ padding: '4px 8px', fontSize: '0.8rem', marginRight: '6px', borderColor: 'var(--primary)', color: 'var(--primary)' }} onClick={() => setPrintVendor(v)}>Share</Button>
-                                                    <Button variant="secondary" style={{ padding: '4px 8px', fontSize: '0.8rem' }} onClick={() => openVendorModal(v)}>Edit</Button>
-                                                    <Button variant="danger" style={{ padding: '4px 8px', fontSize: '0.8rem' }} onClick={() => deleteVendor(v.id)}>Del</Button>
+                                                    <Button variant="outline" onClick={() => setPrintVendor(v)}>Share</Button>
+                                                    <Button variant="secondary" onClick={() => openVendorModal(v)}>Edit</Button>
+                                                    <Button variant="danger" onClick={() => deleteVendor(v.id)}>Del</Button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -1683,41 +1659,20 @@ const AdminDashboard = () => {
                                 </thead>
                                 <tbody>
                                     {paginatedBin.map(bin => {
-                                        // Safe access to data
                                         const original = bin.data || {};
                                         return (
                                             <tr key={bin.id}>
-                                                <td data-label="Deleted At" style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                                                    {new Date(bin.deleted_at).toLocaleString()}
-                                                </td>
-                                                <td data-label="Vendor" style={{ fontWeight: 500 }}>{original.vendor_name || 'Unknown'}</td>
-                                                <td data-label="Amount" style={{ fontWeight: 600 }}>₹{original.amount}</td>
-                                                <td data-label="Details" style={{ fontSize: '0.85rem' }}>
-                                                    {original.project}<br />
-                                                    <span style={{ color: '#64748b' }}>WO: {original.wo_no || original.invoice_no}</span>
-                                                </td>
+                                                <td data-label="Deleted At">{new Date(bin.deleted_at).toLocaleString()}</td>
+                                                <td data-label="Vendor">{original.vendor_name || 'Unknown'}</td>
+                                                <td data-label="Amount">₹{original.amount}</td>
+                                                <td data-label="Details">{original.project}</td>
                                                 <td data-label="Actions">
-                                                    <div className="flex gap-2">
-                                                        <Button
-                                                            onClick={() => restoreFromBin(bin.id, original)}
-                                                            style={{ background: '#22c55e', color: 'white', padding: '4px 10px', fontSize: '0.8rem' }}
-                                                        >
-                                                            Recycle ♻️
-                                                        </Button>
-                                                        <Button
-                                                            onClick={() => permanentDelete(bin.id)}
-                                                            style={{ background: '#ef4444', color: 'white', padding: '4px 10px', fontSize: '0.8rem' }}
-                                                        >
-                                                            Delete Forever
-                                                        </Button>
-                                                    </div>
+                                                    <Button onClick={() => restoreFromBin(bin.id, original)}>Recycle ♻️</Button>
+                                                    <Button onClick={() => permanentDelete(bin.id)}>Delete Forever</Button>
                                                 </td>
                                             </tr>
                                         );
                                     })}
-                                    {binItems.length === 0 && (
-                                        <tr><td colSpan="5" style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>Bin is empty.</td></tr>
-                                    )}
                                 </tbody>
                             </table>
                         </div>
@@ -1733,105 +1688,66 @@ const AdminDashboard = () => {
                 {currentView === 'users' && (
                     <div className={styles.card}>
                         <div className={styles.cardHeader}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                                <h3 className={styles.cardTitle}>App User Management</h3>
-                                <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '10px', overflowX: 'auto', maxWidth: '100%', whiteSpace: 'nowrap', msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
+                            <h3 className={styles.cardTitle}>App User Management</h3>
+                            <Button onClick={() => openUserModal()}>+ Add User</Button>
+                        </div>
+                        <div style={{ padding: '15px 20px', background: '#f8fafc', borderBottom: '1px solid var(--border-color)' }}>
+                            <div className={styles.filterGrid}>
+                                <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '10px', overflowX: 'auto', whiteSpace: 'nowrap' }}>
                                     <button
                                         onClick={() => setUserFilter('all')}
                                         className={`${styles.filterBtn} ${userFilter === 'all' ? styles.active : ''}`}
-                                        style={{ border: 'none', padding: '6px 12px', fontSize: '0.8rem', borderRadius: '8px', cursor: 'pointer', background: userFilter === 'all' ? 'white' : 'transparent', boxShadow: userFilter === 'all' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none', fontWeight: 600, flex: '0 0 auto' }}
+                                        style={{ border: 'none', padding: '6px 12px', fontSize: '0.8rem', borderRadius: '8px', cursor: 'pointer', background: userFilter === 'all' ? 'white' : 'transparent', fontWeight: 600 }}
                                     >
                                         All
                                     </button>
                                     <button
                                         onClick={() => setUserFilter('pending')}
                                         className={`${styles.filterBtn} ${userFilter === 'pending' ? styles.active : ''}`}
-                                        style={{ border: 'none', padding: '6px 12px', fontSize: '0.8rem', borderRadius: '8px', cursor: 'pointer', background: userFilter === 'pending' ? 'white' : 'transparent', boxShadow: userFilter === 'pending' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none', fontWeight: 600, color: userFilter === 'pending' ? '#ef4444' : '#64748b', flex: '0 0 auto' }}
+                                        style={{ border: 'none', padding: '6px 12px', fontSize: '0.8rem', borderRadius: '8px', cursor: 'pointer', background: userFilter === 'pending' ? 'white' : 'transparent', fontWeight: 600, color: userFilter === 'pending' ? '#ef4444' : '#64748b' }}
                                     >
-                                        Pending Approval
+                                        Pending
                                     </button>
                                     <button
                                         onClick={() => setUserFilter('approved')}
                                         className={`${styles.filterBtn} ${userFilter === 'approved' ? styles.active : ''}`}
-                                        style={{ border: 'none', padding: '6px 12px', fontSize: '0.8rem', borderRadius: '8px', cursor: 'pointer', background: userFilter === 'approved' ? 'white' : 'transparent', boxShadow: userFilter === 'approved' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none', fontWeight: 600, color: userFilter === 'approved' ? '#10b981' : '#64748b', flex: '0 0 auto' }}
+                                        style={{ border: 'none', padding: '6px 12px', fontSize: '0.8rem', borderRadius: '8px', cursor: 'pointer', background: userFilter === 'approved' ? 'white' : 'transparent', fontWeight: 600, color: userFilter === 'approved' ? '#10b981' : '#64748b' }}
                                     >
                                         Approved
                                     </button>
                                 </div>
-                            </div>
-                            <Button onClick={() => openUserModal()}>+ Add User</Button>
-                        </div>
-
-                        <div style={{ padding: '15px 20px', background: '#f8fafc', borderBottom: '1px solid var(--border-color)' }}>
-                            <div style={{ display: 'flex', gap: '15px' }}>
-                                <div style={{ flex: 1, position: 'relative' }}>
-                                    <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}>🔍</span>
-                                    <input
-                                        type="text"
-                                        placeholder="Search users by name or department..."
-                                        value={userSearch}
-                                        onChange={(e) => setUserSearch(e.target.value)}
-                                        style={{ width: '100%', padding: '10px 10px 10px 35px', border: '1px solid var(--border-color)', borderRadius: '10px', fontSize: '0.9rem' }}
-                                    />
-                                </div>
-                                {userSearch && (
-                                    <button
-                                        onClick={() => setUserSearch('')}
-                                        style={{ padding: '0 12px', background: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '0.8rem', cursor: 'pointer' }}
-                                    >
-                                        Clear
-                                    </button>
-                                )}
+                                <input
+                                    type="text"
+                                    placeholder="Search users..."
+                                    value={userSearch}
+                                    onChange={(e) => setUserSearch(e.target.value)}
+                                    style={{ padding: '8px 12px', border: '1px solid var(--border-color)', borderRadius: '8px', fontSize: '0.9rem' }}
+                                />
                             </div>
                         </div>
-
                         <div className={styles.tableWrapper}>
                             <table className={styles.table}>
                                 <thead>
                                     <tr>
                                         <th>Username</th>
-                                        <th>Role / Department</th>
-                                        <th>Permissions</th>
+                                        <th>Role / Team</th>
+                                        <th>Status</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {paginatedUsers.map(u => (
-                                        <tr key={u.id} style={u.is_pending ? { backgroundColor: '#fdf2f2' } : {}}>
-                                            <td data-label="Username" style={{ fontWeight: 600 }}>
-                                                {u.username}
-                                                {u.is_pending && <span style={{ marginLeft: '8px', fontSize: '0.7rem', color: '#ef4444', border: '1px solid #ef4444', padding: '1px 4px', borderRadius: '4px' }}>NEW REQUEST</span>}
-                                            </td>
-                                            <td data-label="Role / Dept">
-                                                <div className="flex flex-col gap-1">
-                                                    <span className={`${styles.badge} ${u.is_admin ? styles.badgeInvoice : styles.badgeBoth}`} style={{ width: 'fit-content' }}>
-                                                        {u.is_admin ? 'Admin' : 'Operator'}
-                                                    </span>
-                                                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>{u.team_role || 'No Department'}</span>
-                                                </div>
-                                            </td>
-                                            <td data-label="Permissions" style={{ fontSize: '0.8rem' }}>
-                                                {u.is_admin ? 'ALL' : (u.permissions?.join(', ') || 'None')}
-                                            </td>
+                                        <tr key={u.id}>
+                                            <td data-label="Username">{u.username}</td>
+                                            <td data-label="Role / Team">{u.team_role || 'No Role'}</td>
+                                            <td data-label="Status">{u.is_approved ? 'Approved' : 'Pending'}</td>
                                             <td data-label="Actions">
-                                                <div className="flex gap-2">
-                                                    {u.is_pending && (
-                                                        <Button
-                                                            style={{ background: '#10b981', padding: '4px 10px', fontSize: '0.8rem' }}
-                                                            onClick={() => approveUser(u)}
-                                                        >
-                                                            Approve
-                                                        </Button>
-                                                    )}
-                                                    <Button variant="secondary" onClick={() => openUserModal(u)}>Edit</Button>
-                                                    <Button variant="danger" onClick={() => deleteAppUser(u.id)}>Del</Button>
-                                                </div>
+                                                <Button onClick={() => approveUser(u)}>Approve</Button>
+                                                <Button onClick={() => openUserModal(u)}>Edit</Button>
+                                                <Button onClick={() => deleteAppUser(u.id)}>Del</Button>
                                             </td>
                                         </tr>
                                     ))}
-                                    {filteredUsers.length === 0 && (
-                                        <tr><td colSpan="4" style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>No users found matching your criteria.</td></tr>
-                                    )}
                                 </tbody>
                             </table>
                         </div>
@@ -1851,13 +1767,15 @@ const AdminDashboard = () => {
                             <Button onClick={() => openSiteModal()}>+ Add New Site</Button>
                         </div>
                         <div style={{ padding: '15px 20px', background: '#f8fafc', borderBottom: '1px solid var(--border-color)' }}>
-                            <input
-                                type="text"
-                                placeholder="Search sites by name, location or client..."
-                                value={siteSearch}
-                                onChange={(e) => setSiteSearch(e.target.value)}
-                                style={{ width: '100%', padding: '10px 15px', border: '1px solid var(--border-color)', borderRadius: '10px', fontSize: '0.95rem', background: 'white', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
-                            />
+                            <div className={styles.filterGrid}>
+                                <input
+                                    type="text"
+                                    placeholder="Search sites by name, location or client..."
+                                    value={siteSearch}
+                                    onChange={(e) => setSiteSearch(e.target.value)}
+                                    style={{ width: '100%', padding: '10px 15px', border: '1px solid var(--border-color)', borderRadius: '10px', fontSize: '0.95rem', background: 'white' }}
+                                />
+                            </div>
                         </div>
                         <div className={styles.tableWrapper}>
                             <table className={styles.table}>
@@ -1866,19 +1784,19 @@ const AdminDashboard = () => {
                                         <th>Site Name</th>
                                         <th>Location</th>
                                         <th>Client</th>
-                                        <th style={{ textAlign: 'center' }}>Actions</th>
+                                        <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {paginatedSites.map(s => (
                                         <tr key={s.id}>
-                                            <td data-label="Site Name" style={{ fontWeight: 600 }}>{s.name}</td>
+                                            <td data-label="Site Name" style={{ fontWeight: 700 }}>{s.name}</td>
                                             <td data-label="Location">{s.location || '-'}</td>
                                             <td data-label="Client">{s.client || '-'}</td>
-                                            <td data-label="Actions" style={{ textAlign: 'center' }}>
-                                                <div className={styles.actions} style={{ justifyContent: 'center' }}>
+                                            <td data-label="Actions">
+                                                <div className={styles.actionButtons}>
                                                     <Link to={`/vendor-dashboard?site=${encodeURIComponent(s.name)}`}>
-                                                        <Button variant="outline" style={{ padding: '4px 8px', fontSize: '0.8rem', marginRight: '6px', borderColor: 'var(--primary)', color: 'var(--primary)' }}>View</Button>
+                                                        <Button variant="outline" style={{ padding: '4px 8px', fontSize: '0.8rem', marginRight: '6px' }}>View</Button>
                                                     </Link>
                                                     <Button variant="secondary" style={{ padding: '4px 8px', fontSize: '0.8rem' }} onClick={() => openSiteModal(s)}>Edit</Button>
                                                     <Button variant="danger" style={{ padding: '4px 8px', fontSize: '0.8rem', marginLeft: '6px' }} onClick={() => deleteSite(s.id)}>Del</Button>
