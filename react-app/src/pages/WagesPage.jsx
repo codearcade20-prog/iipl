@@ -25,7 +25,8 @@ import {
     Download,
     Smartphone,
     Camera,
-    MapPin
+    MapPin,
+    Plus
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import styles from './WagesPage.module.css';
@@ -282,6 +283,7 @@ const WagesPage = () => {
     const [sites, setSites] = useState([]);
     const [subcontractors, setSubcontractors] = useState([]);
     const [labors, setLabors] = useState([]);
+    const [designations, setDesignations] = useState([]);
 
     // Filter States
     const [selectedSite, setSelectedSite] = useState('');
@@ -295,6 +297,8 @@ const WagesPage = () => {
 
     // Labor Management States
     const [laborModalOpen, setLaborModalOpen] = useState(false);
+    const [designationModalOpen, setDesignationModalOpen] = useState(false);
+    const [newDesignation, setNewDesignation] = useState('');
     const [editingLabor, setEditingLabor] = useState(null);
     const [laborForm, setLaborForm] = useState({
         name: '', phone: '', subcontractor_id: '', role: '', designation: '', daily_rate: 0, status: 'Active', photo_url: ''
@@ -361,10 +365,11 @@ const WagesPage = () => {
     const fetchInitialData = async (isSilent = false) => {
         if (!isSilent) setLoading(true);
         try {
-            const [sitesRes, subRes, laborsRes] = await Promise.all([
+            const [sitesRes, subRes, laborsRes, desigRes] = await Promise.all([
                 supabase.from('sites').select('id, name').order('name'),
                 supabase.from('subcontractors').select('id, name, phone, status').order('name'),
-                supabase.from('labors').select('*, subcontractors(name)').order('name')
+                supabase.from('labors').select('*, subcontractors(name)').order('name'),
+                supabase.from('wages_labor_designation').select('*').order('name')
             ]);
 
             if (sitesRes.error) throw sitesRes.error;
@@ -375,6 +380,7 @@ const WagesPage = () => {
             setSites(siteData);
             setSubcontractors(subRes.data || []);
             setLabors(laborsRes.data || []);
+            setDesignations(desigRes.data || []);
 
             // Auto-select first site if none selected
             if (siteData.length > 0 && !selectedSite) {
@@ -754,6 +760,32 @@ const WagesPage = () => {
             setLoading(false); 
             setUploadingLaborPhoto(false);
         }
+    };
+
+    // --- DESIGNATION CRUD ---
+    const saveDesignation = async () => {
+        if (!newDesignation.trim()) return;
+        setLoading(true);
+        try {
+            const { error } = await supabase.from('wages_labor_designation').insert([{ name: newDesignation.trim() }]);
+            if (error) throw error;
+            setNewDesignation('');
+            fetchInitialData(true);
+            toast('Designation added!');
+        } catch (error) { alert(error.message); }
+        finally { setLoading(false); }
+    };
+
+    const deleteDesignation = async (id) => {
+        if (!await confirm('Delete this designation?')) return;
+        setLoading(true);
+        try {
+            const { error } = await supabase.from('wages_labor_designation').delete().eq('id', id);
+            if (error) throw error;
+            fetchInitialData(true);
+            toast('Designation deleted.');
+        } catch (error) { alert(error.message); }
+        finally { setLoading(false); }
     };
 
     // --- SUBCONTRACTOR CRUD ---
@@ -1340,9 +1372,17 @@ const WagesPage = () => {
                             <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
                         </div>
                     </div>
-                    <Button onClick={() => openLaborModal()}>
-                        <UserPlus size={18} style={{ marginRight: 8 }} /> Add Labor
-                    </Button>
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                        <Button 
+                            onClick={() => setDesignationModalOpen(true)}
+                            style={{ background: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca' }}
+                        >
+                            <Plus size={18} style={{ marginRight: 8 }} /> Add Designation
+                        </Button>
+                        <Button onClick={() => openLaborModal()}>
+                            <UserPlus size={18} style={{ marginRight: 8 }} /> Add Labor
+                        </Button>
+                    </div>
                 </div>
                 <div className={styles.tableContainer}>
                     <table className={styles.table}>
@@ -2108,6 +2148,48 @@ const WagesPage = () => {
     };
 
 
+    const renderDesignationModal = () => {
+        return (
+            <div className={styles.modalOverlay}>
+                <div className={styles.modal} style={{ maxWidth: '450px' }}>
+                    <div className={styles.modalHeader}>
+                        <h3>Manage Designations</h3>
+                        <p className={styles.muted}>Add or remove labor categories</p>
+                    </div>
+                    <div style={{ padding: '20px' }}>
+                        <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+                            <input 
+                                className={styles.input}
+                                placeholder="New Designation (e.g. Foreman)"
+                                value={newDesignation}
+                                onChange={e => setNewDesignation(e.target.value)}
+                            />
+                            <Button onClick={saveDesignation}>Add</Button>
+                        </div>
+                        <div style={{ maxHeight: '300px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+                            {designations.length === 0 ? (
+                                <div style={{ padding: '20px', textAlign: 'center', color: '#94a3b8' }}>No designations yet</div>
+                            ) : designations.map(d => (
+                                <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid #f1f5f9' }}>
+                                    <span style={{ fontWeight: 600, color: '#334155' }}>{d.name}</span>
+                                    <button 
+                                        onClick={() => deleteDesignation(d.id)}
+                                        style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    <div className={styles.modalActions}>
+                        <Button variant="outline" onClick={() => setDesignationModalOpen(false)}>Close</Button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
     return (
         <div className={styles.container}>
             {(loading || isInitialLoad) && <LoadingOverlay message={isInitialLoad ? "Synchronizing Personnel Registry..." : "Fetching Worker Logs..."} />}
@@ -2165,6 +2247,9 @@ const WagesPage = () => {
                 {activeTab === 'labors' && renderLaborsList()}
                 {activeTab === 'portalLogs' && renderPortalLogs()}
             </div>
+                {/* --- DESIGNATION MODAL --- */}
+                {designationModalOpen && renderDesignationModal()}
+
                 {/* --- CORRECTION MODAL --- */}
                 {correctionModalOpen && (
                     <div className={styles.modalOverlay}>
@@ -2328,7 +2413,16 @@ const WagesPage = () => {
                                 </div>
                                 <div className={styles.formGroup}>
                                     <label className={styles.label}>Designation</label>
-                                    <input className={styles.input} placeholder="e.g. Senior, Junior" value={laborForm.designation} onChange={e => setLaborForm({ ...laborForm, designation: e.target.value })} />
+                                    <select 
+                                        className={styles.input} 
+                                        value={laborForm.designation} 
+                                        onChange={e => setLaborForm({ ...laborForm, designation: e.target.value })}
+                                    >
+                                        <option value="">-- Select Designation --</option>
+                                        {designations.map(d => (
+                                            <option key={d.id} value={d.name}>{d.name}</option>
+                                        ))}
+                                    </select>
                                 </div>
                             </div>
                             <div className={styles.formGroup} style={{ marginTop: '12px' }}>
