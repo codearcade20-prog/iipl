@@ -1218,7 +1218,7 @@ const WagesPage = () => {
                                             <td data-label="Units (Calc)" style={{ textAlign: 'center' }}>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
                                                     <span style={{ color: '#0f172a', fontWeight: 'bold', fontSize: '1rem' }}>
-                                                        {(entry.calc_attn_val !== undefined && entry.calc_attn_val !== 0 ? entry.calc_attn_val : calculateAttendanceValue(entry.time_in || '00:00', entry.time_out || '00:00')).toFixed(2)}
+                                                        {(entry.calc_attn_val !== undefined && entry.calc_attn_val !== 0 ? entry.calc_attn_val : calculateAttendanceValue(entry.time_in || '00:00', entry.time_out || '00:00')).toFixed(3)}
                                                     </span>
                                                 </div>
                                             </td>
@@ -2360,7 +2360,7 @@ const WagesPage = () => {
                                                 <td data-label="Attendance Units" style={{ textAlign: 'center' }}>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
                                                         <span style={{ color: '#64748b', fontSize: '0.85rem' }} title="Calculated Units">
-                                                            {calculateAttendanceValue(r.new_time_in || '00:00', r.new_time_out || '00:00').toFixed(2)}
+                                                            {calculateAttendanceValue(r.new_time_in || '00:00', r.new_time_out || '00:00').toFixed(3)}
                                                         </span>
                                                         <input
                                                             type="number"
