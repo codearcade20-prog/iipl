@@ -2540,9 +2540,10 @@ const WagesPage = () => {
                             <h5 style={{ color: '#2563eb', marginBottom: '8px' }}>Time Slabs & Hourly Rates:</h5>
                             <p style={{ fontSize: '0.85rem', marginBottom: '12px', color: '#64748b' }}>Rates are calculated as <em>Multipliers</em> of the Daily Wage Rate.</p>
                             <ul style={{ listStyleType: 'none', paddingLeft: '12px', marginBottom: '16px' }}>
-                                <li style={{ marginBottom: '4px' }}><strong>Morning Shift (6:00 AM – 9:30 AM):</strong> 3.5 hrs &rarr; <span style={{ color: '#ea580c', fontWeight: 600 }}>0.1428</span> / hr</li>
+                                <li style={{ marginBottom: '4px' }}><strong>Morning Shift (6:00 AM – 9:30 AM):</strong> 3.5 hrs &rarr; <span style={{ color: '#ea580c', fontWeight: 600 }}>0.1429</span> / hr</li>
                                 <li style={{ marginBottom: '4px' }}><strong>Day Shift (9:30 AM – 6:00 PM):</strong> 8.5 hrs &rarr; <span style={{ color: '#ea580c', fontWeight: 600 }}>0.1176</span> / hr</li>
-                                <li style={{ marginBottom: '4px' }}><strong>Night Shift (6:00 PM – 2:00 AM):</strong> 8.0 hrs &rarr; <span style={{ color: '#ea580c', fontWeight: 600 }}>0.1250</span> / hr</li>
+                                <li style={{ marginBottom: '4px' }}><strong>Evening Shift (6:00 PM – 9:30 PM):</strong> 3.5 hrs &rarr; <span style={{ color: '#ea580c', fontWeight: 600 }}>0.1429</span> / hr</li>
+                                <li style={{ marginBottom: '4px' }}><strong>Night Shift (9:30 PM – 2:00 AM):</strong> 4.5 hrs &rarr; <span style={{ color: '#ea580c', fontWeight: 600 }}>0.1111</span> / hr</li>
                             </ul>
 
                             <h5 style={{ color: '#2563eb', marginBottom: '8px' }}>Calculation Steps:</h5>
@@ -2555,15 +2556,16 @@ const WagesPage = () => {
 
                             <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '8px', borderLeft: '4px solid #10b981', marginBottom: '24px' }}>
                                 <h5 style={{ margin: '0 0 8px 0', color: '#047857' }}>✅ Example Calculation</h5>
-                                <p style={{ margin: '4px 0' }}><strong>Time:</strong> 7:00 AM – 7:00 PM (12 hrs total)</p>
+                                <p style={{ margin: '4px 0' }}><strong>Time:</strong> 6:00 AM – 9:30 PM</p>
                                 <p style={{ margin: '4px 0', paddingLeft: '12px', color: '#475569', fontSize: '0.9rem' }}>
-                                    &bull; 7:00 AM to 9:30 AM (2.5 hrs) &times; 0.1428 = 0.357<br />
-                                    &bull; 9:30 AM to 6:00 PM (8.5 hrs) &times; 0.1176 = 1.000<br />
-                                    &bull; 6:00 PM to 7:00 PM (1.0 hrs) &times; 0.1250 = 0.125
+                                    &bull; 6:00 AM to 9:30 AM (3.5 hrs) &times; 0.1429 = 0.5<br />
+                                    &bull; 9:30 AM to 6:00 PM (8.5 hrs) &times; 0.1176 = 1.0<br />
+                                    &bull; 6:00 PM to 9:30 PM (3.5 hrs) &times; 0.1429 = 0.5<br />
+                                    &bull; Night Shift: Not worked
                                 </p>
-                                <p style={{ margin: '8px 0 4px 0' }}><strong>Sum of Units</strong> = 0.357 + 1.000 + 0.125 = <strong>1.482</strong></p>
-                                <p style={{ margin: '4px 0' }}><strong>If Daily Rate</strong> = ₹1000</p>
-                                <p style={{ margin: '8px 0 0 0', fontWeight: 'bold', fontSize: '1.1rem' }}>Final Wage = 1.482 &times; 1000 = ₹1482</p>
+                                <p style={{ margin: '8px 0 4px 0' }}><strong>Sum of Units</strong> = 0.5 + 1.0 + 0.5 = <strong>2.0 Days</strong></p>
+                                <p style={{ margin: '4px 0' }}><strong>If Daily Rate</strong> = ₹900</p>
+                                <p style={{ margin: '8px 0 0 0', fontWeight: 'bold', fontSize: '1.1rem' }}>Final Wage = 2.0 &times; 900 = ₹1800</p>
                             </div>
 
                             <h4 style={{ color: '#0f172a', borderBottom: '2px solid #e2e8f0', paddingBottom: '6px', marginBottom: '12px' }}>2. Wages Calculation & Rounding</h4>
@@ -2622,13 +2624,13 @@ const WagesPage = () => {
                             </table>
 
                             <h4 style={{ color: '#0f172a', borderBottom: '2px solid #e2e8f0', paddingBottom: '6px', marginBottom: '12px' }}>3. How to Record Daily Logs</h4>
-                            <p style={{ marginBottom: '8px' }}>Step-by-step workflow for the <strong>Attendance Tab</strong>:</p>
+                            <p style={{ marginBottom: '8px' }}>Step-by-step workflow for the system:</p>
                             <ol style={{ paddingLeft: '20px', marginBottom: '0' }}>
                                 <li>Select the <strong>Project Site</strong>, <strong>Subcontractor</strong>, and <strong>Wage Category</strong> at the top bar.</li>
                                 <li>Select the appropriate <strong>Date</strong> for logging.</li>
-                                <li>For every active labor listed below, input their Time In and Time Out. The system auto-calculates units & limits.</li>
-                                <li>Add any optional text to the 'Remarks' field.</li>
-                                <li>Once all fields are prepared, hit the <strong>Save Daily Attendance</strong> button at the bottom. The laborers will vanish from the entry list for that date.</li>
+                                <li>Select workers using checkboxes and input their <strong>Time In</strong>.</li>
+                                <li>Hit the <strong>Save Selected</strong> button. The laborers will move to the Payments tab.</li>
+                                <li>To log check-outs, go to the Payments tab, click <strong>Correction</strong> on a worker's record, and enter their <strong>Time Out</strong>.</li>
                             </ol>
 
                         </div>
