@@ -178,7 +178,6 @@ const BillGenerator = () => {
         const cumAmt = rate * cQty;
         const varQty = oQty - cQty;
         const varAmt = orderAmt - cumAmt;
-        const bQty = cQty * (rabPerc / 100);
         const rabAmt = cumAmt * (rabPerc / 100);
         const iiplAmt = iiplRate * cQty;
 
@@ -188,7 +187,6 @@ const BillGenerator = () => {
             cumAmt,
             varQty,
             varAmt,
-            bQty,
             rabAmt,
             iiplAmt
         };
@@ -207,19 +205,19 @@ const BillGenerator = () => {
 
     const totalDeductions = advances.filter(a => a.type === 'DEDUCTION').reduce((sum, adv) => sum + (parseFloat(adv.amount) || 0), 0);
     const totalAdditions = advances.filter(a => a.type === 'ADDITION').reduce((sum, adv) => sum + (parseFloat(adv.amount) || 0), 0);
-    
+
     // Proper bill calculation per guide
     const certifiedBillValue = grandTotals.rabAmt + totalAdditions;
     const subtotal = Math.max(0, certifiedBillValue - totalDeductions);
     const gstAmount = formData.includeGst ? (subtotal * 0.18) : 0;
     const grossSubtotal = subtotal + gstAmount;
-    
+
     const hkPercent = parseFloat(formData.housekeepingPercent) || 0;
     const retPercent = parseFloat(formData.retentionPercent) || 0;
-    
+
     const housekeepingAmt = hkPercent > 0 ? (grossSubtotal * (hkPercent / 100)) : 0;
     const retentionAmt = retPercent > 0 ? (grossSubtotal * (retPercent / 100)) : 0;
-    
+
     const netPayable = grossSubtotal - housekeepingAmt - retentionAmt;
 
     const handlePrint = () => setPrintModalOpen(true);
@@ -249,7 +247,7 @@ const BillGenerator = () => {
                 wsData.push([
                     sNo++, item.desc, item.ml, item.unit, item.rate, item.orderQty, item.orderAmt,
                     item.cumulativeQty, item.cumAmt, item.varQty, item.varAmt,
-                    item.bQty, item.rabPercent, item.rabAmt
+                    item.cumulativeQty, item.rabPercent, item.rabAmt
                 ]);
             }
         });
@@ -736,9 +734,9 @@ const BillGenerator = () => {
                 onClose={() => setPrintModalOpen(false)}
                 onConfirm={confirmPrint}
             />
-            <RabGuideModal 
-                isOpen={guideModalOpen} 
-                onClose={() => setGuideModalOpen(false)} 
+            <RabGuideModal
+                isOpen={guideModalOpen}
+                onClose={() => setGuideModalOpen(false)}
             />
         </div >
     );

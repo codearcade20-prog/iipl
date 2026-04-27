@@ -242,7 +242,7 @@ const SearchableSelect = ({ value, onChange, options, placeholder, disabled }) =
 const WagesPage = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
-    const { alert, confirm, toast } = useMessage();
+    const { alert, confirm, toast, prompt } = useMessage();
 
     const formatDate = (dateStr) => {
         if (!dateStr) return '-';
@@ -965,6 +965,9 @@ const WagesPage = () => {
         finally { setLoading(false); }
     };
 
+
+
+
     function getWeekOfYear(date) {
         // Obsolete but kept for retro-compatibility
         return date.toISOString().split('T')[0];
@@ -986,11 +989,42 @@ const WagesPage = () => {
                 new_actual_wages: parseFloat((r.attendance_value * dailyRate).toFixed(2)),
                 new_wages: r.wages_amount || 0,
                 new_remarks: r.remarks || '',
-                new_category: r.wage_category || 'Direct wages'
+                new_category: r.wage_category || 'Direct wages',
+                new_daily_rate: dailyRate
             };
         });
         setCorrectionRecords(editable);
         setCorrectionModalOpen(true);
+    };
+
+    const handleChangeCorrectionRate = async (idx) => {
+        const r = correctionRecords[idx];
+        const newRateStr = await prompt(`Please enter the new daily wage for ${correctionLabor?.name} on ${formatDate(r.work_date)}:`, "", "Edit Daily Wage");
+        if (!newRateStr) return;
+        const newRate = parseFloat(newRateStr);
+        if (isNaN(newRate) || newRate <= 0) {
+            alert('Please enter a valid amount for the daily wage.', 'Invalid Amount');
+            return;
+        }
+        
+        setCorrectionRecords(prev => {
+            const updated = [...prev];
+            const record = updated[idx];
+            
+            const rawWage = record.new_attn_val * newRate;
+            const roundedWage = Math.round(rawWage);
+            const remarkAddition = `Per day value changed to ${newRate}`;
+            const newRemarks = record.new_remarks ? `${record.new_remarks} | ${remarkAddition}` : remarkAddition;
+            
+            updated[idx] = {
+                ...record,
+                new_actual_wages: parseFloat(rawWage.toFixed(2)),
+                new_wages: roundedWage,
+                new_remarks: newRemarks,
+                new_daily_rate: newRate
+            };
+            return updated;
+        });
     };
 
     const handleCorrectionChange = (idx, field, value) => {
@@ -1003,7 +1037,7 @@ const WagesPage = () => {
                 updated[idx].new_attn_val = calculateAttendanceValue(updated[idx].new_time_in, updated[idx].new_time_out);
                 
                 const laborObj = labors.find(l => l.id === record.labor_id);
-                const dailyRate = laborObj?.daily_rate || 0;
+                const dailyRate = record.new_daily_rate || laborObj?.daily_rate || 0;
                 
                 updated[idx].new_actual_wages = parseFloat((updated[idx].new_attn_val * dailyRate).toFixed(2));
                 updated[idx].new_wages = customRound(updated[idx].new_actual_wages);
@@ -1011,7 +1045,7 @@ const WagesPage = () => {
                 updated[idx].new_attn_val = parseFloat(value) || 0;
                 
                 const laborObj = labors.find(l => l.id === record.labor_id);
-                const dailyRate = laborObj?.daily_rate || 0;
+                const dailyRate = record.new_daily_rate || laborObj?.daily_rate || 0;
                 
                 updated[idx].new_actual_wages = parseFloat((updated[idx].new_attn_val * dailyRate).toFixed(2));
                 updated[idx].new_wages = customRound(updated[idx].new_actual_wages);
@@ -2386,13 +2420,23 @@ const WagesPage = () => {
                                                     <input type="text" className={styles.input} style={{ width: '100%' }} value={r.new_remarks} onChange={e => handleCorrectionChange(idx, 'new_remarks', e.target.value)} />
                                                 </td>
                                                 <td data-label="Actions" style={{ textAlign: 'right' }}>
-                                                    <button 
-                                                        onClick={() => deleteAttendanceRecordAndPhotos(r, 'correction')} 
-                                                        className={`${styles.attnBtn} ${styles.btnA}`} 
-                                                        title="Delete Day Log"
-                                                    >
-                                                        <Trash2 size={16} />
-                                                    </button>
+                                                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', flexWrap: 'nowrap' }}>
+                                                        <button 
+                                                            className={styles.attnBtn} 
+                                                            onClick={() => handleChangeCorrectionRate(idx)} 
+                                                            title="Edit Per Day Wage" 
+                                                            style={{ color: '#0284c7', background: '#e0f2fe' }}
+                                                        >
+                                                            <DollarSign size={16} />
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => deleteAttendanceRecordAndPhotos(r, 'correction')} 
+                                                            className={`${styles.attnBtn} ${styles.btnA}`} 
+                                                            title="Delete Day Log"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}
