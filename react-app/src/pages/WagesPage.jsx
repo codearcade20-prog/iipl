@@ -315,6 +315,7 @@ const WagesPage = () => {
 
     // Attendance Entry Table State
     const [attendanceEntry, setAttendanceEntry] = useState({});
+    const [selectedLabors, setSelectedLabors] = useState(new Set());
 
     // Reports State
     const [reportStartDate, setReportStartDate] = useState(new Date(new Date().setDate(new Date().getDate() - 7)).toISOString().split('T')[0]);
@@ -421,7 +422,7 @@ const WagesPage = () => {
             data.forEach(rec => {
                 // Determine if this worker is "completed" for the DAY across ANY site/category
                 // to avoid double entries or to hide them from pending list once done.
-                if (rec.time_in && rec.time_out) {
+                if (rec.time_in || rec.time_in_timestamp) {
                     completed.add(rec.labor_id);
                 }
 
@@ -567,6 +568,8 @@ const WagesPage = () => {
         if (t2 === t1) return 0;
 
         const slabs = [
+            // Early Morning Night Shift (12:00 AM - 2:00 AM)
+            { s: 0, e: 2, r: 1 / 8 },
             // Morning Shift: 6:00 AM – 9:30 AM (3.5 hours, Pay = ₹500/₹1000 = 0.5 units)
             { s: 6, e: 9.5, r: 0.5 / 3.5 },
             // Day Shift: 9:30 AM – 6:00 PM (8.5 hours, Pay = ₹1000/₹1000 = 1.0 unit)
@@ -591,10 +594,21 @@ const WagesPage = () => {
                 time_in: '',
                 time_out: '',
                 wages: labors.find(l => l.id === laborId)?.daily_rate || 0,
+                actual_wages: 0,
+                calc_attn_val: 0,
                 attn_val: 0
             };
 
             const updated = { ...current, [field]: value };
+            
+            // Auto-select the labor if they interact with the time or other fields
+            if (value && field === 'time_in') {
+                setSelectedLabors(prevSet => {
+                    const next = new Set(prevSet);
+                    next.add(laborId);
+                    return next;
+                });
+            }
 
             // Re-calculate attendance value if times change
             if (field === 'time_in' || field === 'time_out') {
@@ -606,44 +620,60 @@ const WagesPage = () => {
                 const dailyRate = labors.find(l => l.id === laborId)?.daily_rate || 0;
                 updated.actual_wages = parseFloat((updated.attn_val * dailyRate).toFixed(2));
                 updated.wages = customRound(updated.actual_wages);
-            } else if (field === 'attn_val') {
-                updated.attn_val = parseFloat(value) || 0;
-                // Auto-calculate wages based on manual attendance value
-                const dailyRate = labors.find(l => l.id === laborId)?.daily_rate || 0;
-                updated.actual_wages = parseFloat((updated.attn_val * dailyRate).toFixed(2));
-                updated.wages = customRound(updated.actual_wages);
             }
-
             return { ...prev, [laborId]: updated };
         });
     };
 
-    const toNullableTime = (timeStr) => {
-        if (!timeStr || timeStr.trim() === '' || timeStr === '00:00') return null;
-        // Basic HH:mm validation
-        if (/^\d{2}:\d{2}$/.test(timeStr)) return timeStr;
-        return null;
+    const toggleLaborSelection = (laborId) => {
+        setSelectedLabors(prev => {
+            const next = new Set(prev);
+            if (next.has(laborId)) next.delete(laborId);
+            else next.add(laborId);
+            return next;
+        });
     };
 
+    const toggleSelectAll = (laborsList) => {
+        if (selectedLabors.size === laborsList.length) {
+            setSelectedLabors(new Set());
+        } else {
+            setSelectedLabors(new Set(laborsList.map(l => l.id)));
+        }
+    };
+
+    const toNullableTime = (t) => t && t.trim() !== '' ? t : null;
+
     const saveAttendance = async () => {
+        if (!selectedSite || !selectedDate || !selectedCategory) {
+            alert('Please select Project Site, Category and Date first.');
+            return;
+        }
+
+        if (selectedLabors.size === 0) {
+            alert('Please select at least one worker to save.');
+            return;
+        }
+
         setLoading(true);
         try {
             const recordsToUpsert = [];
-            const filteredLabors = labors.filter(l =>
-                l.status === 'Active' &&
-                (selectedSubcontractor === 'ALL' || !selectedSubcontractor || l.subcontractor_id === selectedSubcontractor)
-            );
+            
+            for (const laborId of selectedLabors) {
+                const entry = attendanceEntry[laborId] || { time_in: '', time_out: '', attn_val: 0, wages: 0 };
+                const labor = labors.find(l => l.id === laborId);
 
-            for (const labor of filteredLabors) {
-                const entry = attendanceEntry[labor.id] || { time_in: '', time_out: '', attn_val: 0, wages: 0 };
-
-                // Save if at least time_in or time_out is provided
-                if (!entry.time_in && !entry.time_out) continue;
+                // Validation: Must have at least Time In
+                if (!entry.time_in) {
+                    alert(`Please provide Time In for ${labor?.name || 'the worker'}.`);
+                    setLoading(false);
+                    return;
+                }
 
                 const payload = {
-                    labor_id: labor.id,
+                    labor_id: laborId,
                     site_id: selectedSite,
-                    subcontractor_id: labor.subcontractor_id || null,
+                    subcontractor_id: labor?.subcontractor_id || null,
                     work_date: selectedDate,
                     time_in: toNullableTime(entry.time_in),
                     time_out: toNullableTime(entry.time_out),
@@ -661,6 +691,12 @@ const WagesPage = () => {
                 recordsToUpsert.push(payload);
             }
 
+            if (recordsToUpsert.length === 0) {
+                alert('No changes to save.');
+                setLoading(false);
+                return;
+            }
+
             const inserts = recordsToUpsert.filter(r => !r.id);
             const updates = recordsToUpsert.filter(r => r.id);
 
@@ -673,17 +709,16 @@ const WagesPage = () => {
             
             if (errors.length > 0) throw new Error(errors.join(', '));
 
-            toast('Attendance saved successfully!');
+            toast(`Successfully saved attendance for ${recordsToUpsert.length} workers.`);
+            setSelectedLabors(new Set());
             fetchAttendance();
         } catch (error) { 
             console.error('Save Attendance Error:', error);
-            alert('Failed to save attendance: ' + error.message); 
+            alert('Save failed: ' + error.message); 
         } finally { 
             setLoading(false); 
         }
     };
-
-    // --- LABOR CRUD ---
 
     const openLaborModal = (lab = null) => {
         if (lab) {
@@ -986,6 +1021,13 @@ const WagesPage = () => {
 
     const saveCorrections = async () => {
         if (correctionRecords.length === 0) return;
+
+        const missingTimeOut = correctionRecords.some(r => !r.new_time_out || r.new_time_out.trim() === '');
+        if (missingTimeOut) {
+            alert('Please provide Time Out for all records before updating.');
+            return;
+        }
+
         setIsSavingCorrection(true);
         try {
             const recordsToUpsert = correctionRecords.map(r => ({
@@ -1068,6 +1110,8 @@ const WagesPage = () => {
             );
         }
 
+        const allSelected = filteredLabors.length > 0 && selectedLabors.size === filteredLabors.length;
+
         return (
             <div className={styles.card}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '20px', marginBottom: '32px' }}>
@@ -1089,8 +1133,9 @@ const WagesPage = () => {
                         </div>
                     </div>
                 </div>
+
                 <div className={styles.tableSlideIn}>
-                    <div className={styles.tableHeader}>
+                    <div className={styles.tableHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div className={styles.tableTitle}>
                             <div style={{ background: '#eff6ff', color: '#2563eb', padding: '10px', borderRadius: '12px' }}>
                                 <ClipboardList size={22} />
@@ -1100,15 +1145,36 @@ const WagesPage = () => {
                                 <div className={styles.muted}>{selectedSubcontractor === 'ALL' ? 'All Partners' : subcontractors.find(s => s.id == selectedSubcontractor)?.name} • {selectedCategory}</div>
                             </div>
                         </div>
+
+                        {selectedLabors.size > 0 && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', background: '#f0f9ff', padding: '8px 16px', borderRadius: '12px', border: '1px solid #bae6fd' }}>
+                                <span style={{ color: '#0369a1', fontWeight: 600, fontSize: '0.9rem' }}>{selectedLabors.size} workers selected</span>
+                                <Button 
+                                    size="sm" 
+                                    onClick={saveAttendance}
+                                    style={{ background: '#0ea5e9', color: 'white', border: 'none', borderRadius: '8px' }}
+                                >
+                                    <Save size={16} style={{ marginRight: 6 }} /> Save Selected
+                                </Button>
+                            </div>
+                        )}
                     </div>
 
                     <div className={styles.tableContainer}>
                         <table className={styles.table}>
                             <thead>
                                 <tr>
-                                    <th style={{ paddingLeft: '24px' }}>Worker Details</th>
-                                    <th>Attendance Hours</th>
-                                    <th style={{ textAlign: 'center' }}>Units (Calc / Edit)</th>
+                                    <th style={{ paddingLeft: '24px', width: '40px' }}>
+                                        <input 
+                                            type="checkbox" 
+                                            checked={allSelected} 
+                                            onChange={() => toggleSelectAll(filteredLabors)}
+                                            style={{ cursor: 'pointer', width: '18px', height: '18px' }}
+                                        />
+                                    </th>
+                                    <th>Worker Details</th>
+                                    <th>Time In</th>
+                                    <th style={{ textAlign: 'center' }}>Units (Calc)</th>
                                     <th>Raw Wage</th>
                                     <th>Rounded Wage</th>
                                     <th style={{ paddingRight: '24px' }}>Remarks</th>
@@ -1117,9 +1183,19 @@ const WagesPage = () => {
                             <tbody>
                                 {filteredLabors.map(l => {
                                     const entry = attendanceEntry[l.id] || { time_in: '', time_out: '', attn_val: 0, wages: 0 };
+                                    const isSelected = selectedLabors.has(l.id);
+
                                     return (
-                                        <tr key={l.id}>
-                                            <td data-label="Worker Details" style={{ paddingLeft: '24px' }}>
+                                        <tr key={l.id} style={{ backgroundColor: isSelected ? '#f0f9ff' : 'transparent' }}>
+                                            <td style={{ paddingLeft: '24px' }}>
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={isSelected} 
+                                                    onChange={() => toggleLaborSelection(l.id)}
+                                                    style={{ cursor: 'pointer', width: '18px', height: '18px' }}
+                                                />
+                                            </td>
+                                            <td data-label="Worker Details">
                                                 <div 
                                                     className={styles.strong} 
                                                     style={{ cursor: 'pointer', display: 'inline-block' }}
@@ -1131,54 +1207,31 @@ const WagesPage = () => {
                                                         setMousePos({ x: e.clientX, y: e.clientY });
                                                     }}
                                                     onMouseLeave={() => setHoveredLabor(null)}
-                                                    onTouchStart={(e) => {
-                                                        // For mobile: Toggle preview on tap
-                                                        if (hoveredLabor?.id === l.id) setHoveredLabor(null);
-                                                        else {
-                                                            setHoveredLabor(l);
-                                                            const touch = e.touches[0];
-                                                            setMousePos({ x: touch.clientX, y: touch.clientY });
-                                                        }
-                                                    }}
                                                 >
                                                     {l.name}
                                                 </div>
                                                 <div className={styles.muted} style={{ fontSize: '0.75rem' }}>Rate: ₹{l.daily_rate}</div>
                                             </td>
-                                            <td data-label="Attendance Hours">
-                                                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                                                    <TimePicker className={styles.compactInput} value={entry.time_in || ''} onChange={val => handleAttendanceChange(l.id, 'time_in', val)} />
-                                                    <span className={styles.muted}>→</span>
-                                                    <TimePicker className={styles.compactInput} value={entry.time_out || ''} onChange={val => handleAttendanceChange(l.id, 'time_out', val)} />
-                                                </div>
+                                            <td data-label="Time In">
+                                                <TimePicker className={styles.compactInput} value={entry.time_in || ''} onChange={val => handleAttendanceChange(l.id, 'time_in', val)} />
                                             </td>
-                                            <td data-label="Units (Calc / Edit)" style={{ textAlign: 'center' }}>
+                                            <td data-label="Units (Calc)" style={{ textAlign: 'center' }}>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
-                                                    <span style={{ color: '#64748b', fontSize: '0.85rem' }} title="Calculated Units">
-                                                        {(entry.calc_attn_val !== undefined ? entry.calc_attn_val : calculateAttendanceValue(entry.time_in, entry.time_out)).toFixed(2)}
+                                                    <span style={{ color: '#0f172a', fontWeight: 'bold', fontSize: '1rem' }}>
+                                                        {(entry.calc_attn_val !== undefined && entry.calc_attn_val !== 0 ? entry.calc_attn_val : calculateAttendanceValue(entry.time_in || '00:00', entry.time_out || '00:00')).toFixed(2)}
                                                     </span>
-                                                    <input
-                                                        type="number"
-                                                        step="0.01"
-                                                        min="0"
-                                                        className={styles.minimalInput}
-                                                        style={{ width: '60px', padding: '6px', textAlign: 'center', fontWeight: 'bold', backgroundColor: '#f1f5f9', borderRadius: '4px' }}
-                                                        value={entry.attn_val}
-                                                        onChange={(e) => handleAttendanceChange(l.id, 'attn_val', e.target.value)}
-                                                        title="Final Edited Units"
-                                                    />
                                                 </div>
                                             </td>
                                             <td data-label="Raw Wage">
                                                 <div className={styles.wageValue}>
-                                                    <span className={styles.currency}>₹</span>
-                                                    <input type="number" readOnly className={styles.minimalInput} style={{ width: '70px', color: '#94a3b8' }} value={entry.actual_wages || 0} />
+                                                    <span className={styles.muted} style={{ fontSize: '0.8rem', marginRight: '4px' }}>₹</span>
+                                                    <span style={{ color: '#64748b' }}>{entry.actual_wages || 0}</span>
                                                 </div>
                                             </td>
                                             <td data-label="Rounded Wage">
                                                 <div className={styles.wageValue}>
                                                     <span className={styles.currency} style={{ color: '#0f172a' }}>₹</span>
-                                                    <input type="number" className={styles.minimalInput} style={{ width: '80px', fontWeight: 800, color: '#0f172a' }} value={entry.wages} onChange={e => handleAttendanceChange(l.id, 'wages', e.target.value)} />
+                                                    <span style={{ fontWeight: 800, color: '#0f172a', fontSize: '1rem' }}>{entry.wages || 0}</span>
                                                 </div>
                                             </td>
                                             <td data-label="Remarks" style={{ paddingRight: '24px' }}>
@@ -1189,7 +1242,7 @@ const WagesPage = () => {
                                 })}
                                 {filteredLabors.length === 0 && (
                                     <tr>
-                                        <td colSpan="6">
+                                        <td colSpan="7">
                                             <div className={styles.emptyIllustration} style={{ padding: '60px' }}>
                                                 <div className={styles.welcomeCircle} style={{ opacity: 0.5 }}>
                                                     <Users size={32} color="#94a3b8" />
@@ -1203,9 +1256,9 @@ const WagesPage = () => {
                         </table>
                     </div>
                     {filteredLabors.length > 0 && (
-                        <div className={styles.actions} style={{ marginTop: '24px' }}>
-                            <Button onClick={saveAttendance} className={styles.saveBtn} style={{ padding: '12px 32px', borderRadius: '12px' }}>
-                                <Save size={18} style={{ marginRight: 8 }} /> Save Daily Log
+                        <div className={styles.actions} style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end' }}>
+                            <Button onClick={saveAttendance} disabled={selectedLabors.size === 0} className={styles.saveBtn} style={{ padding: '12px 32px', borderRadius: '12px' }}>
+                                <Save size={18} style={{ marginRight: 8 }} /> Save Daily Log ({selectedLabors.size})
                             </Button>
                         </div>
                     )}
@@ -2307,7 +2360,7 @@ const WagesPage = () => {
                                                 <td data-label="Attendance Units" style={{ textAlign: 'center' }}>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
                                                         <span style={{ color: '#64748b', fontSize: '0.85rem' }} title="Calculated Units">
-                                                            {calculateAttendanceValue(r.new_time_in, r.new_time_out).toFixed(2)}
+                                                            {calculateAttendanceValue(r.new_time_in || '00:00', r.new_time_out || '00:00').toFixed(2)}
                                                         </span>
                                                         <input
                                                             type="number"
@@ -2318,6 +2371,7 @@ const WagesPage = () => {
                                                             value={r.new_attn_val}
                                                             onChange={(e) => handleCorrectionChange(idx, 'new_attn_val', e.target.value)}
                                                             title="Final Edited Units"
+                                                            disabled={!r.new_time_in || !r.new_time_out}
                                                         />
                                                     </div>
                                                 </td>
@@ -2325,7 +2379,7 @@ const WagesPage = () => {
                                                     <input type="number" readOnly className={styles.input} style={{ width: '90px', background: '#f8fafc', color: '#64748b' }} value={r.new_actual_wages} />
                                                 </td>
                                                 <td data-label="Final Wages">
-                                                    <input type="number" className={styles.input} style={{ width: '100px', fontWeight: 700 }} value={r.new_wages} onChange={e => handleCorrectionChange(idx, 'new_wages', e.target.value)} />
+                                                    <input type="number" className={styles.input} style={{ width: '100px', fontWeight: 700 }} value={r.new_wages} onChange={e => handleCorrectionChange(idx, 'new_wages', e.target.value)} disabled={!r.new_time_in || !r.new_time_out} />
                                                 </td>
                                                 <td data-label="Remarks">
                                                     <input type="text" className={styles.input} style={{ width: '100%' }} value={r.new_remarks} onChange={e => handleCorrectionChange(idx, 'new_remarks', e.target.value)} />
