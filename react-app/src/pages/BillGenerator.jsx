@@ -5,6 +5,7 @@ import * as XLSX from 'xlsx';
 import { Button } from '../components/ui/Button';
 import { Input, LoadingOverlay, SearchableSelect } from '../components/ui';
 import PrintModal from '../components/PrintModal';
+import RabGuideModal from '../components/RabGuideModal';
 import styles from './BillGenerator.module.css';
 import { numberToWords, formatDateShort } from '../utils';
 import { useMessage } from '../context/MessageContext';
@@ -16,6 +17,7 @@ const BillGenerator = () => {
     const [billType, setBillType] = useState('FINAL'); // RUNNING or FINAL
     const [showIIPL, setShowIIPL] = useState(false);
     const [printModalOpen, setPrintModalOpen] = useState(false);
+    const [guideModalOpen, setGuideModalOpen] = useState(false);
 
     const [formData, setFormData] = useState({
         projectName: 'KHAZANA PONDY',
@@ -29,6 +31,8 @@ const BillGenerator = () => {
         billingDate: '2026-01-29',
         rabNo: '1',
         housekeepingPercent: 0,
+        retentionPercent: 5,
+        includeGst: false,
     });
 
     const [items, setItems] = useState([
@@ -174,6 +178,7 @@ const BillGenerator = () => {
         const cumAmt = rate * cQty;
         const varQty = oQty - cQty;
         const varAmt = orderAmt - cumAmt;
+        const bQty = cQty * (rabPerc / 100);
         const rabAmt = cumAmt * (rabPerc / 100);
         const iiplAmt = iiplRate * cQty;
 
@@ -183,6 +188,7 @@ const BillGenerator = () => {
             cumAmt,
             varQty,
             varAmt,
+            bQty,
             rabAmt,
             iiplAmt
         };
@@ -201,8 +207,20 @@ const BillGenerator = () => {
 
     const totalDeductions = advances.filter(a => a.type === 'DEDUCTION').reduce((sum, adv) => sum + (parseFloat(adv.amount) || 0), 0);
     const totalAdditions = advances.filter(a => a.type === 'ADDITION').reduce((sum, adv) => sum + (parseFloat(adv.amount) || 0), 0);
-    const housekeepingAmt = billType === 'FINAL' && formData.housekeepingPercent > 0 ? (grandTotals.rabAmt * (formData.housekeepingPercent / 100)) : 0;
-    const netPayable = grandTotals.rabAmt + totalAdditions - housekeepingAmt - totalDeductions;
+    
+    // Proper bill calculation per guide
+    const certifiedBillValue = grandTotals.rabAmt + totalAdditions;
+    const subtotal = Math.max(0, certifiedBillValue - totalDeductions);
+    const gstAmount = formData.includeGst ? (subtotal * 0.18) : 0;
+    const grossSubtotal = subtotal + gstAmount;
+    
+    const hkPercent = parseFloat(formData.housekeepingPercent) || 0;
+    const retPercent = parseFloat(formData.retentionPercent) || 0;
+    
+    const housekeepingAmt = hkPercent > 0 ? (grossSubtotal * (hkPercent / 100)) : 0;
+    const retentionAmt = retPercent > 0 ? (grossSubtotal * (retPercent / 100)) : 0;
+    
+    const netPayable = grossSubtotal - housekeepingAmt - retentionAmt;
 
     const handlePrint = () => setPrintModalOpen(true);
 
@@ -231,7 +249,7 @@ const BillGenerator = () => {
                 wsData.push([
                     sNo++, item.desc, item.ml, item.unit, item.rate, item.orderQty, item.orderAmt,
                     item.cumulativeQty, item.cumAmt, item.varQty, item.varAmt,
-                    item.cumulativeQty, item.rabPercent, item.rabAmt
+                    item.bQty, item.rabPercent, item.rabAmt
                 ]);
             }
         });
@@ -244,8 +262,14 @@ const BillGenerator = () => {
             wsData.push(["", adv.label, "", "", "", "", "", "", "", "", "", "", "", `${adv.type === 'DEDUCTION' ? '-' : '+'} ${adv.amount}`]);
         });
 
-        wsData.push(["", formData.balanceLabel || "BALANCE", "", "", "", "", "", "", "", "", "", "", "", netPayable]);
-        wsData.push(["", formData.totalLabel || "TOTAL ADVANCE", "", "", "", "", "", "", "", "", "", "", "", totalDeductions]);
+        wsData.push(["", "SUBTOTAL (After Advance)", "", "", "", "", "", "", "", "", "", "", "", subtotal]);
+        if (formData.includeGst) {
+            wsData.push(["", "Add GST (18%)", "", "", "", "", "", "", "", "", "", "", "", gstAmount]);
+            wsData.push(["", "GROSS SUBTOTAL", "", "", "", "", "", "", "", "", "", "", "", grossSubtotal]);
+        }
+        if (retentionAmt > 0) wsData.push(["", `Less Retention (${formData.retentionPercent}%)`, "", "", "", "", "", "", "", "", "", "", "", -retentionAmt]);
+        if (housekeepingAmt > 0) wsData.push(["", `Less Housekeeping (${formData.housekeepingPercent}%)`, "", "", "", "", "", "", "", "", "", "", "", -housekeepingAmt]);
+        wsData.push(["", "FINAL PAYABLE AMOUNT", "", "", "", "", "", "", "", "", "", "", "", netPayable]);
 
 
         const ws = XLSX.utils.aoa_to_sheet(wsData);
@@ -283,7 +307,10 @@ const BillGenerator = () => {
             <div className={styles.sidebar}>
                 <div className={styles.header}>
                     <h2 className={styles.title}>Bill Preparation</h2>
-                    <Link to="/"><button className={styles.homeBtn}>🏠</button></Link>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        <button className={styles.homeBtn} style={{ background: '#3b82f6', color: 'white', borderRadius: '8px', padding: '0 12px', fontSize: '0.9rem', fontWeight: 'bold' }} onClick={() => setGuideModalOpen(true)}>Guide</button>
+                        <Link to="/"><button className={styles.homeBtn}>🏠</button></Link>
+                    </div>
                 </div>
 
                 <div className={styles.inputGroup}>
@@ -326,9 +353,16 @@ const BillGenerator = () => {
                 {billType === 'RUNNING' && (
                     <Input label="RAB No" value={formData.rabNo} onChange={e => setFormData({ ...formData, rabNo: e.target.value })} />
                 )}
-                {billType === 'FINAL' && (
+                <div className={styles.grid2}>
                     <Input type="text" inputMode="decimal" label="Housekeeping %" value={formData.housekeepingPercent} onChange={e => setFormData({ ...formData, housekeepingPercent: e.target.value })} />
-                )}
+                    <Input type="text" inputMode="decimal" label="Retention %" value={formData.retentionPercent} onChange={e => setFormData({ ...formData, retentionPercent: e.target.value })} />
+                </div>
+                <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <input type="checkbox" id="includeGst" checked={formData.includeGst} onChange={e => setFormData({ ...formData, includeGst: e.target.checked })} />
+                        <label htmlFor="includeGst" className={styles.label} style={{ marginBottom: 0 }}>Add GST (18%)</label>
+                    </div>
+                </div>
 
                 <hr className={styles.divider} />
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -539,15 +573,15 @@ const BillGenerator = () => {
                                                     <input type="text" inputMode="decimal" className={styles.inlineInput} value={item.orderQty} onChange={e => handleItemChange(i, 'orderQty', e.target.value)} />
                                                 </td>
                                                 <td className={styles.textRight}>{item.orderAmt > 0 ? item.orderAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : ''}</td>
-                                                <td>
-                                                    <input type="text" inputMode="decimal" className={styles.inlineInput} value={item.cumulativeQty} onChange={e => handleItemChange(i, 'cumulativeQty', e.target.value)} />
-                                                </td>
+                                                <td>{item.cumulativeQty}</td>
                                                 <td className={styles.textRight}>{item.cumAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                                                 <td style={{ color: item.varQty < 0 ? 'red' : 'inherit' }}>{item.varQty === 0 ? '-' : item.varQty.toFixed(2)}</td>
                                                 <td className={styles.textRight} style={{ color: item.varAmt < 0 ? 'red' : 'inherit' }}>
                                                     {item.varAmt === 0 ? '-' : (item.varAmt < 0 ? `(${Math.abs(item.varAmt).toLocaleString('en-IN', { minimumFractionDigits: 2 })})` : item.varAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 }))}
                                                 </td>
-                                                <td>{item.cumulativeQty}</td>
+                                                <td>
+                                                    <input type="text" inputMode="decimal" className={styles.inlineInput} style={{ width: '60px' }} value={item.cumulativeQty} onChange={e => handleItemChange(i, 'cumulativeQty', e.target.value)} />
+                                                </td>
                                                 <td style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
                                                     <input type="text" inputMode="decimal" className={styles.inlineInput} style={{ width: '35px' }} value={item.rabPercent} onChange={e => handleItemChange(i, 'rabPercent', e.target.value)} />
                                                     <span>%</span>
@@ -633,15 +667,43 @@ const BillGenerator = () => {
                                     </tr>
 
                                     <tr style={{ height: '10px' }}><td colSpan="5" style={{ border: 'none' }}></td></tr>
-                                    <tr>
-                                        <td>
-                                            <input className={styles.inlineInput} value={formData.balanceLabel || "BALANCE"} onChange={e => setFormData({ ...formData, balanceLabel: e.target.value })} />
-                                        </td>
-                                        <td style={{ textAlign: 'right', fontWeight: 'bold' }}>{netPayable.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                                        <td colSpan="2" style={{ textAlign: 'right', fontWeight: 'bold', border: 'none' }}>
-                                            <input className={styles.inlineInput} style={{ textAlign: 'right' }} value={formData.totalLabel || "TOTAL ADVANCE"} onChange={e => setFormData({ ...formData, totalLabel: e.target.value })} />
-                                        </td>
-                                        <td style={{ textAlign: 'left', paddingLeft: '10px', fontWeight: 'bold', border: 'none' }}>{totalDeductions.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                    <tr style={{ background: '#f8fafc' }}>
+                                        <td colSpan="3" style={{ fontWeight: 'bold', textAlign: 'right' }}>SUBTOTAL (After Advance)</td>
+                                        <td style={{ textAlign: 'right', fontWeight: 'bold' }}>{subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                        <td></td>
+                                    </tr>
+                                    {formData.includeGst && (
+                                        <tr>
+                                            <td colSpan="3" style={{ textAlign: 'right' }}>Add GST (18%)</td>
+                                            <td style={{ textAlign: 'right', color: '#10b981' }}>+ {gstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                            <td></td>
+                                        </tr>
+                                    )}
+                                    {formData.includeGst && (
+                                        <tr style={{ background: '#f8fafc' }}>
+                                            <td colSpan="3" style={{ fontWeight: 'bold', textAlign: 'right' }}>GROSS SUBTOTAL</td>
+                                            <td style={{ textAlign: 'right', fontWeight: 'bold' }}>{grossSubtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                            <td></td>
+                                        </tr>
+                                    )}
+                                    {retentionAmt > 0 && (
+                                        <tr>
+                                            <td colSpan="3" style={{ textAlign: 'right' }}>Less Retention ({formData.retentionPercent}%)</td>
+                                            <td style={{ textAlign: 'right', color: '#ef4444' }}>- {retentionAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                            <td></td>
+                                        </tr>
+                                    )}
+                                    {housekeepingAmt > 0 && (
+                                        <tr>
+                                            <td colSpan="3" style={{ textAlign: 'right' }}>Less Housekeeping ({formData.housekeepingPercent}%)</td>
+                                            <td style={{ textAlign: 'right', color: '#ef4444' }}>- {housekeepingAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                            <td></td>
+                                        </tr>
+                                    )}
+                                    <tr style={{ background: '#eff6ff', borderTop: '2px solid #bfdbfe' }}>
+                                        <td colSpan="3" style={{ fontWeight: 'bold', textAlign: 'right', color: '#0f172a' }}>FINAL PAYABLE AMOUNT</td>
+                                        <td style={{ textAlign: 'right', fontWeight: 'bold', color: '#3b82f6', fontSize: '1.1rem' }}>{netPayable.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                        <td></td>
                                     </tr>
 
 
@@ -673,6 +735,10 @@ const BillGenerator = () => {
                 isOpen={printModalOpen}
                 onClose={() => setPrintModalOpen(false)}
                 onConfirm={confirmPrint}
+            />
+            <RabGuideModal 
+                isOpen={guideModalOpen} 
+                onClose={() => setGuideModalOpen(false)} 
             />
         </div >
     );
