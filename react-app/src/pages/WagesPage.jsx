@@ -566,16 +566,17 @@ const WagesPage = () => {
         // Handle midnight crossing
         if (t2 < t1) t2 += 24;
         if (t2 === t1) return 0;
-
         const slabs = [
-            // Early Morning Night Shift (12:00 AM - 2:00 AM)
-            { s: 0, e: 2, r: 1 / 8 },
-            // Morning Shift: 6:00 AM – 9:30 AM (3.5 hours, Pay = ₹500/₹1000 = 0.5 units)
+            // Early Morning Night Shift (12:00 AM - 2:00 AM) maps to Night Shift rate
+            { s: 0, e: 2, r: 0.5 / 4.5 },
+            // Morning Shift: 6:00 AM – 9:30 AM (3.5 hours = 0.5 Day)
             { s: 6, e: 9.5, r: 0.5 / 3.5 },
-            // Day Shift: 9:30 AM – 6:00 PM (8.5 hours, Pay = ₹1000/₹1000 = 1.0 unit)
-            { s: 9.5, e: 18, r: 1 / 8.5 },
-            // Night Shift: 6:00 PM – 2:00 AM (8 hours, Pay = ₹1000/₹1000 = 1.0 unit)
-            { s: 18, e: 26, r: 1 / 8 }
+            // Day Shift: 9:30 AM – 6:00 PM (8.5 hours = 1.0 Day)
+            { s: 9.5, e: 18, r: 1.0 / 8.5 },
+            // Evening Shift: 6:00 PM – 9:30 PM (3.5 hours = 0.5 Day)
+            { s: 18, e: 21.5, r: 0.5 / 3.5 },
+            // Night Shift: 9:30 PM – 2:00 AM (4.5 hours = 0.5 Day)
+            { s: 21.5, e: 26, r: 0.5 / 4.5 }
         ];
 
         let val = 0;
