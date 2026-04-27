@@ -102,6 +102,12 @@
     margin: 0;
 }
 
+.topBarActions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
 .searchBar {
     position: relative;
     width: 350px;

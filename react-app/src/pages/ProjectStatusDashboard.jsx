@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import styles from './ProjectStatusDashboard.module.css';
 import LoadingScreen from '../components/LoadingScreen';
+import { Pagination } from '../components/ui';
 
 const ProjectStatusDashboard = () => {
     const [loading, setLoading] = useState(true);
@@ -33,9 +34,17 @@ const ProjectStatusDashboard = () => {
     const [isMasterView, setIsMasterView] = useState(false); // Toggle to show the Big Matrix
     const [activePopover, setActivePopover] = useState(null); 
 
+    // Pagination
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 12;
+
     useEffect(() => {
         fetchDashboardData();
     }, []);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [filterStatus, searchTerm]);
 
     const fetchDashboardData = async () => {
         setLoading(true);
@@ -375,7 +384,7 @@ const ProjectStatusDashboard = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredProjects.map(project => (
+                                {filteredProjects.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map(project => (
                                     <tr key={project.id} className={styles.matrixRow} onClick={() => openProjectDetails(project)} style={{ cursor: 'pointer' }}>
                                         <td>
                                             <div style={{ fontWeight: '600', color: '#1e293b' }}>{project.name}</div>
@@ -412,6 +421,16 @@ const ProjectStatusDashboard = () => {
                             </tbody>
                         </table>
                     </div>
+                    {filteredProjects.length > ITEMS_PER_PAGE && (
+                        <div style={{ padding: '1rem', borderTop: '1px solid #e2e8f0' }}>
+                            <Pagination
+                                currentPage={currentPage}
+                                totalItems={filteredProjects.length}
+                                itemsPerPage={ITEMS_PER_PAGE}
+                                onPageChange={setCurrentPage}
+                            />
+                        </div>
+                    )}
                 </div>
             ) : (
                 <div className={styles.tableCard}>
@@ -428,7 +447,7 @@ const ProjectStatusDashboard = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredProjects.map(project => (
+                                {filteredProjects.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map(project => (
                                     <tr key={project.id} className={styles.tableRow}>
                                         <td data-label="Project Details">
                                             <div className={styles.projectNameCell}>
@@ -488,6 +507,16 @@ const ProjectStatusDashboard = () => {
                             </tbody>
                         </table>
                     </div>
+                    {filteredProjects.length > ITEMS_PER_PAGE && (
+                        <div style={{ padding: '1rem', borderTop: '1px solid #e2e8f0' }}>
+                            <Pagination
+                                currentPage={currentPage}
+                                totalItems={filteredProjects.length}
+                                itemsPerPage={ITEMS_PER_PAGE}
+                                onPageChange={setCurrentPage}
+                            />
+                        </div>
+                    )}
                 </div>
             )}
 

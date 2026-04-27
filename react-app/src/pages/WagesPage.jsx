@@ -325,6 +325,7 @@ const WagesPage = () => {
     const [searchSubcontractorReport, setSearchSubcontractorReport] = useState('All');
     const [showRawData, setShowRawData] = useState(false);
     const [searchPaymentLabor, setSearchPaymentLabor] = useState('');
+    const [searchPaymentSubcontractor, setSearchPaymentSubcontractor] = useState('All');
     const [searchDesignationReport, setSearchDesignationReport] = useState('All');
 
     // Portal Logs State
@@ -1409,10 +1410,13 @@ const WagesPage = () => {
     };
 
     const renderReports = () => {
-        const filteredReports = weeklyReports.filter(r => 
-            r.name.toLowerCase().includes(searchPaymentLabor.toLowerCase()) || 
-            r.phone?.toLowerCase().includes(searchPaymentLabor.toLowerCase())
-        );
+        const filteredReports = weeklyReports.filter(r => {
+            const laborObj = labors.find(l => l.id === r.labor_id);
+            const matchesLabor = (r.name || '').toLowerCase().includes(searchPaymentLabor.toLowerCase()) || 
+                                 (r.phone || '').toLowerCase().includes(searchPaymentLabor.toLowerCase());
+            const matchesSub = searchPaymentSubcontractor === 'All' || laborObj?.subcontractor_id === searchPaymentSubcontractor;
+            return matchesLabor && matchesSub;
+        });
 
         return (
         <div className={styles.card}>
@@ -1431,6 +1435,19 @@ const WagesPage = () => {
                             />
                             <Search size={14} style={{ position: 'absolute', left: '2px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
                         </div>
+                    </div>
+                    <div className={styles.filterMenuDivider}></div>
+                    <div className={styles.filterMenuItem}>
+                        <label className={styles.filterMenuItemLabel}>Subcontractor</label>
+                        <SearchableSelect
+                            value={searchPaymentSubcontractor}
+                            onChange={e => setSearchPaymentSubcontractor(e.target.value)}
+                            options={[
+                                { value: 'All', label: 'All Subcontractors' },
+                                ...subcontractors.map(s => ({ value: s.id, label: s.name }))
+                            ]}
+                            placeholder="All Subcontractors"
+                        />
                     </div>
                     <div className={styles.filterMenuDivider}></div>
                     <div className={styles.filterMenuItem}>

@@ -9,6 +9,13 @@ const AssistantBot = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
+    
+    // Drag & Drop state
+    const [pos, setPos] = useState({ x: -1, y: -1 });
+    const [isDragging, setIsDragging] = useState(false);
+    const lastTap = useRef(0);
+    const draggedRef = useRef(false);
+
     const getContextualGreeting = () => {
         const path = window.location.hash.slice(1);
         if (path.includes('/wages')) return "Ready to manage site labor? I can help with attendance logs or wage analytics.";
@@ -201,12 +208,66 @@ Answer the user's question accurately based entirely on this live data.`;
 
     // Remove quickAction since we now use handleAction directly
 
+    // Drag handlers
+    const handlePointerDown = (e) => {
+        const now = Date.now();
+        if (now - lastTap.current < 300) {
+            // Double tap detected -> initiate drag
+            setIsDragging(true);
+            draggedRef.current = false;
+            setIsOpen(false);
+            e.currentTarget.setPointerCapture(e.pointerId);
+            
+            // Immediately center to pointer
+            setPos({ x: e.clientX, y: e.clientY });
+        }
+        lastTap.current = now;
+    };
+
+    const handlePointerMove = (e) => {
+        if (isDragging) {
+            draggedRef.current = true;
+            // Prevent going out of bounds
+            const x = Math.max(35, Math.min(window.innerWidth - 35, e.clientX));
+            const y = Math.max(35, Math.min(window.innerHeight - 35, e.clientY));
+            setPos({ x, y });
+        }
+    };
+
+    const handlePointerUp = (e) => {
+        if (isDragging) {
+            setIsDragging(false);
+            e.currentTarget.releasePointerCapture(e.pointerId);
+        }
+    };
+
+    const handleClick = (e) => {
+        if (draggedRef.current) {
+            draggedRef.current = false;
+            return;
+        }
+        setIsOpen(!isOpen);
+    };
+
     return (
-        <div className={styles.botContainer}>
+        <div 
+            className={styles.botContainer}
+            style={pos.x !== -1 ? { 
+                bottom: 'auto', 
+                right: 'auto', 
+                left: `${pos.x - 32}px`, 
+                top: `${pos.y - 32}px`,
+                transition: isDragging ? 'none' : 'all 0.3s ease'
+            } : {}}
+        >
             <button 
                 className={`${styles.toggleBtn} ${isOpen ? styles.active : ''}`}
-                onClick={() => setIsOpen(!isOpen)}
-                title="Help Assistant"
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+                onClick={handleClick}
+                title="Help Assistant (Double tap & drag to move)"
+                style={{ cursor: isDragging ? 'grabbing' : 'pointer' }}
             >
                 {isOpen ? <X size={28} /> : <Sparkles size={28} />}
             </button>

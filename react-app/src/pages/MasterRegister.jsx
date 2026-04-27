@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useMessage } from '../context/MessageContext';
 import { Button } from '../components/ui/Button';
-import { LoadingOverlay } from '../components/ui';
+import { LoadingOverlay, Pagination } from '../components/ui';
 import { Building2, Users, Search, ArrowLeft, Plus, Pencil, Trash2, Home, X, Printer, Share2, LayoutDashboard, ChevronRight } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import styles from './MasterRegister.module.css';
@@ -16,6 +16,10 @@ const MasterRegister = () => {
     const [loading, setLoading] = useState(false);
     const [currentView, setCurrentView] = useState('sites'); // 'sites' or 'vendors'
     const [printVendor, setPrintVendor] = useState(null);
+
+    // Pagination
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 12;
 
     // Sites Data
     const [sites, setSites] = useState([]);
@@ -33,6 +37,10 @@ const MasterRegister = () => {
         name: '', holderName: '', pan: '', phone: '', address: '', acc: '', bank: '', ifsc: '', vendorType: 'both',
         vendorCompany: '', aadhaar: '', gst: '', bankBranch: '', natureOfWork: ''
     });
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [currentView, siteNameSearch, vendorNameSearch]);
 
     useEffect(() => {
         fetchSites();
@@ -182,14 +190,17 @@ const MasterRegister = () => {
     };
 
     const filteredSites = sites.filter(s => 
-        s.name.toLowerCase().includes(siteNameSearch.toLowerCase()) ||
-        (s.location || '').toLowerCase().includes(siteNameSearch.toLowerCase())
+        (s?.name || '').toLowerCase().includes((siteNameSearch || '').toLowerCase()) ||
+        (s?.location || '').toLowerCase().includes((siteNameSearch || '').toLowerCase())
     );
 
     const filteredVendors = vendors.filter(v => 
-        v.vendor_name.toLowerCase().includes(vendorNameSearch.toLowerCase()) ||
-        (v.vendor_company || '').toLowerCase().includes(vendorNameSearch.toLowerCase())
+        (v?.vendor_name || '').toLowerCase().includes((vendorNameSearch || '').toLowerCase()) ||
+        (v?.vendor_company || '').toLowerCase().includes((vendorNameSearch || '').toLowerCase())
     );
+
+    const paginatedSites = filteredSites.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+    const paginatedVendors = filteredVendors.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
     return (
         <div className={styles.dashboardContainer}>
@@ -263,7 +274,7 @@ const MasterRegister = () => {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {filteredSites.map(s => (
+                                            {paginatedSites.map(s => s && (
                                                 <tr key={s.id}>
                                                     <td data-label="Site Name" style={{ fontWeight: 600, color: '#1e293b' }}>{s.name}</td>
                                                     <td data-label="Location">{s.location || '-'}</td>
@@ -297,7 +308,7 @@ const MasterRegister = () => {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {filteredVendors.map(v => (
+                                            {paginatedVendors.map(v => v && (
                                                 <tr key={v.id}>
                                                     <td data-label="Vendor Name" style={{ fontWeight: 600, color: '#1e293b' }}>{v.vendor_name}</td>
                                                     <td data-label="Type">
@@ -335,6 +346,27 @@ const MasterRegister = () => {
                                 )}
                             </table>
                         </div>
+                        {/* Pagination Component */}
+                        {currentView === 'sites' && filteredSites.length > ITEMS_PER_PAGE && (
+                            <div style={{ padding: '1.5rem', borderTop: '1px solid #e2e8f0', background: 'white', borderBottomLeftRadius: '16px', borderBottomRightRadius: '16px' }}>
+                                <Pagination
+                                    currentPage={currentPage}
+                                    totalItems={filteredSites.length}
+                                    itemsPerPage={ITEMS_PER_PAGE}
+                                    onPageChange={setCurrentPage}
+                                />
+                            </div>
+                        )}
+                        {currentView === 'vendors' && filteredVendors.length > ITEMS_PER_PAGE && (
+                            <div style={{ padding: '1.5rem', borderTop: '1px solid #e2e8f0', background: 'white', borderBottomLeftRadius: '16px', borderBottomRightRadius: '16px' }}>
+                                <Pagination
+                                    currentPage={currentPage}
+                                    totalItems={filteredVendors.length}
+                                    itemsPerPage={ITEMS_PER_PAGE}
+                                    onPageChange={setCurrentPage}
+                                />
+                            </div>
+                        )}
                     </div>
                 </div>
             </main>

@@ -2,19 +2,23 @@ import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import styles from './Pagination.module.css';
 
-export const Pagination = ({ currentPage, totalPages, onPageChange }) => {
-    if (totalPages <= 1) return null;
+export const Pagination = ({ currentPage, totalPages, totalItems, itemsPerPage, onPageChange }) => {
+    const calculatedTotalPages = totalPages !== undefined 
+        ? totalPages 
+        : Math.ceil((totalItems || 0) / (itemsPerPage || 10));
+
+    if (calculatedTotalPages <= 1) return null;
 
     const renderPageNumbers = () => {
         const pages = [];
         let startPage = Math.max(1, currentPage - 2);
-        let endPage = Math.min(totalPages, currentPage + 2);
+        let endPage = Math.min(calculatedTotalPages, currentPage + 2);
 
         if (currentPage <= 3) {
-            endPage = Math.min(5, totalPages);
+            endPage = Math.min(5, calculatedTotalPages);
         }
-        if (currentPage >= totalPages - 2) {
-            startPage = Math.max(1, totalPages - 4);
+        if (currentPage >= calculatedTotalPages - 2) {
+            startPage = Math.max(1, calculatedTotalPages - 4);
         }
 
         for (let i = startPage; i <= endPage; i++) {
@@ -34,7 +38,7 @@ export const Pagination = ({ currentPage, totalPages, onPageChange }) => {
     return (
         <div className={styles.paginationContainer}>
             <span className={styles.pageInfo}>
-                Page <strong>{currentPage}</strong> of <strong>{totalPages}</strong>
+                Page <strong>{currentPage}</strong> of <strong>{calculatedTotalPages}</strong>
             </span>
             <div className={styles.pageControls}>
                 <button
@@ -46,24 +50,24 @@ export const Pagination = ({ currentPage, totalPages, onPageChange }) => {
                     <ChevronLeft size={18} />
                 </button>
                 <div className={styles.pageNumbers}>
-                    {currentPage > 3 && totalPages > 5 && (
+                    {currentPage > 3 && calculatedTotalPages > 5 && (
                         <>
                             <button className={styles.pageButton} onClick={() => onPageChange(1)}>1</button>
                             <span className={styles.ellipsis}>...</span>
                         </>
                     )}
                     {renderPageNumbers()}
-                    {currentPage < totalPages - 2 && totalPages > 5 && (
+                    {currentPage < calculatedTotalPages - 2 && calculatedTotalPages > 5 && (
                         <>
                             <span className={styles.ellipsis}>...</span>
-                            <button className={styles.pageButton} onClick={() => onPageChange(totalPages)}>{totalPages}</button>
+                            <button className={styles.pageButton} onClick={() => onPageChange(calculatedTotalPages)}>{calculatedTotalPages}</button>
                         </>
                     )}
                 </div>
                 <button
                     className={styles.navButton}
                     onClick={() => onPageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
+                    disabled={currentPage === calculatedTotalPages}
                     aria-label="Next Page"
                 >
                     <ChevronRight size={18} />

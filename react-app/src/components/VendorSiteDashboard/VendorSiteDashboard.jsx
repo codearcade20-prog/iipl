@@ -4,7 +4,8 @@ import { supabase as vendorSupabase } from '../../lib/supabase';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '../ui/Button';
-import { LoadingOverlay, SearchableSelect } from '../ui';
+import { LoadingOverlay, SearchableSelect, Pagination } from '../ui';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line } from 'recharts';
 import {
     LayoutDashboard,
     Building2,
@@ -110,6 +111,10 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
     const [yearFilter, setYearFilter] = useState('');
     const [entityFilter, setEntityFilter] = useState('');
     const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
+
+    // Pagination
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 12;
 
     const months = [
         "January", "February", "March", "April", "May", "June",
@@ -244,9 +249,15 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
     useEffect(() => {
         const timer = setTimeout(() => {
             setDebouncedSearchQuery(searchQuery);
+            setCurrentPage(1);
         }, 300);
         return () => clearTimeout(timer);
     }, [searchQuery]);
+
+    // Reset pagination on filter changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [dateFilter, monthFilter, yearFilter, entityFilter]);
 
     // Fetch Data
     useEffect(() => {
@@ -306,8 +317,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
     
     const recentEntries = useMemo(() => {
         return [...rawData]
-            .sort((a, b) => new Date(b.created_at || b.wo_date) - new Date(a.created_at || a.wo_date))
-            .slice(0, 6);
+            .sort((a, b) => new Date(b.created_at || b.wo_date) - new Date(a.created_at || a.wo_date));
     }, [rawData]);
 
     const vendors = useMemo(() => {
@@ -454,6 +464,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
         if (id) setDetailId(id);
         setSidebarOpen(false);
         setSearchQuery('');
+        setCurrentPage(1);
         
         // Scroll content area back to top
         if (contentAreaRef.current) {
@@ -690,6 +701,56 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
     const renderOverview = () => {
         const totalWOValue = rawData.reduce((sum, item) => sum + (parseFloat(item.wo_value) || 0), 0);
 
+        // Chart Data Calculation
+        // 1. Top Sites by WO Value
+        const siteValueMap = {};
+        rawData.forEach(item => {
+            siteValueMap[item.site_name] = (siteValueMap[item.site_name] || 0) + (parseFloat(item.wo_value) || 0);
+        });
+        const siteChartData = Object.keys(siteValueMap)
+            .map(name => ({ name, value: siteValueMap[name] }))
+            .sort((a, b) => b.value - a.value)
+            .slice(0, 5);
+
+        // 2. Top Vendors by WO Value
+        const vendorValueMap = {};
+        rawData.forEach(item => {
+            vendorValueMap[item.vendor_name] = (vendorValueMap[item.vendor_name] || 0) + (parseFloat(item.wo_value) || 0);
+        });
+        const vendorChartData = Object.keys(vendorValueMap)
+            .map(name => ({ name, value: vendorValueMap[name] }))
+            .sort((a, b) => b.value - a.value)
+            .slice(0, 5);
+
+        // 3. Monthly Trend (last 6 months)
+        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const monthlyValueMap = {};
+        rawData.forEach(item => {
+            if (item.wo_date) {
+                const date = new Date(item.wo_date);
+                const monthYear = `${monthNames[date.getMonth()]} ${date.getFullYear().toString().substring(2)}`;
+                monthlyValueMap[monthYear] = (monthlyValueMap[monthYear] || 0) + (parseFloat(item.wo_value) || 0);
+            }
+        });
+        const trendDataRaw = Object.keys(monthlyValueMap).map(key => {
+            const [mon, yr] = key.split(' ');
+            const monthIndex = monthNames.indexOf(mon);
+            return { name: key, value: monthlyValueMap[key], monthIndex, year: parseInt(yr) };
+        });
+        trendDataRaw.sort((a, b) => {
+            if (a.year !== b.year) return a.year - b.year;
+            return a.monthIndex - b.monthIndex;
+        });
+        const trendChartData = trendDataRaw.slice(-6); // last 6 months
+
+        const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
+
+        const formatYAxis = (tickItem) => {
+            if (tickItem >= 100000) return `₹${(tickItem / 100000).toFixed(1)}L`;
+            if (tickItem >= 1000) return `₹${(tickItem / 1000).toFixed(1)}K`;
+            return `₹${tickItem}`;
+        };
+
         return (
             <>
                 <div className={styles.statsGrid}>
@@ -716,39 +777,80 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                     </div>
                 </div>
 
-
-                <h2 className={styles.subtitle} style={{ marginBottom: '1rem', fontWeight: 600, fontSize: '1.2rem' }}>Recent Entries</h2>
-                <div className={styles.gridContainer}>
-                    {recentEntries.map((item) => (
-                        <div key={item.id} className={styles.infoCard}>
-                            <div className={styles.cardHeader}>
-                                <span>{item.site_name}</span>
-                                <div style={{ display: 'flex', gap: '5px' }}>
-                                    <StatusBadge status={item.bill_status} url={item.wo_status_url} />
-                                    <span className={styles.tag}>{item.wo_no}</span>
-                                </div>
-                            </div>
-                            <div className={styles.cardBody}>
-                                <div className={styles.listItem}>
-                                    <span className={styles.listItemTitle}>{item.vendor_name}</span>
-                                </div>
-                                <div className={styles.listItem}>
-                                    <span className={styles.listItemSub}>Work Order Date</span>
-                                    <span style={{ fontWeight: 600, color: '#475569' }}>{formatDate(item.wo_date)}</span>
-                                </div>
-                                <div className={styles.listItem}>
-                                    <span className={styles.listItemSub}>WO Value</span>
-                                    <span className={styles.currency}>{formatCurrency(item.wo_value)}</span>
-                                </div>
-                            </div>
+                <h2 className={styles.subtitle} style={{ marginBottom: '1.5rem', marginTop: '2rem', fontWeight: 600, fontSize: '1.2rem' }}>Analytics Overview</h2>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+                    {/* Top Sites Chart */}
+                    <div style={{ background: 'white', padding: '1.5rem', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', border: '1px solid #f1f5f9' }}>
+                        <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#1e293b', marginBottom: '1.5rem' }}>Top 5 Sites by WO Value</h3>
+                        <div style={{ width: '100%', height: 300 }}>
+                            <ResponsiveContainer>
+                                <BarChart data={siteChartData} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                    <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                                    <YAxis tickFormatter={formatYAxis} tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                                    <RechartsTooltip cursor={{ fill: '#f8fafc' }} formatter={(value) => [formatCurrency(value), 'Value']} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }} />
+                                    <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]}>
+                                        {siteChartData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                        ))}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
                         </div>
-                    ))}
+                    </div>
+
+                    {/* Work Order Monthly Trend */}
+                    <div style={{ background: 'white', padding: '1.5rem', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', border: '1px solid #f1f5f9' }}>
+                        <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#1e293b', marginBottom: '1.5rem' }}>WO Value Trend (Last 6 Months)</h3>
+                        <div style={{ width: '100%', height: 300 }}>
+                            <ResponsiveContainer>
+                                <LineChart data={trendChartData} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                    <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                                    <YAxis tickFormatter={formatYAxis} tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                                    <RechartsTooltip formatter={(value) => [formatCurrency(value), 'Value']} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }} />
+                                    <Line type="monotone" dataKey="value" stroke="#8b5cf6" strokeWidth={3} dot={{ r: 4, fill: '#8b5cf6', strokeWidth: 2, stroke: 'white' }} activeDot={{ r: 6 }} />
+                                </LineChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
+                    {/* Top Vendors Pie Chart */}
+                    <div style={{ background: 'white', padding: '1.5rem', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', border: '1px solid #f1f5f9' }}>
+                        <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#1e293b', marginBottom: '1.5rem' }}>Top 5 Vendors by WO Value</h3>
+                        <div style={{ width: '100%', height: 300 }}>
+                            <ResponsiveContainer>
+                                <PieChart>
+                                    <Pie
+                                        data={vendorChartData}
+                                        cx="50%"
+                                        cy="50%"
+                                        innerRadius={60}
+                                        outerRadius={100}
+                                        paddingAngle={5}
+                                        dataKey="value"
+                                    >
+                                        {vendorChartData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                        ))}
+                                    </Pie>
+                                    <RechartsTooltip formatter={(value) => formatCurrency(value)} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }} />
+                                    <Legend wrapperStyle={{ fontSize: '11px' }} />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
                 </div>
             </>
-        )
+        );
     };
 
     const renderSites = () => {
+        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+        const endIndex = startIndex + ITEMS_PER_PAGE;
+        const paginatedSites = filteredSites.slice(startIndex, endIndex);
+
         if (viewMode === 'list') {
             return (
                 <div className={styles.tableContainer} style={{ background: 'white', borderRadius: '12px', padding: '1rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
@@ -762,7 +864,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredSites.map(site => (
+                            {paginatedSites.map(site => (
                                 <tr key={site.name}>
                                     <td style={{ fontWeight: 600, color: '#1e293b' }}>{site.name}</td>
                                     <td style={{ textAlign: 'right', fontWeight: 600, color: '#4f46e5' }}>{formatCurrency(site.totalValue)}</td>
@@ -780,36 +882,62 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                             ))}
                         </tbody>
                     </table>
+                    {filteredSites.length > ITEMS_PER_PAGE && (
+                        <div style={{ marginTop: '1rem' }}>
+                            <Pagination
+                                currentPage={currentPage}
+                                totalItems={filteredSites.length}
+                                itemsPerPage={ITEMS_PER_PAGE}
+                                onPageChange={setCurrentPage}
+                            />
+                        </div>
+                    )}
                 </div>
             );
         }
         return (
-            <div className={styles.gridContainer}>
-                {filteredSites.map(site => (
-                    <div key={site.name} className={styles.infoCard} onClick={() => handleSwitchView('site_detail', site.name)}>
-                        <div className={styles.cardHeader}>
-                            <Building2 size={20} />
-                            <span>{site.name}</span>
-                            <ChevronRight size={16} />
-                        </div>
-                        <div className={styles.cardBody}>
-                            <div className={styles.listItem}>
-                                <span className={styles.listItemSub}>Total Value</span>
-                                <span className={styles.currency}>{formatCurrency(site.totalValue)}</span>
+            <div>
+                <div className={styles.gridContainer}>
+                    {paginatedSites.map(site => (
+                        <div key={site.name} className={styles.infoCard} onClick={() => handleSwitchView('site_detail', site.name)}>
+                            <div className={styles.cardHeader}>
+                                <Building2 size={20} />
+                                <span>{site.name}</span>
+                                <ChevronRight size={16} />
                             </div>
-                            <div className={styles.listItem}>
-                                <span className={styles.listItemSub}>Vendors</span>
-                                <span style={{ fontWeight: 600 }}>{new Set(site.entries.map(e => e.vendor_name)).size}</span>
+                            <div className={styles.cardBody}>
+                                <div className={styles.listItem}>
+                                    <span className={styles.listItemSub}>Total Value</span>
+                                    <span className={styles.currency}>{formatCurrency(site.totalValue)}</span>
+                                </div>
+                                <div className={styles.listItem}>
+                                    <span className={styles.listItemSub}>Vendors</span>
+                                    <span style={{ fontWeight: 600 }}>{new Set(site.entries.map(e => e.vendor_name)).size}</span>
+                                </div>
+                                <div className={styles.tag} style={{ marginTop: '1rem', background: '#eff6ff', color: '#4f46e5' }}>Click for Details</div>
                             </div>
-                            <div className={styles.tag} style={{ marginTop: '1rem', background: '#eff6ff', color: '#4f46e5' }}>Click for Details</div>
                         </div>
+                    ))}
+                </div>
+                {filteredSites.length > ITEMS_PER_PAGE && (
+                    <div style={{ marginTop: '1rem' }}>
+                        <Pagination
+                            currentPage={currentPage}
+                            totalItems={filteredSites.length}
+                            itemsPerPage={ITEMS_PER_PAGE}
+                            onPageChange={setCurrentPage}
+                        />
                     </div>
-                ))}
+                )}
             </div>
         );
     };
 
     const renderVendors = () => {
+        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+        const endIndex = startIndex + ITEMS_PER_PAGE;
+        const paginatedVendors = filteredVendors.slice(startIndex, endIndex);
+
         if (viewMode === 'list') {
             return (
                 <div className={styles.tableContainer} style={{ background: 'white', borderRadius: '12px', padding: '1rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
@@ -823,7 +951,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredVendors.map(vendor => (
+                            {paginatedVendors.map(vendor => (
                                 <tr key={vendor.name}>
                                     <td style={{ fontWeight: 600, color: '#1e293b' }}>{vendor.name}</td>
                                     <td style={{ textAlign: 'right', fontWeight: 600, color: '#4f46e5' }}>{formatCurrency(vendor.totalValue)}</td>
@@ -841,31 +969,53 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                             ))}
                         </tbody>
                     </table>
+                    {filteredVendors.length > ITEMS_PER_PAGE && (
+                        <div style={{ marginTop: '1rem' }}>
+                            <Pagination
+                                currentPage={currentPage}
+                                totalItems={filteredVendors.length}
+                                itemsPerPage={ITEMS_PER_PAGE}
+                                onPageChange={setCurrentPage}
+                            />
+                        </div>
+                    )}
                 </div>
             );
         }
         return (
-            <div className={styles.gridContainer}>
-                {filteredVendors.map(vendor => (
-                    <div key={vendor.name} className={styles.infoCard} onClick={() => handleSwitchView('vendor_detail', vendor.name)}>
-                        <div className={styles.cardHeader}>
-                            <Users size={20} />
-                            <span>{vendor.name}</span>
-                            <ChevronRight size={16} />
-                        </div>
-                        <div className={styles.cardBody}>
-                            <div className={styles.listItem}>
-                                <span className={styles.listItemSub}>Total Projects</span>
-                                <span className={styles.currency}>{formatCurrency(vendor.totalValue)}</span>
+            <div>
+                <div className={styles.gridContainer}>
+                    {paginatedVendors.map(vendor => (
+                        <div key={vendor.name} className={styles.infoCard} onClick={() => handleSwitchView('vendor_detail', vendor.name)}>
+                            <div className={styles.cardHeader}>
+                                <Users size={20} />
+                                <span>{vendor.name}</span>
+                                <ChevronRight size={16} />
                             </div>
-                            <div className={styles.listItem}>
-                                <span className={styles.listItemSub}>Active Sites</span>
-                                <span>{vendor.sites.size}</span>
+                            <div className={styles.cardBody}>
+                                <div className={styles.listItem}>
+                                    <span className={styles.listItemSub}>Total Projects</span>
+                                    <span className={styles.currency}>{formatCurrency(vendor.totalValue)}</span>
+                                </div>
+                                <div className={styles.listItem}>
+                                    <span className={styles.listItemSub}>Active Sites</span>
+                                    <span>{vendor.sites.size}</span>
+                                </div>
+                                <div className={styles.tag} style={{ marginTop: '1rem', background: '#eff6ff', color: '#4f46e5' }}>Click for Details</div>
                             </div>
-                            <div className={styles.tag} style={{ marginTop: '1rem', background: '#eff6ff', color: '#4f46e5' }}>Click for Details</div>
                         </div>
+                    ))}
+                </div>
+                {filteredVendors.length > ITEMS_PER_PAGE && (
+                    <div style={{ marginTop: '1rem' }}>
+                        <Pagination
+                            currentPage={currentPage}
+                            totalItems={filteredVendors.length}
+                            itemsPerPage={ITEMS_PER_PAGE}
+                            onPageChange={setCurrentPage}
+                        />
                     </div>
-                ))}
+                )}
             </div>
         );
     };
@@ -873,6 +1023,14 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
     const renderSiteDetail = () => {
         const site = sites.find(s => s.name === detailId);
         if (!site) return <div>Site not found</div>;
+
+        const filteredEntries = site.entries.filter(e => 
+            e.vendor_name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) || 
+            (e.wo_no || '').toLowerCase().includes(debouncedSearchQuery.toLowerCase())
+        );
+        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+        const endIndex = startIndex + ITEMS_PER_PAGE;
+        const paginatedEntries = filteredEntries.slice(startIndex, endIndex);
 
         return (
             <div>
@@ -896,10 +1054,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {site.entries.filter(e => 
-                                    e.vendor_name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) || 
-                                    (e.wo_no || '').toLowerCase().includes(debouncedSearchQuery.toLowerCase())
-                                ).map(entry => {
+                                {paginatedEntries.map(entry => {
                                     const allAdvs = parseAdvances(entry.advance_details);
                                     const totalAdv = allAdvs.reduce((a, b) => a + (parseFloat(b.amount) || 0), 0);
                                     const balance = (parseFloat(entry.bill_certified_value) || 0) - (parseFloat(entry.housekeeping) || 0) - (parseFloat(entry.retention) || 0) - totalAdv;
@@ -935,10 +1090,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                     </div>
                 ) : (
                     <div className={styles.gridContainer}>
-                        {site.entries.filter(e => 
-                            e.vendor_name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) || 
-                            (e.wo_no || '').toLowerCase().includes(debouncedSearchQuery.toLowerCase())
-                        ).map(entry => {
+                        {paginatedEntries.map(entry => {
                             const allAdvs = parseAdvances(entry.advance_details);
                             const totalAdv = allAdvs.reduce((a, b) => a + (parseFloat(b.amount) || 0), 0);
                             return (
@@ -1008,6 +1160,16 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                         })}
                     </div>
                 )}
+                {filteredEntries.length > ITEMS_PER_PAGE && (
+                    <div style={{ marginTop: '1rem' }}>
+                        <Pagination
+                            currentPage={currentPage}
+                            totalItems={filteredEntries.length}
+                            itemsPerPage={ITEMS_PER_PAGE}
+                            onPageChange={setCurrentPage}
+                        />
+                    </div>
+                )}
             </div>
         );
     };
@@ -1015,6 +1177,14 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
     const renderVendorDetail = () => {
         const vendor = vendors.find(v => v.name === detailId);
         if (!vendor) return <div>Vendor not found</div>;
+
+        const filteredEntries = vendor.entries.filter(e => 
+            e.site_name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) || 
+            (e.wo_no || '').toLowerCase().includes(debouncedSearchQuery.toLowerCase())
+        );
+        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+        const endIndex = startIndex + ITEMS_PER_PAGE;
+        const paginatedEntries = filteredEntries.slice(startIndex, endIndex);
 
         return (
             <div>
@@ -1038,10 +1208,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {vendor.entries.filter(e => 
-                                    e.site_name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) || 
-                                    (e.wo_no || '').toLowerCase().includes(debouncedSearchQuery.toLowerCase())
-                                ).map(entry => {
+                                {paginatedEntries.map(entry => {
                                     const allAdvs = parseAdvances(entry.advance_details);
                                     const totalAdv = allAdvs.reduce((a, b) => a + (parseFloat(b.amount) || 0), 0);
                                     const balance = (parseFloat(entry.bill_certified_value) || 0) - (parseFloat(entry.housekeeping) || 0) - (parseFloat(entry.retention) || 0) - totalAdv;
@@ -1077,10 +1244,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                     </div>
                 ) : (
                     <div className={styles.gridContainer}>
-                        {vendor.entries.filter(e => 
-                            e.site_name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) || 
-                            (e.wo_no || '').toLowerCase().includes(debouncedSearchQuery.toLowerCase())
-                        ).map(entry => {
+                        {paginatedEntries.map(entry => {
                             const allAdvs = parseAdvances(entry.advance_details);
                             const totalAdv = allAdvs.reduce((a, b) => a + (parseFloat(b.amount) || 0), 0);
                             return (
@@ -1148,6 +1312,16 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                 </div>
                             );
                         })}
+                    </div>
+                )}
+                {filteredEntries.length > ITEMS_PER_PAGE && (
+                    <div style={{ marginTop: '1rem' }}>
+                        <Pagination
+                            currentPage={currentPage}
+                            totalItems={filteredEntries.length}
+                            itemsPerPage={ITEMS_PER_PAGE}
+                            onPageChange={setCurrentPage}
+                        />
                     </div>
                 )}
             </div>
@@ -1391,6 +1565,9 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
 
     const renderAdminPanel = () => {
         const filtered = filteredAdminData;
+        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+        const endIndex = startIndex + ITEMS_PER_PAGE;
+        const paginatedAdminData = filtered.slice(startIndex, endIndex);
         const hasActiveFilters = dateFilter || monthFilter || yearFilter || entityFilter;
 
         return (
@@ -1475,7 +1652,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                             </tr>
                         </thead>
                         <tbody>
-                            {filtered.length > 0 ? filtered.map(item => {
+                            {paginatedAdminData.length > 0 ? paginatedAdminData.map(item => {
                                 const advs = parseAdvances(item.advance_details);
                                 const totalAdv = advs.reduce((a, b) => a + (parseFloat(b.amount) || 0), 0);
                                 const baseValue = parseFloat(item.bill_certified_value) || 0;
@@ -1515,6 +1692,16 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                         </tbody>
                     </table>
                 </div>
+                {filtered.length > ITEMS_PER_PAGE && (
+                    <div style={{ marginTop: '1rem' }}>
+                        <Pagination
+                            currentPage={currentPage}
+                            totalItems={filtered.length}
+                            itemsPerPage={ITEMS_PER_PAGE}
+                            onPageChange={setCurrentPage}
+                        />
+                    </div>
+                )}
             </div>
         );
     };
