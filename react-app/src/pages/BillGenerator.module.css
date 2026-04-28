@@ -38,22 +38,28 @@
 
 .rowActionBtn {
     opacity: 0;
-    background: #ff4d4f;
+    background: #ef4444;
     color: white;
     border: none;
-    border-radius: 50%;
-    width: 18px;
-    height: 18px;
-    font-size: 10px;
+    border-radius: 6px;
+    width: 22px;
+    height: 22px;
+    font-size: 11px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: opacity 0.2s;
+    transition: all 0.2s;
     position: absolute;
-    left: -20px;
+    left: -28px;
     top: 50%;
     transform: translateY(-50%);
+    box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.2);
+}
+
+.rowActionBtn:hover {
+    background: #dc2626;
+    transform: translateY(-50%) scale(1.1);
 }
 
 tr:hover .rowActionBtn {
@@ -84,26 +90,104 @@ tr:hover .rowActionBtn {
 }
 
 
+:root {
+    --primary-blue: #2563eb;
+    --primary-dark: #0f172a;
+    --accent-gold: #fbbf24;
+    --bg-light: #f8fafc;
+    --border-soft: #e2e8f0;
+    --text-muted: #64748b;
+    --text-main: #1e293b;
+    --text-soft: #475569;
+    --glass-bg: rgba(255, 255, 255, 0.85);
+}
+
 .container {
     display: flex;
     height: 100vh;
     font-family: 'Outfit', sans-serif;
     overflow: hidden;
+    background: #1e293b;
+    /* Dark backdrop for preview area */
 }
-
 
 .sidebar {
-    width: 450px;
-    background: rgba(255, 255, 255, 0.9);
-    border-right: 1px solid var(--border-color);
+    flex: 1;
+    background: #f8fafc;
+    overflow-y: auto;
+    height: 100vh;
     display: flex;
     flex-direction: column;
-    overflow-y: auto;
-    padding: 30px;
-    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
-    z-index: 10;
-    backdrop-filter: blur(10px);
 }
+
+.sidebar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+
+.sidebarHeader {
+    position: sticky;
+    top: 0;
+    background: #0f172a;
+    padding: 20px 40px;
+    z-index: 100;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: white;
+}
+
+.sidebarContent {
+    padding: 40px;
+    max-width: 1000px;
+    margin: 0 auto;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.sectionTitle {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    font-weight: 700;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sectionTitle i {
+    color: var(--primary-blue);
+}
+
+.inputCard {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    border: 1px solid #e2e8f0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.inputCard:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    border-color: #cbd5e1;
+}
+
 
 .header {
     display: flex;
@@ -117,47 +201,129 @@ tr:hover .rowActionBtn {
 .title {
     font-size: 1.25rem;
     font-weight: 700;
-    color: var(--text-main);
+    color: white; /* Specifically for the dark sidebarHeader */
+    margin: 0;
 }
 
 .homeBtn {
-    background: none;
-    border: none;
-    font-size: 1.2rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 1rem;
     cursor: pointer;
-    padding: 6px;
-    border-radius: 8px;
-    transition: background 0.2s;
+    padding: 8px 12px;
+    border-radius: 10px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .homeBtn:hover {
-    background: #f1f5f9;
+    background: white;
+    color: #0f172a;
+    transform: translateX(-2px);
 }
 
 .previewArea {
+    display: none;
+}
+
+/* Overlay Styles */
+.modalOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.8);
+    backdrop-filter: blur(12px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    animation: fadeIn 0.3s ease;
+    padding: 40px;
+}
+
+.overlayHeader {
+    padding: 20px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.overlayBody {
     flex: 1;
-    padding: 10px;
     overflow-y: auto;
+    padding: 40px;
     display: flex;
     justify-content: center;
-    background: #525659;
+    width: 100%;
 }
+
+.overlayContent {
+    width: fit-content;
+    min-width: 800px;
+    max-width: 95vw;
+    max-height: 95vh;
+    display: flex;
+    flex-direction: column;
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.overlayCloseBtn {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: white;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.overlayCloseBtn:hover {
+    background: #ef4444;
+    transform: rotate(90deg);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
 
 .billPaper {
     width: 297mm;
-    /* Landscape */
-    min-height: auto;
+    min-height: 297mm;
+    /* Full A4 height */
     background: white;
-    padding: 15mm;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+    padding: 20mm 15mm;
+    box-shadow: 0 40px 100px rgba(0, 0, 0, 0.5);
     position: relative;
     box-sizing: border-box;
-    color: #000;
-    margin: 0 auto;
-    font-family: 'Arial', sans-serif;
+    color: #1e293b;
+    margin: 20px auto;
+    font-family: 'Outfit', sans-serif;
     display: flex;
     flex-direction: column;
+    border-radius: 8px;
 }
+
+
 
 .billTable {
     width: 100%;
@@ -170,24 +336,30 @@ tr:hover .rowActionBtn {
 
 .billTable th,
 .billTable td {
-    border: 1px solid #000;
-    padding: 4px 5px;
+    border: 1px solid #cbd5e1;
+    /* Lighter border for modern look */
+    padding: 8px 10px;
     text-align: center;
-    line-height: 1.2;
+    line-height: 1.4;
     white-space: normal;
-    word-break: break-all;
+    word-break: break-word;
 }
+
 
 
 .billTable th {
-    background-color: #5b9bd5;
+    background-color: #0f172a;
     color: white;
-    font-weight: bold;
+    font-weight: 700;
     text-transform: uppercase;
-    font-size: 8pt;
+    font-size: 7pt;
+    letter-spacing: 0.8px;
     position: relative;
     overflow: hidden;
+    padding: 12px 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
+
 
 .resizer {
     position: absolute;
@@ -207,17 +379,33 @@ tr:hover .rowActionBtn {
 
 
 .totalRow td {
-    background-color: #f2f2f2 !important;
-    font-weight: bold;
+    background-color: #f1f5f9 !important;
+    font-weight: 700;
+    color: var(--primary-dark);
+    border-top: 2px solid var(--primary-dark);
+    font-size: 8.5pt;
 }
+
+.billTable tbody tr:nth-child(even):not(.headerRow):not(.totalRow) {
+    background-color: #f8fafc;
+}
+
+.billTable tbody tr:hover:not(.headerRow):not(.totalRow) {
+    background-color: #f1f5f9;
+}
+
 
 
 .headerRow td {
-    background-color: #d9e1f2 !important;
-    font-weight: bold;
+    background-color: #f1f5f9 !important;
+    font-weight: 700;
     text-align: left;
-    padding-left: 10px;
+    padding-left: 15px;
+    color: var(--primary-blue);
+    font-size: 8.5pt;
+    border-bottom: 2px solid #e2e8f0;
 }
+
 
 .textLeft {
     text-align: left !important;
@@ -248,22 +436,23 @@ tr:hover .rowActionBtn {
 
 .metadataGrid {
     display: grid;
-    grid-template-columns: 1fr 250px 1fr;
-    border: 1px solid #000;
-    margin-bottom: 10px;
+    grid-template-columns: 1fr 240px 1fr;
+    border: 1px solid #cbd5e1;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    overflow: hidden;
 }
 
 .metaCol {
-    padding: 5px 8px;
-    border-right: 1px solid #000;
+    padding: 12px 15px;
+    border-right: 1px solid #cbd5e1;
     font-size: 8.5pt;
     display: flex;
     flex-direction: column;
-    gap: 3px;
-    resize: horizontal;
-    overflow: auto;
+    gap: 6px;
     min-width: 150px;
 }
+
 
 .metaItem {
     display: flex;
@@ -288,10 +477,11 @@ tr:hover .rowActionBtn {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 10px;
-    background: #fff;
-    border-right: 1px solid #000;
+    padding: 15px;
+    background: #f8fafc;
+    border-right: 1px solid #cbd5e1;
 }
+
 
 .logoImg {
     max-height: 90px;
@@ -321,26 +511,41 @@ tr:hover .rowActionBtn {
 }
 
 .summaryTable td {
-    border: 1px solid #000;
-    padding: 3px 6px;
+    border: 1px solid #cbd5e1;
+    padding: 10px 12px;
 }
+
+.summaryTable tr:last-child td {
+    background-color: #eff6ff;
+    border-top: 2px solid #2563eb;
+    color: #1d4ed8;
+}
+
 
 
 .footerSigSection {
     margin-top: auto;
-    padding-top: 60px;
+    /* Push to bottom of min-height */
+    padding-top: 50px;
     padding-bottom: 20px;
     display: flex;
-    justify-content: space-around;
-    font-weight: bold;
-    font-size: 10pt;
-    border-top: 1px dashed #eee;
+    justify-content: space-between;
+    gap: 30px;
 }
 
+
 .sigBox {
+    flex: 1;
     text-align: center;
-    min-width: 100px;
+    border-top: 1px solid #cbd5e1;
+    padding-top: 12px;
+    font-weight: 600;
+    font-size: 9pt;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
+
 
 
 
@@ -377,4 +582,45 @@ tr:hover .rowActionBtn {
     cursor: pointer;
     font-weight: bold;
     font-size: 1.2rem;
+}
+
+@media (max-width: 1024px) {
+    .container {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        width: 100%;
+        height: auto;
+        position: relative;
+        border-right: none;
+        border-bottom: 1px solid #eee;
+    }
+
+    .previewArea {
+        padding: 20px;
+        overflow-x: auto;
+    }
+
+    .billPaper {
+        margin: 0 auto;
+        transform: scale(0.9);
+        transform-origin: top center;
+    }
+}
+
+@media print {
+    .sidebar {
+        display: none !important;
+    }
+
+    .previewArea {
+        padding: 0 !important;
+        background: white !important;
+        overflow: visible !important;
+    }
+
+    .container {
+        display: block !important;
+    }
 }

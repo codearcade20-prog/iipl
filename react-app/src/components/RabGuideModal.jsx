@@ -653,14 +653,14 @@ const htmlContent = `
                         
                         H --> I[Adjust Advance]
                         I --> J[Apply GST 18%]
-                        J --> K[Deduct Retention 5% & Housekeeping 2%]
+                        J --> K[Deduct Retention 5% \u0026 Housekeeping 2%]
                         
                         K --> L[Release RAB Payment]
                         style L fill:#3b82f6,stroke:#2563eb,stroke-width:2px,color:#fff,rx:8px,ry:8px
                         
                         L --> M{Is Work 100% Complete?}
                         M -- No --> D
-                        M -- Yes --> N[Final Bill Settlement & Closure]
+                        M -- Yes --> N[Final Bill Settlement \u0026 Closure]
                         style N fill:#1e293b,stroke:#0f172a,stroke-width:2px,color:#fff,rx:8px,ry:8px
                 </div>
             </div>
