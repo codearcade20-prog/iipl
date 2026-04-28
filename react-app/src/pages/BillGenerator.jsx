@@ -25,7 +25,7 @@ const BillGenerator = () => {
     const [currentBillId, setCurrentBillId] = useState(null);
     const [historyModalOpen, setHistoryModalOpen] = useState(false);
     const [savedBills, setSavedBills] = useState([]);
-    
+
     // Admin Security State
     const [passwordModalOpen, setPasswordModalOpen] = useState(false);
     const [adminUsername, setAdminUsername] = useState('');
@@ -1061,7 +1061,7 @@ const BillGenerator = () => {
 
                                         <tr>
                                             <th style={{ width: colWidths['oqty'] || '60px' }}>QTY<div className={styles.resizer} onMouseDown={e => handleResizeMouseDown(e, 'oqty')}></div></th>
-                                            <th style={{ width: colWidths['oamt'] || '100px' }}>AMOUNT<div className={styles.resizer} onMouseDown={e => handleResizeMouseDown(e, 'oamt')}></div></th>
+                                            <th style={{ width: colWidths['oamt'] || '100px' }}>AMT<div className={styles.resizer} onMouseDown={e => handleResizeMouseDown(e, 'oamt')}></div></th>
                                             <th style={{ width: colWidths['cqty'] || '60px' }}>QTY<div className={styles.resizer} onMouseDown={e => handleResizeMouseDown(e, 'cqty')}></div></th>
                                             <th style={{ width: colWidths['camt'] || '100px' }}>AMT<div className={styles.resizer} onMouseDown={e => handleResizeMouseDown(e, 'camt')}></div></th>
                                             <th style={{ width: colWidths['vqty'] || '60px' }}>QTY<div className={styles.resizer} onMouseDown={e => handleResizeMouseDown(e, 'vqty')}></div></th>
@@ -1284,9 +1284,9 @@ const BillGenerator = () => {
 
                         <div className={styles.inputGroup} style={{ marginBottom: '15px' }}>
                             <label style={{ color: '#cbd5e1', fontSize: '0.8rem', fontWeight: '600', marginBottom: '8px', display: 'block' }}>Username</label>
-                            <input 
-                                type="text" 
-                                className={styles.itemInput} 
+                            <input
+                                type="text"
+                                className={styles.itemInput}
                                 value={adminUsername}
                                 onChange={(e) => setAdminUsername(e.target.value)}
                                 placeholder="Admin Username"
@@ -1296,9 +1296,9 @@ const BillGenerator = () => {
 
                         <div className={styles.inputGroup}>
                             <label style={{ color: '#cbd5e1', fontSize: '0.8rem', fontWeight: '600', marginBottom: '8px', display: 'block' }}>Password</label>
-                            <input 
-                                type="password" 
-                                className={styles.itemInput} 
+                            <input
+                                type="password"
+                                className={styles.itemInput}
                                 value={adminPassword}
                                 onChange={(e) => setAdminPassword(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleVerifyAdmin()}
