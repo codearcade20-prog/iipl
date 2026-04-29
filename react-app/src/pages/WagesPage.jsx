@@ -2108,10 +2108,10 @@ const WagesPage = () => {
             <div className={styles.card}>
                 <div className={styles.header} style={{ marginBottom: '20px' }}>
                     <div>
-                        <h2 style={{ margin: 0, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <h2 style={{ margin: 0, color: 'white', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <Smartphone size={24} color="#3b82f6" /> Portal Check-ins
                         </h2>
-                        <p className={styles.muted} style={{ margin: '4px 0 0 0' }}>Review selfies and GPS locations captured directly from the Labor Portal</p>
+                        <p style={{ margin: '4px 0 0 0', color: '#cbd5e1' }}>Review selfies and GPS locations captured directly from the Labor Portal</p>
                     </div>
                     <div>
                         <input 
