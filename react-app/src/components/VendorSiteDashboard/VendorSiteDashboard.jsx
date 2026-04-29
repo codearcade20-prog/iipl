@@ -412,6 +412,74 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
         return Object.values(vendorMap);
     }, [contextFilteredData]);
 
+    // --- Unfiltered Data for Statement Reports ---
+    const fullSites = useMemo(() => {
+        const unique = [...new Set(rawData.map(item => item.site_name))];
+        return unique.map(site => {
+            const siteEntries = rawData.filter(d => d.site_name === site);
+            const totalValue = siteEntries.reduce((sum, item) => sum + (parseFloat(item.wo_value) || 0), 0);
+            return { name: site, totalValue, count: siteEntries.length, entries: siteEntries };
+        });
+    }, [rawData]);
+
+    const fullVendors = useMemo(() => {
+        const vendorMap = {};
+        rawData.forEach(item => {
+            if (!vendorMap[item.vendor_name]) {
+                vendorMap[item.vendor_name] = {
+                    name: item.vendor_name,
+                    totalValue: 0,
+                    advances: 0,
+                    sites: new Set(),
+                    entries: []
+                };
+            }
+            const v = vendorMap[item.vendor_name];
+            v.totalValue += parseFloat(item.wo_value) || 0;
+
+            let adv = 0;
+            try {
+                const advList = typeof item.advance_details === 'string' ? JSON.parse(item.advance_details) : item.advance_details;
+                if (Array.isArray(advList)) {
+                    adv = advList.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
+                }
+            } catch (err) { /* ignore parse error */ }
+            v.advances += adv;
+            v.sites.add(item.site_name);
+            v.entries.push(item);
+        });
+        return Object.values(vendorMap);
+    }, [rawData]);
+
+    const fullTrackerVendors = useMemo(() => {
+        const vendorGroups = {};
+        rawData.forEach(item => {
+            const vName = item.vendor_name || 'UNKNOWN VENDOR';
+            if (!vendorGroups[vName]) vendorGroups[vName] = [];
+            vendorGroups[vName].push(item);
+        });
+
+        return Object.keys(vendorGroups)
+            .filter(v =>
+                v.toLowerCase().includes((debouncedSearchQuery || '').toLowerCase()) ||
+                vendorGroups[v].some(e => (e.wo_no || '').toLowerCase().includes((debouncedSearchQuery || '').toLowerCase()))
+            )
+            .sort().reduce((acc, v) => {
+                acc[v] = vendorGroups[v];
+                return acc;
+            }, {});
+    }, [rawData, debouncedSearchQuery]);
+
+    const fullMasterReportData = useMemo(() => {
+        return fullSites.filter(site =>
+            site.name.toLowerCase().includes((debouncedSearchQuery || '').toLowerCase()) ||
+            site.entries.some(e =>
+                e.vendor_name.toLowerCase().includes((debouncedSearchQuery || '').toLowerCase()) ||
+                (e.wo_no || '').toLowerCase().includes((debouncedSearchQuery || '').toLowerCase())
+            )
+        );
+    }, [fullSites, debouncedSearchQuery]);
+
     // Memoized Filtered Results
     const filteredAdminData = useMemo(() => {
         return contextFilteredData.filter(item => {
@@ -1866,8 +1934,8 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
         }
 
         if (statementMode === 'tracker') {
-            const vendorGroups = filteredTrackerVendors;
-            const sortedVendors = Object.keys(vendorGroups);
+            const vendorGroups = fullTrackerVendors;
+            const sortedVendors = Object.keys(vendorGroups).sort();
 
             return (
                 <div className={styles.statementContainer}>
@@ -2010,7 +2078,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
         }
 
         if (statementMode === 'master') {
-            const reportData = filteredMasterReportData;
+            const reportData = fullMasterReportData;
 
             return (
                 <div className={styles.statementContainer}>
@@ -2174,7 +2242,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                             />
                         </div>
                         <div className={styles.gridContainer}>
-                            {sites
+                            {fullSites
                                 .filter(s => s.name.toLowerCase().includes((searchQuery || '').toLowerCase()))
                                 .map(s => (
                                     <div key={s.name} className={styles.infoCard} onClick={() => { setSelectedStatementSite(s); setSearchQuery(''); }}>
@@ -2480,7 +2548,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                             />
                         </div>
                         <div className={styles.gridContainer}>
-                            {vendors
+                            {fullVendors
                                 .filter(v => v.name.toLowerCase().includes((searchQuery || '').toLowerCase()))
                                 .map(v => (
                                     <div key={v.name} className={styles.infoCard} onClick={() => { setSelectedStatementVendor(v); setSearchQuery(''); }}>
@@ -3590,7 +3658,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                         <h1>{readOnly && currentView === 'overview' ? 'Project Overview' : currentView.charAt(0).toUpperCase() + currentView.slice(1).replace('_', ' ')}</h1>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <p className={styles.subtitle}>Innovative Interiors - QS Dashboard</p>
-                            {(yearFilter && entityFilter) && (
+                            {(yearFilter && entityFilter && currentView !== 'statements') && (
                                 <div className={styles.selectionBadge}>
                                     <span>{yearFilter}</span>
                                     <span className={styles.badgeDivider}>|</span>
@@ -3657,19 +3725,21 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                     )}
 
                     <div className={styles.headerButtons} style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                        <button
-                            className={styles.logoutBtn}
-                            onClick={() => {
-                                setPendingView(null);
-                                setShowSelectionModal(true);
-                            }}
-                            title="Project Configuration"
-                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white', color: '#4f46e5', cursor: 'pointer', transition: 'all 0.2s' }}
-                            onMouseOver={e => { e.currentTarget.style.background = '#f5f3ff'; e.currentTarget.style.borderColor = '#4f46e5'; }}
-                            onMouseOut={e => { e.currentTarget.style.background = 'white'; e.currentTarget.style.borderColor = '#e2e8f0'; }}
-                        >
-                            <Settings size={18} />
-                        </button>
+                        {currentView !== 'statements' && (
+                            <button
+                                className={styles.logoutBtn}
+                                onClick={() => {
+                                    setPendingView(null);
+                                    setShowSelectionModal(true);
+                                }}
+                                title="Project Configuration"
+                                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white', color: '#4f46e5', cursor: 'pointer', transition: 'all 0.2s' }}
+                                onMouseOver={e => { e.currentTarget.style.background = '#f5f3ff'; e.currentTarget.style.borderColor = '#4f46e5'; }}
+                                onMouseOut={e => { e.currentTarget.style.background = 'white'; e.currentTarget.style.borderColor = '#e2e8f0'; }}
+                            >
+                                <Settings size={18} />
+                            </button>
+                        )}
                         <button
                             className={styles.logoutBtn}
                             onClick={() => navigate('/')}
