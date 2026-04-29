@@ -37,20 +37,25 @@ import { useMessage } from '../../context/MessageContext';
 import { formatDate } from '../../utils';
 
 // Safe PDF Button Component to hide broken links
-const SafePdfBtn = ({ url }) => {
+const SafePdfBtn = ({ url, onPreview }) => {
     // Basic validation to hide empty or corrupted URL strings
     if (!url || url.length < 10 || url.includes('null') || url.includes('undefined')) {
         return null;
     }
     return (
-        <a href={url} target="_blank" rel="noopener noreferrer" className={styles.pdfBtn} title="View Work Order PDF">
+        <button 
+            onClick={() => onPreview ? onPreview(url) : window.open(url, '_blank')} 
+            className={styles.pdfBtn} 
+            title="View Document"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
             <FileText size={16} />
-        </a>
+        </button>
     );
 };
 
 // Reusable Status Badge Component with Safe Link
-const StatusBadge = ({ status, url, extraStyles = {} }) => {
+const StatusBadge = ({ status, url, onPreview, extraStyles = {} }) => {
     if (!status || status === 'N/A') return null;
 
     // Basic validation to hide empty or corrupted URL strings
@@ -65,21 +70,28 @@ const StatusBadge = ({ status, url, extraStyles = {} }) => {
     }
 
     const badge = (
-        <span 
-            className={styles.tag} 
-            style={{ 
-                background: badgeColor.bg, 
-                color: badgeColor.text, 
+        <span
+            className={styles.tag}
+            style={{
+                background: badgeColor.bg,
+                color: badgeColor.text,
                 cursor: isUrlValid ? 'pointer' : 'default',
                 border: `1px solid ${status === 'FINAL' ? '#bbf7d0' : (status.startsWith('RAB') ? '#fde68a' : '#fecaca')}`,
-                ...extraStyles 
+                ...extraStyles
+            }}
+            onClick={(e) => {
+                if (isUrlValid && onPreview) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onPreview(url);
+                }
             }}
         >
             {status}
         </span>
     );
 
-    if (isUrlValid) {
+    if (isUrlValid && !onPreview) {
         return (
             <a href={url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
                 {badge}
@@ -111,6 +123,8 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
     const [yearFilter, setYearFilter] = useState('');
     const [entityFilter, setEntityFilter] = useState('');
     const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
+    const [showSelectionModal, setShowSelectionModal] = useState(false);
+    const [pendingView, setPendingView] = useState(null);
 
     // Pagination
     const [currentPage, setCurrentPage] = useState(1);
@@ -171,6 +185,30 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
     const [showColumnSettings, setShowColumnSettings] = useState(false);
     const [printOrientation, setPrintOrientation] = useState('portrait'); // 'portrait' or 'landscape'
     const [showPrintModal, setShowPrintModal] = useState(false);
+    const [previewPdfUrl, setPreviewPdfUrl] = useState(null);
+    const [showPdfPreview, setShowPdfPreview] = useState(false);
+
+    // Helper to transform Google Drive URLs for embedding
+    const transformDriveUrl = (url) => {
+        if (!url) return url;
+        try {
+            if (url.includes('drive.google.com')) {
+                // Convert /view to /preview for embedding
+                if (url.includes('/view')) {
+                    return url.split('/view')[0] + '/preview';
+                }
+            }
+        } catch (e) {
+            console.error('URL Transform Error:', e);
+        }
+        return url;
+    };
+
+    const handlePreviewPdf = (url) => {
+        if (!url) return;
+        setPreviewPdfUrl(url);
+        setShowPdfPreview(true);
+    };
 
     const fetchData = async (isSilent = false) => {
         if (!isSilent) setLoading(true);
@@ -222,7 +260,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
 
             const { data: sData } = await vendorSupabase.from('sites').select('name').order('name');
             setMasterSites(sData || []);
-            
+
             return flattened;
         } catch (error) {
             console.error('Error fetching data:', error);
@@ -280,7 +318,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                     if (params.get('print') === 'true' || isDirectPrint) {
                         setPrintOrientation('portrait');
                         // Always show modal for direct/print param to avoid blank pages and give orientation choice
-                        setTimeout(() => setShowPrintModal(true), 1500); 
+                        setTimeout(() => setShowPrintModal(true), 1500);
                     }
                 }
             } else if (siteParam) {
@@ -305,24 +343,49 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
     }, [selectedStatementWO, location.search]);
     */
 
-    // Derived Data
+    // Dedicated Context Filter (Year/Entity) that applies to ALL views
+    const contextFilteredData = useMemo(() => {
+        return rawData.filter(item => {
+            const itemDate = item.wo_date;
+
+            let matchesYear = true;
+            if (yearFilter && yearFilter !== 'All') {
+                if (!itemDate) {
+                    matchesYear = false;
+                } else {
+                    const itemYear = itemDate.split('-')[0];
+                    matchesYear = itemYear === yearFilter;
+                }
+            }
+
+            let matchesEntity = true;
+            if (entityFilter && entityFilter !== 'All') {
+                const woNo = (item.wo_no || '').toUpperCase();
+                matchesEntity = woNo.startsWith(entityFilter.toUpperCase() + '/');
+            }
+
+            return matchesYear && matchesEntity;
+        });
+    }, [rawData, yearFilter, entityFilter]);
+
+    // Derived Data - Now using contextFilteredData instead of rawData
     const sites = useMemo(() => {
-        const unique = [...new Set(rawData.map(item => item.site_name))];
+        const unique = [...new Set(contextFilteredData.map(item => item.site_name))];
         return unique.map(site => {
-            const siteEntries = rawData.filter(d => d.site_name === site);
+            const siteEntries = contextFilteredData.filter(d => d.site_name === site);
             const totalValue = siteEntries.reduce((sum, item) => sum + (parseFloat(item.wo_value) || 0), 0);
             return { name: site, totalValue, count: siteEntries.length, entries: siteEntries };
         });
-    }, [rawData]);
-    
+    }, [contextFilteredData]);
+
     const recentEntries = useMemo(() => {
-        return [...rawData]
+        return [...contextFilteredData]
             .sort((a, b) => new Date(b.created_at || b.wo_date) - new Date(a.created_at || a.wo_date));
-    }, [rawData]);
+    }, [contextFilteredData]);
 
     const vendors = useMemo(() => {
         const vendorMap = {};
-        rawData.forEach(item => {
+        contextFilteredData.forEach(item => {
             if (!vendorMap[item.vendor_name]) {
                 vendorMap[item.vendor_name] = {
                     name: item.vendor_name,
@@ -347,11 +410,11 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
             v.entries.push(item);
         });
         return Object.values(vendorMap);
-    }, [rawData]);
+    }, [contextFilteredData]);
 
     // Memoized Filtered Results
     const filteredAdminData = useMemo(() => {
-        return rawData.filter(item => {
+        return contextFilteredData.filter(item => {
             const matchesSearch = (item.site_name || '').toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
                 (item.vendor_name || '').toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
                 (item.wo_no || '').toLowerCase().includes(debouncedSearchQuery.toLowerCase());
@@ -370,54 +433,39 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                 }
             }
 
-            let matchesYear = true;
-            if (yearFilter) {
-                if (!itemDate) {
-                    matchesYear = false;
-                } else {
-                    const itemYear = itemDate.split('-')[0];
-                    matchesYear = itemYear === yearFilter;
-                }
-            }
-
-            let matchesEntity = true;
-            if (entityFilter) {
-                const woNo = (item.wo_no || '').toUpperCase();
-                matchesEntity = woNo.startsWith(entityFilter.toUpperCase() + '/');
-            }
-
-            return matchesSearch && matchesDate && matchesMonth && matchesYear && matchesEntity;
+            // Year and Entity matches are already handled by contextFilteredData
+            return matchesSearch && matchesDate && matchesMonth;
         }).sort((a, b) => {
             const woA = a.wo_no || '';
             const woB = b.wo_no || '';
             return woA.localeCompare(woB, undefined, { numeric: true, sensitivity: 'base' });
         });
-    }, [rawData, debouncedSearchQuery, dateFilter, monthFilter, yearFilter, entityFilter, months]);
+    }, [contextFilteredData, debouncedSearchQuery, dateFilter, monthFilter, months]);
 
     const filteredSites = useMemo(() => {
-        return sites.filter(s => 
-            s.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) || 
+        return sites.filter(s =>
+            s.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
             s.entries.some(e => (e.wo_no || '').toLowerCase().includes(debouncedSearchQuery.toLowerCase()))
         );
     }, [sites, debouncedSearchQuery]);
 
     const filteredVendors = useMemo(() => {
-        return vendors.filter(v => 
-            v.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) || 
+        return vendors.filter(v =>
+            v.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
             v.entries.some(e => (e.wo_no || '').toLowerCase().includes(debouncedSearchQuery.toLowerCase()))
         );
     }, [vendors, debouncedSearchQuery]);
 
     const filteredTrackerVendors = useMemo(() => {
         const vendorGroups = {};
-        rawData.forEach(item => {
+        contextFilteredData.forEach(item => {
             const vName = item.vendor_name || 'UNKNOWN VENDOR';
             if (!vendorGroups[vName]) vendorGroups[vName] = [];
             vendorGroups[vName].push(item);
         });
 
         return Object.keys(vendorGroups)
-            .filter(v => 
+            .filter(v =>
                 v.toLowerCase().includes((debouncedSearchQuery || '').toLowerCase()) ||
                 vendorGroups[v].some(e => (e.wo_no || '').toLowerCase().includes((debouncedSearchQuery || '').toLowerCase()))
             )
@@ -425,12 +473,13 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                 acc[v] = vendorGroups[v];
                 return acc;
             }, {});
-    }, [rawData, debouncedSearchQuery]);
+    }, [contextFilteredData, debouncedSearchQuery]);
+
 
     const filteredMasterReportData = useMemo(() => {
         return sites.filter(site =>
             site.name.toLowerCase().includes((debouncedSearchQuery || '').toLowerCase()) ||
-            site.entries.some(e => 
+            site.entries.some(e =>
                 e.vendor_name.toLowerCase().includes((debouncedSearchQuery || '').toLowerCase()) ||
                 (e.wo_no || '').toLowerCase().includes((debouncedSearchQuery || '').toLowerCase())
             )
@@ -460,12 +509,20 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
     // View Navigation
     const handleSwitchView = (view, id = null) => {
         if (readOnly && (view === 'add_entry' || view === 'admin_panel')) return;
+
+        // Intercept WO Search and Admin Panel for Selection
+        if ((view === 'wo_search' || view === 'admin_panel') && (!yearFilter || !entityFilter)) {
+            setPendingView(view);
+            setShowSelectionModal(true);
+            return;
+        }
+
         setCurrentView(view);
         if (id) setDetailId(id);
         setSidebarOpen(false);
         setSearchQuery('');
         setCurrentPage(1);
-        
+
         // Scroll content area back to top
         if (contentAreaRef.current) {
             contentAreaRef.current.scrollTo(0, 0);
@@ -475,6 +532,24 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
         if (view !== 'add_entry') {
             resetForm();
         }
+    };
+
+    const confirmSelection = () => {
+        if (!yearFilter || !entityFilter) {
+            toast("Please select both Year and Entity to proceed.");
+            return;
+        }
+        setShowSelectionModal(false);
+        if (pendingView) {
+            setCurrentView(pendingView);
+            setPendingView(null);
+        }
+    };
+
+    const clearSelection = () => {
+        setYearFilter('');
+        setEntityFilter('');
+        setShowSelectionModal(true);
     };
 
     const resetForm = () => {
@@ -699,12 +774,12 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
     // --- Render Functions ---
 
     const renderOverview = () => {
-        const totalWOValue = rawData.reduce((sum, item) => sum + (parseFloat(item.wo_value) || 0), 0);
+        const totalWOValue = contextFilteredData.reduce((sum, item) => sum + (parseFloat(item.wo_value) || 0), 0);
 
         // Chart Data Calculation
         // 1. Top Sites by WO Value
         const siteValueMap = {};
-        rawData.forEach(item => {
+        contextFilteredData.forEach(item => {
             siteValueMap[item.site_name] = (siteValueMap[item.site_name] || 0) + (parseFloat(item.wo_value) || 0);
         });
         const siteChartData = Object.keys(siteValueMap)
@@ -714,9 +789,10 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
 
         // 2. Top Vendors by WO Value
         const vendorValueMap = {};
-        rawData.forEach(item => {
+        contextFilteredData.forEach(item => {
             vendorValueMap[item.vendor_name] = (vendorValueMap[item.vendor_name] || 0) + (parseFloat(item.wo_value) || 0);
         });
+
         const vendorChartData = Object.keys(vendorValueMap)
             .map(name => ({ name, value: vendorValueMap[name] }))
             .sort((a, b) => b.value - a.value)
@@ -725,13 +801,14 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
         // 3. Monthly Trend (last 6 months)
         const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
         const monthlyValueMap = {};
-        rawData.forEach(item => {
+        contextFilteredData.forEach(item => {
             if (item.wo_date) {
                 const date = new Date(item.wo_date);
                 const monthYear = `${monthNames[date.getMonth()]} ${date.getFullYear().toString().substring(2)}`;
                 monthlyValueMap[monthYear] = (monthlyValueMap[monthYear] || 0) + (parseFloat(item.wo_value) || 0);
             }
         });
+
         const trendDataRaw = Object.keys(monthlyValueMap).map(key => {
             const [mon, yr] = key.split(' ');
             const monthIndex = monthNames.indexOf(mon);
@@ -778,7 +855,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                 </div>
 
                 <h2 className={styles.subtitle} style={{ marginBottom: '1.5rem', marginTop: '2rem', fontWeight: 600, fontSize: '1.2rem' }}>Analytics Overview</h2>
-                
+
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
                     {/* Top Sites Chart */}
                     <div style={{ background: 'white', padding: '1.5rem', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', border: '1px solid #f1f5f9' }}>
@@ -870,8 +947,8 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                     <td style={{ textAlign: 'right', fontWeight: 600, color: '#4f46e5' }}>{formatCurrency(site.totalValue)}</td>
                                     <td style={{ textAlign: 'right', fontWeight: 500 }}>{new Set(site.entries.map(e => e.vendor_name)).size}</td>
                                     <td style={{ textAlign: 'center' }}>
-                                        <button 
-                                            className={styles.tag} 
+                                        <button
+                                            className={styles.tag}
                                             style={{ background: '#eff6ff', color: '#4f46e5', border: 'none', cursor: 'pointer', padding: '4px 12px' }}
                                             onClick={() => handleSwitchView('site_detail', site.name)}
                                         >
@@ -957,8 +1034,8 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                     <td style={{ textAlign: 'right', fontWeight: 600, color: '#4f46e5' }}>{formatCurrency(vendor.totalValue)}</td>
                                     <td style={{ textAlign: 'right', fontWeight: 500 }}>{vendor.sites.size}</td>
                                     <td style={{ textAlign: 'center' }}>
-                                        <button 
-                                            className={styles.tag} 
+                                        <button
+                                            className={styles.tag}
                                             style={{ background: '#eff6ff', color: '#4f46e5', border: 'none', cursor: 'pointer', padding: '4px 12px' }}
                                             onClick={() => handleSwitchView('vendor_detail', vendor.name)}
                                         >
@@ -1024,8 +1101,8 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
         const site = sites.find(s => s.name === detailId);
         if (!site) return <div>Site not found</div>;
 
-        const filteredEntries = site.entries.filter(e => 
-            e.vendor_name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) || 
+        const filteredEntries = site.entries.filter(e =>
+            e.vendor_name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
             (e.wo_no || '').toLowerCase().includes(debouncedSearchQuery.toLowerCase())
         );
         const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -1064,7 +1141,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                             <td>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                     <span style={{ fontWeight: 600 }}>{entry.wo_no || 'N/A'}</span>
-                                                    <StatusBadge status={entry.bill_status} url={entry.wo_status_url} extraStyles={{ fontSize: '0.65rem' }} />
+                                                    <StatusBadge status={entry.bill_status} url={entry.wo_status_url} onPreview={handlePreviewPdf} extraStyles={{ fontSize: '0.65rem' }} />
                                                 </div>
                                             </td>
                                             <td>{formatDate(entry.wo_date)}</td>
@@ -1073,8 +1150,8 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                             <td style={{ textAlign: 'right', fontWeight: 700, color: balance > 0 ? '#b91c1c' : '#059669' }}>{formatCurrency(balance)}</td>
                                             <td style={{ textAlign: 'center' }}>
                                                 <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                                                    <SafePdfBtn url={entry.wo_pdf_url} />
-                                                    <button 
+                                                    <SafePdfBtn url={entry.wo_pdf_url} onPreview={handlePreviewPdf} />
+                                                    <button
                                                         onClick={() => setPaymentHistoryPopup(entry)}
                                                         style={{ background: '#f1f5f9', color: '#4f46e5', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600 }}
                                                     >
@@ -1097,13 +1174,13 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                 <div key={entry.id || Math.random()} className={styles.infoCard} style={{ cursor: 'default' }}>
                                     <div className={styles.cardHeader}>
                                         <span>{entry.vendor_name}</span>
-                                        <SafePdfBtn url={entry.wo_pdf_url} />
+                                        <SafePdfBtn url={entry.wo_pdf_url} onPreview={handlePreviewPdf} />
                                     </div>
                                     <div className={styles.cardBody}>
                                         <div className={styles.listItem}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                                                 <span className={styles.listItemSub}>Work Order No</span>
-                                                <StatusBadge status={entry.bill_status} url={entry.wo_status_url} extraStyles={{ fontSize: '0.7rem', padding: '2px 6px' }} />
+                                                <StatusBadge status={entry.bill_status} url={entry.wo_status_url} onPreview={handlePreviewPdf} extraStyles={{ fontSize: '0.7rem', padding: '2px 6px' }} />
 
 
                                             </div>
@@ -1137,7 +1214,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                         <div style={{ marginTop: '1rem', borderTop: '1px solid #e2e8f0', paddingTop: '0.5rem' }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                                                 <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Payment History</div>
-                                                <button 
+                                                <button
                                                     onClick={(e) => { e.stopPropagation(); setPaymentHistoryPopup(entry); }}
                                                     style={{ fontSize: '0.7rem', color: '#4f46e5', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, textDecoration: 'underline' }}
                                                 >
@@ -1178,8 +1255,8 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
         const vendor = vendors.find(v => v.name === detailId);
         if (!vendor) return <div>Vendor not found</div>;
 
-        const filteredEntries = vendor.entries.filter(e => 
-            e.site_name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) || 
+        const filteredEntries = vendor.entries.filter(e =>
+            e.site_name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
             (e.wo_no || '').toLowerCase().includes(debouncedSearchQuery.toLowerCase())
         );
         const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -1218,7 +1295,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                             <td>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                     <span style={{ fontWeight: 600 }}>{entry.wo_no || 'N/A'}</span>
-                                                    <StatusBadge status={entry.bill_status} url={entry.wo_status_url} extraStyles={{ fontSize: '0.65rem' }} />
+                                                    <StatusBadge status={entry.bill_status} url={entry.wo_status_url} onPreview={handlePreviewPdf} extraStyles={{ fontSize: '0.65rem' }} />
                                                 </div>
                                             </td>
                                             <td>{formatDate(entry.wo_date)}</td>
@@ -1227,8 +1304,8 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                             <td style={{ textAlign: 'right', fontWeight: 700, color: balance > 0 ? '#b91c1c' : '#059669' }}>{formatCurrency(balance)}</td>
                                             <td style={{ textAlign: 'center' }}>
                                                 <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                                                    <SafePdfBtn url={entry.wo_pdf_url} />
-                                                    <button 
+                                                    <SafePdfBtn url={entry.wo_pdf_url} onPreview={handlePreviewPdf} />
+                                                    <button
                                                         onClick={() => setPaymentHistoryPopup(entry)}
                                                         style={{ background: '#f1f5f9', color: '#4f46e5', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600 }}
                                                     >
@@ -1251,13 +1328,13 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                 <div key={entry.id || Math.random()} className={styles.infoCard} style={{ cursor: 'default' }}>
                                     <div className={styles.cardHeader}>
                                         <span>{entry.site_name}</span>
-                                        <SafePdfBtn url={entry.wo_pdf_url} />
+                                        <SafePdfBtn url={entry.wo_pdf_url} onPreview={handlePreviewPdf} />
                                     </div>
                                     <div className={styles.cardBody}>
                                         <div className={styles.listItem}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                                                 <span className={styles.listItemSub}>Work Order No</span>
-                                                <StatusBadge status={entry.bill_status} url={entry.wo_status_url} extraStyles={{ fontSize: '0.7rem', padding: '2px 6px' }} />
+                                                <StatusBadge status={entry.bill_status} url={entry.wo_status_url} onPreview={handlePreviewPdf} extraStyles={{ fontSize: '0.7rem', padding: '2px 6px' }} />
 
 
                                             </div>
@@ -1291,7 +1368,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                         <div style={{ marginTop: '1rem', borderTop: '1px solid #e2e8f0', paddingTop: '0.5rem' }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                                                 <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Payment History</div>
-                                                <button 
+                                                <button
                                                     onClick={(e) => { e.stopPropagation(); setPaymentHistoryPopup(entry); }}
                                                     style={{ fontSize: '0.7rem', color: '#4f46e5', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, textDecoration: 'underline' }}
                                                 >
@@ -1379,10 +1456,10 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                         value={formData.woValue}
                         onChange={e => {
                             const val = e.target.value;
-                            setFormData(prev => ({ 
-                                ...prev, 
-                                woValue: val, 
-                                billCertifiedValue: (prev.billCertifiedValue === prev.woValue || !prev.billCertifiedValue) ? val : prev.billCertifiedValue 
+                            setFormData(prev => ({
+                                ...prev,
+                                woValue: val,
+                                billCertifiedValue: (prev.billCertifiedValue === prev.woValue || !prev.billCertifiedValue) ? val : prev.billCertifiedValue
                             }));
                         }}
                         required
@@ -1664,7 +1741,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                         <td>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                 <div style={{ fontWeight: 600, color: '#1e293b' }}>{item.wo_no || '-'}</div>
-                                                <StatusBadge status={item.bill_status} url={item.wo_status_url} extraStyles={{ fontSize: '0.65rem', padding: '2px 6px' }} />
+                                                <StatusBadge status={item.bill_status} url={item.wo_status_url} onPreview={handlePreviewPdf} extraStyles={{ fontSize: '0.65rem', padding: '2px 6px' }} />
                                             </div>
                                             <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{formatDate(item.wo_date)}</div>
                                         </td>
@@ -1673,17 +1750,29 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                         <td style={{ color: '#b91c1c', fontWeight: 600 }}>{formatCurrency(balance)}</td>
                                         {!readOnly && (
                                             <td style={{ verticalAlign: 'middle' }}>
-                                                <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-                                                    <SafePdfBtn url={item.wo_pdf_url} />
-                                                    <button className={`${styles.actionBtn} ${styles.editBtn}`} onClick={() => handleEditSetup(item.id)}>
-                                                        <Pencil size={18} />
+                                                <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+                                                    {item.wo_pdf_url && (
+                                                        <button
+                                                            onClick={() => handlePreviewPdf(item.wo_pdf_url)}
+                                                            className={styles.pdfBtn}
+                                                            title="View Work Order PDF"
+                                                            style={{ padding: '8px', background: '#eef2ff', color: '#4f46e5', border: '1px solid #c7d2fe', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
+                                                            onMouseOver={e => e.currentTarget.style.background = '#e0e7ff'}
+                                                            onMouseOut={e => e.currentTarget.style.background = '#eef2ff'}
+                                                        >
+                                                            <ExternalLink size={18} />
+                                                        </button>
+                                                    )}
+                                                    <button className={styles.actionBtn} style={{ color: '#64748b', background: 'transparent', border: 'none', padding: '4px' }} onClick={() => handleEditSetup(item.id)} title="Edit">
+                                                        <Pencil size={16} />
                                                     </button>
-                                                    <button className={`${styles.actionBtn} ${styles.deleteBtn}`} onClick={() => handleDelete(item.id)}>
-                                                        <Trash2 size={18} />
+                                                    <button className={styles.actionBtn} style={{ color: '#ef4444', background: 'transparent', border: 'none', padding: '4px' }} onClick={() => handleDelete(item.id)} title="Delete">
+                                                        <Trash2 size={16} />
                                                     </button>
                                                 </div>
                                             </td>
                                         )}
+
                                     </tr>
                                 )
                             }) : (
@@ -1884,7 +1973,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                                             <td style={{ border: '1px solid #000', fontWeight: 500 }}>{entry.site_name.toUpperCase()}</td>
                                                             <td style={{ border: '1px solid #000', textAlign: 'center' }}>
                                                                 <div>{entry.wo_no || '-'}</div>
-                                                                <StatusBadge status={entry.bill_status} url={entry.wo_status_url} extraStyles={{ fontSize: '0.6rem', border: 'none' }} />
+                                                                <StatusBadge status={entry.bill_status} url={entry.wo_status_url} onPreview={handlePreviewPdf} extraStyles={{ fontSize: '0.6rem', border: 'none' }} />
                                                             </td>
                                                             <td style={{ border: '1px solid #000', textAlign: 'center' }}>{formatDate(entry.wo_date)}</td>
                                                             <td style={{ border: '1px solid #000', textAlign: 'right' }}>{orderVal ? Math.round(orderVal).toLocaleString() : '-'}</td>
@@ -1997,7 +2086,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                                 {siteVendors.map((v, i) => (
                                                     <td key={i}>
                                                         <div>{v.wo_no || '-'}</div>
-                                                        <StatusBadge status={v.bill_status} url={v.wo_status_url} extraStyles={{ fontSize: '0.7rem', border: 'none' }} />
+                                                        <StatusBadge status={v.bill_status} url={v.wo_status_url} onPreview={handlePreviewPdf} extraStyles={{ fontSize: '0.7rem', border: 'none' }} />
                                                     </td>
                                                 ))}
                                             </tr>
@@ -2118,7 +2207,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
             // Site Statement Rendering
             const site = selectedStatementSite;
             const dateStr = new Date().toLocaleDateString();
-            const filteredEntries = site.entries.filter(entry => 
+            const filteredEntries = site.entries.filter(entry =>
                 entry.vendor_name.toLowerCase().includes((statementVendorSearch || '').toLowerCase())
             );
 
@@ -2149,7 +2238,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                     <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1e293b', marginBottom: '0.25rem' }}>{entry.vendor_name}</h3>
                                     <div style={{ color: '#64748b', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                         <span style={{ fontWeight: 500 }}>WO No:</span> {entry.wo_no || 'N/A'}
-                                        <StatusBadge status={entry.bill_status} url={entry.wo_status_url} extraStyles={{ fontSize: '0.7rem', padding: '2px 6px' }} />
+                                        <StatusBadge status={entry.bill_status} url={entry.wo_status_url} onPreview={handlePreviewPdf} extraStyles={{ fontSize: '0.7rem', padding: '2px 6px' }} />
                                         <span style={{ margin: '0', color: '#cbd5e1' }}>|</span>
                                         <span style={{ fontWeight: 500 }}>Date:</span> {formatDate(entry.wo_date)}
                                     </div>
@@ -2424,10 +2513,10 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
             // Vendor Statement Rendering
             const vendor = selectedStatementVendor;
             const dateStr = new Date().toLocaleDateString();
-            const filteredEntries = vendor.entries.filter(entry => 
+            const filteredEntries = vendor.entries.filter(entry =>
                 entry.site_name.toLowerCase().includes((statementSiteSearch || '').toLowerCase())
             );
-            
+
             let content;
             if (vendorStatementView === 'detailed') {
                 let grandTotalCredit = 0;
@@ -2709,11 +2798,12 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
 
         if (statementMode === 'work_order') {
             if (!selectedStatementWO) {
-                const searchResults = searchQuery.trim() === '' ? [] : rawData.filter(item =>
+                const searchResults = searchQuery.trim() === '' ? [] : contextFilteredData.filter(item =>
                     (item.wo_no || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
                     (item.site_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
                     (item.vendor_name || '').toLowerCase().includes(searchQuery.toLowerCase())
                 );
+
 
                 return (
                     <div style={{ maxWidth: '800px', margin: '0 auto' }}>
@@ -2741,7 +2831,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                             <FileText size={18} />
                                             <span>{wo.wo_no || 'N/A'}</span>
                                         </div>
-                                        <StatusBadge status={wo.bill_status} url={wo.wo_status_url} extraStyles={{ fontSize: '0.7rem' }} />
+                                        <StatusBadge status={wo.bill_status} url={wo.wo_status_url} onPreview={handlePreviewPdf} extraStyles={{ fontSize: '0.7rem' }} />
                                     </div>
                                     <div className={styles.cardBody}>
                                         <div style={{ marginBottom: '0.5rem' }}>
@@ -2788,8 +2878,8 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
             <div className={styles.statementContainer}>
                 <div id="receipt-ready-indicator" style={{ display: 'none' }}></div>
                 <div className={styles.printHide} style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Button 
-                        variant="secondary" 
+                    <Button
+                        variant="secondary"
                         onClick={() => {
                             const from = new URLSearchParams(location.search).get('from');
                             const isDirect = new URLSearchParams(location.search).get('direct') === 'true';
@@ -2814,7 +2904,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                         <div className={styles.receiptHeader}>
                             <div className={styles.receiptWoNo}>{wo.wo_no || 'N/A'}</div>
                             <div className={styles.receiptStatusTag}>
-                                <StatusBadge status={wo.bill_status} url={wo.wo_status_url} />
+                                <StatusBadge status={wo.bill_status} url={wo.wo_status_url} onPreview={handlePreviewPdf} />
                             </div>
                             <div className={styles.receiptSiteName}>{wo.site_name.toUpperCase()}</div>
                         </div>
@@ -2887,7 +2977,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
     };
 
     const renderWOSearch = () => {
-        const filtered = debouncedSearchQuery.trim() === '' ? [] : rawData.filter(item =>
+        const filtered = debouncedSearchQuery.trim() === '' ? [] : contextFilteredData.filter(item =>
             (item.wo_no || '').toLowerCase().includes(debouncedSearchQuery.toLowerCase())
         );
 
@@ -2922,54 +3012,37 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                 <span style={{ fontSize: '1rem', fontWeight: 700 }}>{entry.wo_no || 'N/A'}</span>
-                                                <StatusBadge status={entry.bill_status} url={entry.wo_status_url} extraStyles={{ fontSize: '0.65rem', padding: '2px 6px' }} />
                                             </div>
                                             <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 500 }}>{entry.site_name}</span>
                                         </div>
-                                            <button 
-                                                onClick={() => {
-                                                    setCurrentView('statements');
-                                                    setStatementMode('work_order');
-                                                    setSelectedStatementWO(entry);
-                                                }}
-                                                title="View Detailed Record"
-                                                style={{
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: '4px',
-                                                    padding: '6px 12px',
-                                                    background: '#4f46e5',
-                                                    color: 'white',
-                                                    border: 'none',
-                                                    borderRadius: '6px',
-                                                    fontSize: '0.75rem',
-                                                    fontWeight: 600,
-                                                    cursor: 'pointer'
-                                                }}
-                                            >
-                                                <FileText size={14} />
-                                            </button>
-                                            <button 
-                                                onClick={() => window.open(`#/vendor-dashboard?wo=${entry.wo_no}&direct=true`, '_blank')}
-                                                style={{
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: '4px',
-                                                    padding: '6px 12px',
-                                                    background: '#fee2e2',
-                                                    color: '#b91c1c',
-                                                    border: '1px solid #fca5a5',
-                                                    borderRadius: '6px',
-                                                    fontSize: '0.75rem',
-                                                    fontWeight: 600,
-                                                    cursor: 'pointer'
-                                                }}
-                                                title="Quick Print Portrait"
-                                            >
-                                                <Printer size={14} />
-                                            </button>
-                                            <SafePdfBtn url={entry.wo_pdf_url} />
+                                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                            {entry.wo_pdf_url && (
+                                                <button
+                                                    onClick={() => handlePreviewPdf(entry.wo_pdf_url)}
+                                                    className={styles.pdfBtn}
+                                                    title="View Work Order PDF"
+                                                    style={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        padding: '10px',
+                                                        background: '#4f46e5',
+                                                        color: 'white',
+                                                        borderRadius: '8px',
+                                                        border: 'none',
+                                                        cursor: 'pointer',
+                                                        boxShadow: '0 2px 4px rgba(79, 70, 229, 0.2)',
+                                                        transition: 'all 0.2s'
+                                                    }}
+                                                    onMouseOver={e => e.currentTarget.style.transform = 'translateY(-1px)'}
+                                                    onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}
+                                                >
+                                                    <ExternalLink size={20} />
+                                                </button>
+                                            )}
                                         </div>
+                                    </div>
+
                                     <div className={styles.cardBody}>
                                         <div className={styles.listItem}>
                                             <span className={styles.listItemSub}>Vendor</span>
@@ -3001,7 +3074,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                         <div style={{ marginTop: '1.5rem' }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                                                 <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Payment History</div>
-                                                <button 
+                                                <button
                                                     onClick={() => setPaymentHistoryPopup(entry)}
                                                     style={{ fontSize: '0.75rem', color: '#4f46e5', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700, textDecoration: 'underline' }}
                                                 >
@@ -3053,12 +3126,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
     };
 
     const renderContent = () => {
-        if (loading) return (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#f8fafc', flexDirection: 'column', gap: '1rem' }}>
-                <LoadingOverlay message="Preparing Dashboard..." />
-                <span style={{ color: '#64748b', fontWeight: 500 }}>Please wait, processing records...</span>
-            </div>
-        );
+        if (loading) return null;
 
         if (isDirectPrint && selectedStatementWO) {
             return (
@@ -3125,8 +3193,8 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                        <Button 
-                            variant="secondary" 
+                        <Button
+                            variant="secondary"
                             style={{ margin: 0 }}
                             onClick={() => {
                                 const from = new URLSearchParams(location.search).get('from');
@@ -3141,14 +3209,14 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                         >
                             Back to Form
                         </Button>
-                        <Button onClick={() => { 
-                            setShowPrintModal(false); 
+                        <Button onClick={() => {
+                            setShowPrintModal(false);
                             setTimeout(() => {
                                 window.print();
                                 if (new URLSearchParams(location.search).get('direct') === 'true') {
                                     window.onafterprint = () => window.close();
                                 }
-                            }, 300); 
+                            }, 300);
                         }}>
                             Print Now
                         </Button>
@@ -3162,9 +3230,9 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
         if (!paymentHistoryPopup) return null;
         const entry = paymentHistoryPopup;
         const allAdvs = parseAdvances(entry.advance_details || []);
-        
+
         const totals = { m1: 0, m2: 0, m3: 0, m4: 0, m5: 0 };
-        
+
         return (
             <div className={`${styles.modalOverlay} history-popup-overlay`} onClick={() => setPaymentHistoryPopup(null)} style={{ alignItems: 'center', justifyContent: 'center', display: 'flex' }}>
                 <style>
@@ -3252,8 +3320,8 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                         <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center' }} className="no-print-history">
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                 <label style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Layout:</label>
-                                <select 
-                                    value={historyPrintOrientation} 
+                                <select
+                                    value={historyPrintOrientation}
                                     onChange={(e) => setHistoryPrintOrientation(e.target.value)}
                                     className={styles.formInput}
                                     style={{ width: '110px', padding: '0.3rem 0.6rem', fontSize: '0.8rem' }}
@@ -3262,7 +3330,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                     <option value="landscape">Landscape</option>
                                 </select>
                             </div>
-                            <Button 
+                            <Button
                                 variant="secondary"
                                 onClick={() => window.print()}
                                 style={{ display: 'flex', alignItems: 'center', gap: '6px', height: '36px' }}
@@ -3296,7 +3364,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                     else if (mode === 'M3') { row.m3 = formatCurrency(amount); totals.m3 += amount; }
                                     else if (mode === 'M4') { row.m4 = formatCurrency(amount); totals.m4 += amount; }
                                     else if (mode === 'M5') { row.m5 = formatCurrency(amount); totals.m5 += amount; }
-                                    
+
                                     return (
                                         <tr key={i}>
                                             <td>{formatDate(a.date)}</td>
@@ -3353,8 +3421,8 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                             <span style={{ color: '#64748b' }}>
-                                Bill Certified Value: 
-                                <StatusBadge status={entry.bill_status} url={entry.wo_status_url} extraStyles={{ display: 'inline-block', marginLeft: '8px', border: 'none', background: 'none' }} />
+                                Bill Certified Value:
+                                <StatusBadge status={entry.bill_status} url={entry.wo_status_url} onPreview={handlePreviewPdf} extraStyles={{ display: 'inline-block', marginLeft: '8px', border: 'none', background: 'none' }} />
                             </span>
                             <span style={{ fontWeight: 600 }}>{formatCurrency(billCertified)}</span>
                         </div>
@@ -3374,6 +3442,36 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                             <span>Balance to Pay</span>
                             <span>{formatCurrency(balance)}</span>
                         </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    const renderPdfPreviewModal = () => {
+        if (!showPdfPreview || !previewPdfUrl) return null;
+        return (
+            <div className={styles.modalOverlay} style={{ zIndex: 3000 }} onClick={() => setShowPdfPreview(false)}>
+                <div className={styles.pdfPreviewContent} onClick={e => e.stopPropagation()}>
+                    <div className={styles.pdfPreviewHeader}>
+                        <h3>Document Preview</h3>
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                            <a href={previewPdfUrl} target="_blank" rel="noopener noreferrer" className={styles.closePreviewBtn} title="Open in New Tab">
+                                <ExternalLink size={18} />
+                            </a>
+                            <button onClick={() => setShowPdfPreview(false)} className={styles.closePreviewBtn}>
+                                <X size={20} />
+                            </button>
+                        </div>
+                    </div>
+                    <div className={styles.pdfFrameContainer}>
+                        <iframe 
+                            src={transformDriveUrl(previewPdfUrl)} 
+                            title="PDF Preview" 
+                            width="100%" 
+                            height="100%" 
+                            frameBorder="0" 
+                        />
                     </div>
                 </div>
             </div>
@@ -3498,7 +3596,19 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
 
                     <div className={styles.pageTitle}>
                         <h1>{readOnly && currentView === 'overview' ? 'Project Overview' : currentView.charAt(0).toUpperCase() + currentView.slice(1).replace('_', ' ')}</h1>
-                        <p className={styles.subtitle}>Innovative Interiors - QS Dashboard</p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <p className={styles.subtitle}>Innovative Interiors - QS Dashboard</p>
+                            {(yearFilter && entityFilter) && (
+                                <div className={styles.selectionBadge}>
+                                    <span>{yearFilter}</span>
+                                    <span className={styles.badgeDivider}>|</span>
+                                    <span>{entityFilter}</span>
+                                    <button onClick={clearSelection} className={styles.changeBtn} title="Change Year/Entity">
+                                        <Settings size={12} /> Change
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {currentView !== 'overview' && (
@@ -3515,13 +3625,13 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
 
                     {(['sites', 'vendors', 'site_detail', 'vendor_detail'].includes(currentView)) && (
                         <div style={{ display: 'flex', gap: '5px', background: '#f1f5f9', padding: '4px', borderRadius: '8px', border: '1px solid #e2e8f0', marginLeft: 'auto', marginRight: '1rem' }}>
-                            <button 
+                            <button
                                 onClick={() => setViewMode('list')}
                                 title="Row View"
-                                style={{ 
-                                    padding: '6px', 
-                                    borderRadius: '6px', 
-                                    border: 'none', 
+                                style={{
+                                    padding: '6px',
+                                    borderRadius: '6px',
+                                    border: 'none',
                                     background: viewMode === 'list' ? 'white' : 'transparent',
                                     color: viewMode === 'list' ? '#4f46e5' : '#64748b',
                                     boxShadow: viewMode === 'list' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
@@ -3533,13 +3643,13 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                             >
                                 <List size={18} />
                             </button>
-                            <button 
+                            <button
                                 onClick={() => setViewMode('grid')}
                                 title="Box View"
-                                style={{ 
-                                    padding: '6px', 
-                                    borderRadius: '6px', 
-                                    border: 'none', 
+                                style={{
+                                    padding: '6px',
+                                    borderRadius: '6px',
+                                    border: 'none',
                                     background: viewMode === 'grid' ? 'white' : 'transparent',
                                     color: viewMode === 'grid' ? '#4f46e5' : '#64748b',
                                     boxShadow: viewMode === 'grid' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
@@ -3586,6 +3696,87 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
             {renderBalancePopup()}
             {renderPaymentHistoryPopup()}
             {renderPrintModal()}
+            {renderPdfPreviewModal()}
+            {showSelectionModal && (
+                <div className={styles.modalOverlay}>
+                    <div className={styles.selectionModalContent}>
+                        <div className={styles.selectionHeader}>
+                            <Shield size={32} color="#4f46e5" />
+                            <h2>Project Configuration</h2>
+                            <p>Please select the financial year and company entity to continue.</p>
+                        </div>
+
+                        <div className={styles.selectionBody}>
+                            <div className={styles.selectionGroup}>
+                                <label>1. Select Financial Year</label>
+                                <div className={styles.yearGrid}>
+                                    {years.map(yr => (
+                                        <button
+                                            key={yr}
+                                            className={`${styles.yearBtn} ${yearFilter === yr ? styles.activeYear : ''}`}
+                                            onClick={() => setYearFilter(yr)}
+                                        >
+                                            {yr}
+                                        </button>
+                                    ))}
+                                    <button
+                                        className={`${styles.yearBtn} ${yearFilter === 'All' ? styles.activeYear : ''}`}
+                                        onClick={() => setYearFilter('All')}
+                                    >
+                                        All
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className={styles.selectionGroup}>
+                                <label>2. Select Company Entity</label>
+                                <div className={styles.entityGrid}>
+                                    <button
+                                        className={`${styles.entityBtn} ${entityFilter === 'IIPL' ? styles.activeEntity : ''}`}
+                                        onClick={() => setEntityFilter('IIPL')}
+                                    >
+                                        <div className={styles.entityCode}>IIPL</div>
+                                        <div className={styles.entityName}>Innovative Interiors</div>
+                                    </button>
+                                    <button
+                                        className={`${styles.entityBtn} ${entityFilter === 'IIIPL' ? styles.activeEntity : ''}`}
+                                        onClick={() => setEntityFilter('IIIPL')}
+                                    >
+                                        <div className={styles.entityCode}>IIIPL</div>
+                                        <div className={styles.entityName}>Innovative Infini Infra</div>
+                                    </button>
+                                    <button
+                                        className={`${styles.entityBtn} ${entityFilter === 'All' ? styles.activeEntity : ''}`}
+                                        onClick={() => setEntityFilter('All')}
+                                    >
+                                        <div className={styles.entityCode}>Both</div>
+                                        <div className={styles.entityName}>Show All Entities</div>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className={styles.selectionFooter}>
+                            <button
+                                className={styles.cancelSelectionBtn}
+                                onClick={() => {
+                                    setShowSelectionModal(false);
+                                    setPendingView(null);
+                                }}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className={styles.confirmSelectionBtn}
+                                onClick={confirmSelection}
+                                disabled={!yearFilter || !entityFilter}
+                            >
+                                Continue to {pendingView === 'wo_search' ? 'WO Search' : 'Admin Panel'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
