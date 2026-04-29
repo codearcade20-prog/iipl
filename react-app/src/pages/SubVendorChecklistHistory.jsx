@@ -7,14 +7,15 @@ import {
     Trash2, 
     FileText, 
     Calendar,
-    Loader2
+    Loader2,
+    AlertCircle
 } from 'lucide-react';
 import styles from './SubVendorChecklistHistory.module.css';
 import { useMessage } from '../context/MessageContext';
 
 const SubVendorChecklistHistory = () => {
     const navigate = useNavigate();
-    const { toast } = useMessage();
+    const { toast, confirm } = useMessage();
     const [checklists, setChecklists] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -42,7 +43,7 @@ const SubVendorChecklistHistory = () => {
     }, [fetchHistory]);
 
     const handleDelete = async (id) => {
-        if (!window.confirm('Are you sure you want to delete this record?')) return;
+        if (!await confirm('Are you sure you want to delete this record?')) return;
         
         try {
             const { error } = await supabase
@@ -122,7 +123,29 @@ const SubVendorChecklistHistory = () => {
                                                 {new Date(item.created_at).toLocaleDateString()}
                                             </div>
                                         </td>
-                                        <td className={styles.projectCell}>{item.project_name}</td>
+                                        <td className={styles.projectCell}>
+                                            {item.project_name}
+                                            {item.is_revision && (
+                                                <span 
+                                                    style={{ 
+                                                        marginLeft: '8px', 
+                                                        color: '#f59e0b', 
+                                                        fontSize: '0.7rem', 
+                                                        fontWeight: 'bold',
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '2px',
+                                                        background: '#fffbeb',
+                                                        padding: '2px 6px',
+                                                        borderRadius: '4px',
+                                                        border: '1px solid #fef3c7'
+                                                    }}
+                                                    title={`Revised from WO: ${item.existing_work_order_no}${item.old_vendor_name ? ` (Previous Vendor: ${item.old_vendor_name})` : ''}`}
+                                                >
+                                                    <AlertCircle size={10} /> REVISED
+                                                </span>
+                                            )}
+                                        </td>
                                         <td className={styles.vendorCell}>{item.vendor_name}</td>
                                         <td className={styles.valueCell}>₹{item.total_value?.toLocaleString() || 0}</td>
                                         <td>

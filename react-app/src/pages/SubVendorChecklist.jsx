@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
-import { Save, Printer, ArrowLeft, Loader2, Check, Download, Clock } from 'lucide-react';
+import { Save, Printer, ArrowLeft, Loader2, Check, Download, Clock, AlertCircle, Menu, X, Home, FileText, LayoutDashboard, History } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useMessage } from '../context/MessageContext';
 import SearchableSelect from '../components/ui/SearchableSelect';
@@ -21,6 +21,9 @@ const initialFormState = {
     pan_no: '',
     gst_no: '',
     billing_address: '',
+    is_revision: false,
+    existing_work_order_no: '',
+    old_vendor_name: '',
 
     // Bank Details
     bank_account_name: '',
@@ -81,8 +84,9 @@ const SubVendorChecklist = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const checklistId = searchParams.get('id');
-    const { toast, alert } = useMessage();
+    const { toast, alert, confirm } = useMessage();
     const [loading, setLoading] = useState(false);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [projects, setProjects] = useState([]);
     const [vendors, setVendors] = useState([]);
     const [form, setForm] = useState(initialFormState);
@@ -303,8 +307,8 @@ const SubVendorChecklist = () => {
         window.print();
     };
 
-    const handleEmptyPrint = () => {
-        if (window.confirm("This will clear all current data to print a blank template. Do you want to continue?")) {
+    const handleEmptyPrint = async () => {
+        if (await confirm("This will clear all current data to print a blank template. Do you want to continue?")) {
             setForm({
                 ...initialFormState,
                 payment_terms: {
@@ -334,18 +338,61 @@ const SubVendorChecklist = () => {
 
     return (
         <div className={`${styles.container} printable-content`}>
-            <header className={styles.header}>
-                <div className={`${styles.topActions} ${styles.noPrint}`}>
-                    <div style={{ flex: 1 }} />
-                    <div className={styles.actions}>
-                        <button className={`${styles.actionBtn} ${styles.historyBtn}`} onClick={() => navigate('/sub-vendor-checklist/history')}>
-                            <Clock size={18} /> HISTORY
+            {/* Sidebar Navigation */}
+            <div className={`${styles.sidebarOverlay} ${isSidebarOpen ? styles.sidebarVisible : ''}`} onClick={() => setIsSidebarOpen(false)}>
+                <div className={styles.sidebar} onClick={(e) => e.stopPropagation()}>
+                    <div className={styles.sidebarHeader}>
+                        <h2 className={styles.sidebarTitle}>Navigation</h2>
+                        <button className={styles.closeSidebarBtn} onClick={() => setIsSidebarOpen(false)}>
+                            <X size={24} />
                         </button>
+                    </div>
+                    <nav className={styles.sidebarNav}>
+                        <button className={styles.navItem} onClick={() => { navigate('/'); setIsSidebarOpen(false); }}>
+                            <Home size={18} /> Home
+                        </button>
+                        <button className={styles.navItem} onClick={() => { navigate('/sub-vendor-checklist/history'); setIsSidebarOpen(false); }}>
+                            <History size={18} /> Checklist History
+                        </button>
+                        <button 
+                            className={`${styles.navItem} ${form.is_revision ? styles.activeNavItem : ''}`} 
+                            onClick={() => {
+                                setForm(prev => ({ ...prev, is_revision: !prev.is_revision }));
+                                setIsSaved(false);
+                                setIsSidebarOpen(false);
+                            }}
+                        >
+                            <AlertCircle size={18} /> Order Change (Revised)
+                        </button>
+                        <button className={styles.navItem} onClick={() => { handleEmptyPrint(); setIsSidebarOpen(false); }}>
+                            <Printer size={18} /> Empty Print
+                        </button>
+                    </nav>
+                </div>
+            </div>
+
+            <header className={styles.header}>
+                <div className={styles.headerLeft}>
+                    <button className={`${styles.menuBtn} ${styles.noPrint}`} onClick={() => setIsSidebarOpen(true)}>
+                        <Menu size={24} />
+                    </button>
+                    <div className={styles.titleContainer}>
+                        <h1 className={styles.title}>
+                            Sub Vendor Checklist {form.is_revision && <span style={{ color: '#f59e0b' }}>(Revised)</span>}
+                        </h1>
+                        <p className={`${styles.subtitle} ${styles.noPrint}`}>Comprehensive project & vendor agreement record</p>
+                        {form.is_revision && (
+                            <div className={`${styles.revisionBadge} ${styles.noPrint}`}>
+                                <AlertCircle size={14} /> REVISION MODE ACTIVE
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                <div className={`${styles.headerRight} ${styles.noPrint}`}>
+                    <div className={styles.actions}>
                         <button className={`${styles.actionBtn} ${styles.printBtn}`} onClick={handlePrint}>
                             <Printer size={18} /> PRINT
-                        </button>
-                        <button className={`${styles.actionBtn} ${styles.emptyBtn}`} onClick={handleEmptyPrint}>
-                            <Printer size={18} /> EMPTY PRINT
                         </button>
                         <button className={`${styles.actionBtn} ${styles.saveBtn}`} onClick={handleSubmit} disabled={loading}>
                             {loading ? <Loader2 className={`${styles.loadingSpinner} animate-spin`} size={18} /> : <Save size={18} />} SAVE
@@ -355,14 +402,12 @@ const SubVendorChecklist = () => {
                         </button>
                     </div>
                 </div>
-                <h1 className={styles.title}>Sub Vendor Checklist</h1>
-                <p className={styles.subtitle}>Comprehensive project & vendor agreement record</p>
             </header>
 
             <form onSubmit={handleSubmit} className={styles.checklist}>
                 {/* Print Only Header */}
                 <div className={styles.printHeader}>
-                    <h1 className={styles.printTitle}>SUB VENDOR CHECKLIST</h1>
+                    <h1 className={styles.printTitle}>SUB VENDOR CHECKLIST {form.is_revision ? '(REVISED)' : ''}</h1>
                     <p className={styles.printSubtitle}>Comprehensive project & vendor agreement record</p>
                 </div>
 
@@ -419,6 +464,46 @@ const SubVendorChecklist = () => {
                             <span className={styles.printValue}>{form.nature_of_work}</span>
                         </div>
                     </div>
+                    {form.is_revision && (
+                        <div className={styles.gridRow}>
+                            <div className={styles.label} style={{ color: '#f59e0b' }}>Exist work order no ....</div>
+                            <div className={styles.value}>
+                                <div className={styles.inputWrapper}>
+                                    <input 
+                                        type="text" 
+                                        className={styles.input} 
+                                        style={{ borderColor: '#f59e0b', backgroundColor: '#fffbeb' }}
+                                        value={form.existing_work_order_no} 
+                                        onChange={(e) => setForm({ ...form, existing_work_order_no: e.target.value })} 
+                                        placeholder="Enter Existing Work Order Number"
+                                        autoFocus
+                                    />
+                                </div>
+                                <span className={styles.printValue}>{form.existing_work_order_no}</span>
+                            </div>
+                        </div>
+                    )}
+                    {form.is_revision && (
+                        <div className={styles.gridRow}>
+                            <div className={styles.label} style={{ color: '#f59e0b' }}>Old Vendor Name</div>
+                            <div className={styles.value}>
+                                <div className={styles.inputWrapper}>
+                                    <input 
+                                        type="text" 
+                                        className={styles.input} 
+                                        style={{ borderColor: '#f59e0b', backgroundColor: '#fffbeb' }}
+                                        value={form.old_vendor_name} 
+                                        onChange={(e) => {
+                                            const val = e.target.value.replace(/[0-9]/g, '');
+                                            setForm({ ...form, old_vendor_name: val });
+                                        }} 
+                                        placeholder="Enter Old Vendor Name"
+                                    />
+                                </div>
+                                <span className={styles.printValue}>{form.old_vendor_name}</span>
+                            </div>
+                        </div>
+                    )}
                     <div className={`${styles.gridRow} ${styles.noPrint}`}>
                         <div className={styles.label}>Select Vendor (Autofill)</div>
                         <div className={styles.value}>
