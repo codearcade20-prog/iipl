@@ -509,14 +509,6 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
     // View Navigation
     const handleSwitchView = (view, id = null) => {
         if (readOnly && (view === 'add_entry' || view === 'admin_panel')) return;
-
-        // Intercept WO Search and Admin Panel for Selection
-        if ((view === 'wo_search' || view === 'admin_panel') && (!yearFilter || !entityFilter)) {
-            setPendingView(view);
-            setShowSelectionModal(true);
-            return;
-        }
-
         setCurrentView(view);
         if (id) setDetailId(id);
         setSidebarOpen(false);
@@ -3667,6 +3659,19 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                     <div className={styles.headerButtons} style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
                         <button
                             className={styles.logoutBtn}
+                            onClick={() => {
+                                setPendingView(null);
+                                setShowSelectionModal(true);
+                            }}
+                            title="Project Configuration"
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white', color: '#4f46e5', cursor: 'pointer', transition: 'all 0.2s' }}
+                            onMouseOver={e => { e.currentTarget.style.background = '#f5f3ff'; e.currentTarget.style.borderColor = '#4f46e5'; }}
+                            onMouseOut={e => { e.currentTarget.style.background = 'white'; e.currentTarget.style.borderColor = '#e2e8f0'; }}
+                        >
+                            <Settings size={18} />
+                        </button>
+                        <button
+                            className={styles.logoutBtn}
                             onClick={() => navigate('/')}
                             title="Back to Home"
                             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white', color: '#64748b', cursor: 'pointer', transition: 'all 0.2s' }}
@@ -3771,7 +3776,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                 onClick={confirmSelection}
                                 disabled={!yearFilter || !entityFilter}
                             >
-                                Continue to {pendingView === 'wo_search' ? 'WO Search' : 'Admin Panel'}
+                                {pendingView ? `Continue to ${pendingView === 'wo_search' ? 'WO Search' : 'Admin Panel'}` : 'Confirm Selection'}
                             </button>
                         </div>
                     </div>
