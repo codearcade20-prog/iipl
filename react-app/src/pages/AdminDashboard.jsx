@@ -681,6 +681,40 @@ const AdminDashboard = () => {
         }
     };
 
+    const clearRecycleBin = async () => {
+        if (!binItems.length) {
+            await alert("Recycle Bin is already empty.");
+            return;
+        }
+
+        const pwd = await prompt("Enter Admin Password to CLEAR RECYCLE BIN FOREVER:");
+        if (pwd === null) return;
+        if (pwd !== adminUser?.password) {
+            await alert("Incorrect Admin Password!");
+            return;
+        }
+
+        if (await confirm(`⚠ CRITICAL WARNING: You are about to PERMANENTLY DELETE ALL ${binItems.length} records in the Recycle Bin.\nThis action CANNOT BE UNDONE.\n\nProceed with full clearance?`)) {
+            setSaving(true);
+            try {
+                // Delete all records that were fetched
+                const ids = binItems.map(b => b.id);
+                const { error } = await supabase
+                    .from('recycle_bin')
+                    .delete()
+                    .in('id', ids);
+
+                if (error) throw error;
+                
+                setBinItems([]);
+                toast('Recycle Bin has been completely cleared.');
+            } catch (e) {
+                console.error(e);
+                await alert('Error clearing bin: ' + e.message);
+            } finally { setSaving(false); }
+        }
+    };
+
     // --- USER MANAGEMENT ACTIONS ---
     const fetchUsers = async () => {
         setSaving(true);
@@ -1644,7 +1678,17 @@ const AdminDashboard = () => {
                     <div className={styles.card}>
                         <div className={styles.cardHeader} style={{ background: '#f1f5f9' }}>
                             <h3 className={styles.cardTitle} style={{ color: '#475569' }}>Recycle Bin (Deleted Records)</h3>
-                            <button className={styles.refreshBtn} onClick={fetchBin}>Refresh Bin</button>
+                            <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                                <button className={styles.refreshBtn} onClick={fetchBin}>Refresh Bin</button>
+                                <button 
+                                    className={styles.refreshBtn} 
+                                    onClick={clearRecycleBin}
+                                    style={{ color: '#ef4444' }}
+                                    title="Permanently delete all items in the bin"
+                                >
+                                    Empty Bin Forever
+                                </button>
+                            </div>
                         </div>
                         <div className={styles.tableWrapper}>
                             <table className={styles.table}>
