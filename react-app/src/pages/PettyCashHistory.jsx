@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Search, Calendar, MapPin, Eye, Printer, Filter, X, Pencil, Trash2, CheckCircle2, ArrowLeft } from 'lucide-react';
 import { useMessage } from '../context/MessageContext';
 import LoadingScreen from '../components/LoadingScreen';
+import { SearchableSelect } from '../components/ui';
 import styles from './PettyCashHistory.module.css';
 
 const PettyCashHistory = () => {
@@ -33,7 +34,7 @@ const PettyCashHistory = () => {
 
     const fetchInitialData = async () => {
         const { data: sitesData } = await supabase.from('sites').select('name').order('name');
-        setSites(['OFFICE', ...(sitesData?.map(s => s.name) || [])]);
+        setSites(['All Sites', 'OFFICE', ...(sitesData?.map(s => s.name) || [])]);
     };
 
     const fetchEntries = async () => {
@@ -50,7 +51,7 @@ const PettyCashHistory = () => {
             if (filters.endDate) {
                 query = query.lte('date', filters.endDate);
             }
-            if (filters.site) {
+            if (filters.site && filters.site !== 'All Sites') {
                 query = query.eq('site_name', filters.site);
             }
             if (filters.status) {
@@ -196,14 +197,12 @@ const PettyCashHistory = () => {
                     </div>
                     <div className={styles.filterGroup}>
                         <label className={styles.filterLabel}>By Site</label>
-                        <select
-                            className={styles.filterSelect}
-                            value={filters.site}
-                            onChange={(e) => setFilters({ ...filters, site: e.target.value })}
-                        >
-                            <option value="">All Sites</option>
-                            {sites.map(s => <option key={s} value={s}>{s}</option>)}
-                        </select>
+                        <SearchableSelect
+                            options={sites}
+                            value={filters.site || 'All Sites'}
+                            onChange={(val) => setFilters({ ...filters, site: val })}
+                            placeholder="Select Site"
+                        />
                     </div>
                     <div className={styles.filterGroup}>
                         <label className={styles.filterLabel}>By Status</label>

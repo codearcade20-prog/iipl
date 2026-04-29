@@ -3,7 +3,6 @@
         opacity: 0;
         transform: translateY(-10px);
     }
-
     to {
         opacity: 1;
         transform: translateY(0);
@@ -18,25 +17,27 @@
 
 .searchableSelectHeader {
     width: 100%;
-    padding: 0.75rem 1rem;
+    padding: 0.65rem 1rem;
     border: 1px solid #e2e8f0;
-    border-radius: 0.5rem;
-    font-size: 1rem;
-    background: #fff;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    background: #f8fafc;
     cursor: pointer;
     display: flex;
     justify-content: space-between;
     align-items: center;
     transition: all 0.2s ease;
+    box-sizing: border-box;
 }
 
 .searchableSelectHeader:hover {
-    border-color: #4f46e5;
+    border-color: #3b82f6;
+    background: #fff;
 }
 
 .selectedValue {
-    color: #0f172a;
-    font-weight: 500;
+    color: #1e293b;
+    font-weight: 600;
 }
 
 .placeholder {
@@ -45,29 +46,29 @@
 
 .searchableMenu {
     position: absolute;
-    top: calc(100% + 5px);
+    top: calc(100% + 8px);
     left: 0;
     right: 0;
     background: #fff;
     border: 1px solid #e2e8f0;
-    border-radius: 0.75rem;
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    border-radius: 14px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
     z-index: 1000;
     overflow: hidden;
-    animation: fadeInDown 0.2s ease-out;
+    animation: fadeInDown 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .searchFieldWrapper {
-    padding: 0.75rem;
+    padding: 0.75rem 1rem;
     border-bottom: 1px solid #f1f5f9;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.75rem;
     background: #f8fafc;
 }
 
 .searchIconInside {
-    color: #94a3b8;
+    color: #3b82f6;
 }
 
 .searchMenuInput {
@@ -81,34 +82,46 @@
 }
 
 .optionsList {
-    max-height: 250px;
+    max-height: 280px;
     overflow-y: auto;
+    padding: 0.5rem;
+}
+
+.optionsList::-webkit-scrollbar {
+    width: 6px;
+}
+
+.optionsList::-webkit-scrollbar-thumb {
+    background: #e2e8f0;
+    border-radius: 10px;
 }
 
 .optionItem {
     padding: 0.75rem 1rem;
     cursor: pointer;
-    font-size: 0.95rem;
-    color: #334155;
-    transition: all 0.15s;
+    font-size: 0.9rem;
+    color: #475569;
+    transition: all 0.2s;
     text-align: left;
+    border-radius: 8px;
+    margin-bottom: 2px;
 }
 
 .optionItem:hover {
-    background-color: #f1f5f9;
-    color: #4f46e5;
+    background-color: #eff6ff;
+    color: #3b82f6;
 }
 
 .optionActive {
-    background-color: #eff6ff;
-    color: #4f46e5;
-    font-weight: 600;
+    background-color: #3b82f6;
+    color: white !important;
+    font-weight: 700;
 }
 
 .noOptions {
-    padding: 1.5rem 1rem;
+    padding: 2rem 1rem;
     text-align: center;
     color: #94a3b8;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     font-style: italic;
-}
+}

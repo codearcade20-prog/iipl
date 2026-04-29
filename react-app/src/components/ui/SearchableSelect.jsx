@@ -34,7 +34,7 @@ const SearchableSelect = ({ options, value, onChange, placeholder, className = '
                     if (!isOpen) setSearchTerm('');
                     setIsOpen(!isOpen);
                 }}
-                style={{ borderColor: isOpen ? '#4f46e5' : '#e2e8f0' }}
+                style={{ borderColor: isOpen ? '#3b82f6' : '#e2e8f0' }}
             >
                 <div className={value ? styles.selectedValue : styles.placeholder}>
                     {value || placeholder}
@@ -42,7 +42,7 @@ const SearchableSelect = ({ options, value, onChange, placeholder, className = '
                 <ChevronDown size={18} style={{
                     transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
                     transition: 'transform 0.3s ease',
-                    color: isOpen ? '#4f46e5' : '#94a3b8'
+                    color: isOpen ? '#3b82f6' : '#94a3b8'
                 }} />
             </div>
 
