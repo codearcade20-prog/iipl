@@ -1244,12 +1244,7 @@ const BillGenerator = () => {
                                                         </td>
                                                     </tr>
                                                 ))}
-                                                <tr className={styles.previewAddActions} style={{ display: 'table-row' }}>
-                                                    <td colSpan="3" style={{ border: 'none', padding: '10px 0' }}>
-                                                        <button className={styles.previewAddBtn} onClick={() => addAdvance('ADDITION')} style={{ padding: '4px 8px', fontSize: '10px' }}>+ Add Addition</button>
-                                                        <button className={styles.previewAddBtn} style={{ marginLeft: '8px', padding: '4px 8px', fontSize: '10px' }} onClick={() => addAdvance('DEDUCTION')}>+ Add Deduction</button>
-                                                    </td>
-                                                </tr>
+
                                             </tbody>
                                         </table>
                                     </div>

@@ -54,7 +54,7 @@ const ApprovedPayments = () => {
             <header className={styles.topBar}>
                 <div className={styles.pageTitle}>
                     <h2>Payment Approved Module</h2>
-                    <span className={styles.gmBadge} style={{ background: '#10b981' }}>Approved Records</span>
+                    <span className={styles.gmBadge} style={{ background: '#ffffffff' }}>Approved Records</span>
                 </div>
                 <div style={{ display: 'flex', gap: '10px' }}>
                     <Link to="/gm"><Button variant="secondary" style={{ color: 'black', borderColor: 'rgba(0,0,0,0.3)' }}>GM Dashboard</Button></Link>

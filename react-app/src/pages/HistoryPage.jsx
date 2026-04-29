@@ -8,6 +8,7 @@ import styles from './HistoryPage.module.css';
 import TemplateModal from '../components/TemplateModal';
 import { useMessage } from '../context/MessageContext';
 import { formatDate } from '../utils';
+import * as XLSX from 'xlsx';
 
 const HistoryPage = () => {
     const [history, setHistory] = useState([]);
@@ -268,6 +269,31 @@ const HistoryPage = () => {
         return true;
     });
 
+    const exportToExcel = () => {
+        if (filteredHistory.length === 0) {
+            toast('No data to export', 'error');
+            return;
+        }
+
+        const exportData = filteredHistory.map(item => ({
+            Date: formatDate(item.date),
+            Type: item.type === 'invoice' ? 'INVOICE' : 'PAYMENT',
+            Vendor: item.vendor_name,
+            Project: item.project,
+            'Total Amount': item.amount,
+            Paid: item.status === 'Paid' ? item.amount : (item.paid_amount || 0),
+            Remaining: item.remaining_amount ?? (item.status === 'Paid' ? 0 : item.amount),
+            Status: item.status || 'Pending',
+            Remarks: item.remarks || '',
+            'Paid Date': item.paid_date ? formatDate(item.paid_date) : ''
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(exportData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Transaction_Records");
+        XLSX.writeFile(workbook, `Payment_Invoice_History_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    };
+
     const totalPages = Math.ceil(filteredHistory.length / ROWS_PER_PAGE);
     const paginatedHistory = filteredHistory.slice(
         (currentPage - 1) * ROWS_PER_PAGE,
@@ -294,6 +320,14 @@ const HistoryPage = () => {
                     <div className={styles.cardHeader}>
                         <h3 className={styles.cardTitle}>Transaction Records</h3>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <Button 
+                                onClick={exportToExcel}
+                                variant="secondary"
+                                style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px', fontSize: '0.85rem' }}
+                                title="Export to Excel"
+                            >
+                                <i className="fa-solid fa-file-excel" style={{color: '#10b981'}}></i> Export
+                            </Button>
                             <button
                                 onClick={fetchHistory}
                                 className={styles.refreshBtn}
