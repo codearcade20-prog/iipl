@@ -145,8 +145,8 @@ const SignUpPage = () => {
 
                     {error && <div className={styles.error}>{error}</div>}
 
-                    <Button type="submit" disabled={loading} className={styles.signupButton}>
-                        {loading ? 'Creating Account...' : 'Sign Up'}
+                    <Button type="submit" loading={loading} loadingText="Creating Account..." className={styles.signupButton}>
+                        Sign Up
                     </Button>
                 </form>
 

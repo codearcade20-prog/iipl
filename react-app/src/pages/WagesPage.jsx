@@ -1187,6 +1187,8 @@ const WagesPage = () => {
                                 <Button 
                                     size="sm" 
                                     onClick={saveAttendance}
+                                    loading={loading}
+                                    loadingText="Saving..."
                                     style={{ background: '#0ea5e9', color: 'white', border: 'none', borderRadius: '8px' }}
                                 >
                                     <Save size={16} style={{ marginRight: 6 }} /> Save Selected

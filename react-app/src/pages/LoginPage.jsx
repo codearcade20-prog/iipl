@@ -100,8 +100,8 @@ const LoginPage = () => {
 
                     {error && <div className={styles.error}>{error}</div>}
 
-                    <Button type="submit" disabled={loading} className={styles.loginButton}>
-                        {loading ? 'Logging in...' : 'Login'}
+                    <Button type="submit" loading={loading} loadingText="Logging in..." className={styles.loginButton}>
+                        Login
                     </Button>
                 </form>
 

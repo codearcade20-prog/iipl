@@ -46,6 +46,8 @@ import LaborPortal from './pages/LaborPortal';
 import MasterRegister from './pages/MasterRegister';
 import AssistantBot from './components/AssistantBot';
 import { MessageProvider } from './context/MessageContext';
+import NetworkStatus from './components/NetworkStatus';
+
 
 function App() {
   return (
@@ -107,8 +109,10 @@ function App() {
             <Route path="/portal" element={<LaborPortal />} />
           </Routes>
           <AssistantBotWrapper />
+          <NetworkStatus />
         </Router>
       </MessageProvider>
+
     </AuthProvider>
   );
 }
