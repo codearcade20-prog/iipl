@@ -35,8 +35,12 @@ const EmployeeList = () => {
         arrears: 0,
         tempAdvance: 0,
         foodDeduction: 0,
+        otherDeduction: 0,
+        bonusAmount: 0,
+        bonusName: '',
         remarks: '',
         showLop: false,
+        showSignatures: false,
         // Master Overrides
         basic_salary: 0,
         hra: 0,
@@ -113,10 +117,14 @@ const EmployeeList = () => {
             lopDays: 0,
             increment: 0,
             arrears: 0,
-            tempAdvance: 0,
+            advance: emp.advance || 0,
             foodDeduction: 0,
+            otherDeduction: 0,
+            bonusAmount: 0,
+            bonusName: '',
             remarks: '',
             showLop: false,
+            showSignatures: false,
             basic_salary: emp.basic_salary || 0,
             hra: emp.hra || 0,
             conveyance: emp.conveyance || 0,
@@ -219,12 +227,13 @@ const EmployeeList = () => {
             const arrears = parseFloat(attendance.arrears) || 0;
             const advance = parseFloat(attendance.tempAdvance) || 0;
             const food_deduction = parseFloat(attendance.foodDeduction) || 0;
+            const other_deduction = parseFloat(attendance.otherDeduction) || 0;
             const gross = basic_da + hra + conveyance + med_reimb + special_allowance + child_edu + child_hostel + increment + arrears;
-            const total_deductions = pf + esi + lwf + advance + lop_amount + food_deduction;
+            const total_deductions = pf + esi + lwf + advance + lop_amount + food_deduction + other_deduction;
             const net = gross - total_deductions;
 
-            const baseRemarks = attendance.remarks || `Generated via Auto-Payroll. Working Days: ${workingDays}, LOP Days: ${lopDays}`;
-            const finalRemarks = baseRemarks.replace(" [SHOW_LOP]", "") + (attendance.showLop ? " [SHOW_LOP]" : "");
+            const baseRemarks = attendance.remarks || "";
+            const finalRemarks = (baseRemarks + (attendance.showLop ? " [SHOW_LOP]" : "")).trim();
 
             const payrollPayload = {
                 employee_id: activeEmployee.id,
@@ -245,12 +254,16 @@ const EmployeeList = () => {
                 lwf,
                 advance,
                 food_deduction,
+                other_deduction,
                 lop_amount,
-                gross_salary: gross,
+                bonus_amount: parseFloat(attendance.bonusAmount) || 0,
+                bonus_name: attendance.bonusName || '',
+                gross_salary: gross + (parseFloat(attendance.bonusAmount) || 0),
                 total_deductions: total_deductions,
-                net_pay: net,
+                net_pay: net + (parseFloat(attendance.bonusAmount) || 0),
                 payment_method: activeEmployee.payment_method || 'Bank Transfer',
-                remarks: finalRemarks
+                remarks: finalRemarks,
+                show_signatures: attendance.showSignatures
             };
 
             let result;
@@ -484,18 +497,42 @@ const EmployeeList = () => {
                                         <input type="number" style={{ width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '8px' }} value={attendance.foodDeduction} onChange={(e) => setAttendance({ ...attendance, foodDeduction: e.target.value })} />
                                     </div>
                                     <div>
-                                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#64748b', marginBottom: '5px' }}>Remarks</label>
-                                        <input type="text" style={{ width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '8px' }} value={attendance.remarks} onChange={(e) => setAttendance({ ...attendance, remarks: e.target.value })} placeholder="Optional notes" />
+                                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#64748b', marginBottom: '5px' }}>Other Deduction</label>
+                                        <input type="number" style={{ width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '8px' }} value={attendance.otherDeduction} onChange={(e) => setAttendance({ ...attendance, otherDeduction: e.target.value })} />
                                     </div>
-                                    <div style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'center', gap: '10px', marginTop: '5px' }}>
-                                        <input
-                                            type="checkbox"
-                                            id="showLop"
-                                            style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                                            checked={attendance.showLop}
-                                            onChange={(e) => setAttendance({ ...attendance, showLop: e.target.checked })}
-                                        />
-                                        <label htmlFor="showLop" style={{ fontSize: '0.9rem', fontWeight: 600, color: '#475569', cursor: 'pointer' }}>Show LOP Amount in Payslip</label>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#64748b', marginBottom: '5px' }}>Bonus Amount</label>
+                                        <input type="number" style={{ width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '8px' }} value={attendance.bonusAmount} onChange={(e) => setAttendance({ ...attendance, bonusAmount: e.target.value })} />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#64748b', marginBottom: '5px' }}>Bonus Name (e.g. Diwali)</label>
+                                        <input type="text" style={{ width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '8px' }} value={attendance.bonusName} onChange={(e) => setAttendance({ ...attendance, bonusName: e.target.value })} placeholder="Diwali / Pongal" />
+                                    </div>
+                                    <div style={{ gridColumn: 'span 2' }}>
+                                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#64748b', marginBottom: '5px' }}>Remarks</label>
+                                        <textarea style={{ width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '8px', minHeight: '60px' }} value={attendance.remarks} onChange={(e) => setAttendance({ ...attendance, remarks: e.target.value })} placeholder="Internal notes or notes for payslip" />
+                                    </div>
+                                    <div style={{ gridColumn: 'span 2', display: 'flex', gap: '20px', marginTop: '5px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <input
+                                                type="checkbox"
+                                                id="showLop"
+                                                style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                                                checked={attendance.showLop}
+                                                onChange={(e) => setAttendance({ ...attendance, showLop: e.target.checked })}
+                                            />
+                                            <label htmlFor="showLop" style={{ fontSize: '0.9rem', fontWeight: 600, color: '#475569', cursor: 'pointer' }}>Show LOP in Payslip</label>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <input
+                                                type="checkbox"
+                                                id="showSignatures"
+                                                style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                                                checked={attendance.showSignatures}
+                                                onChange={(e) => setAttendance({ ...attendance, showSignatures: e.target.checked })}
+                                            />
+                                            <label htmlFor="showSignatures" style={{ fontSize: '0.9rem', fontWeight: 600, color: '#475569', cursor: 'pointer' }}>Add Signature Footer</label>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -539,6 +576,10 @@ const EmployeeList = () => {
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.7rem', color: '#64748b', marginBottom: '2px' }}>PAN No.</label>
                                             <input type="text" style={{ width: '100%', padding: '6px', fontSize: '0.85rem', border: '1px solid #cbd5e1', borderRadius: '6px' }} value={attendance.pan_no} onChange={(e) => setAttendance({ ...attendance, pan_no: e.target.value })} />
+                                        </div>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.7rem', color: '#64748b', marginBottom: '2px' }}>Joining Date</label>
+                                            <input type="date" style={{ width: '100%', padding: '6px', fontSize: '0.85rem', border: '1px solid #cbd5e1', borderRadius: '6px', background: '#f1f5f9' }} value={activeEmployee?.date_of_joining || ''} readOnly />
                                         </div>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '0.7rem', color: '#64748b', marginBottom: '2px' }}>Bank Name</label>

@@ -28,6 +28,14 @@ const SalarySlip = () => {
         fetchPayroll();
     }, [id]);
 
+    const formatPayPeriod = (period) => {
+        if (!period) return '';
+        const [year, month] = period.split('-');
+        const monthNames = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
+        const monthIndex = parseInt(month, 10) - 1;
+        return `${monthNames[monthIndex]} - ${year}`;
+    };
+
     const handlePrint = () => {
         window.print();
     };
@@ -38,14 +46,46 @@ const SalarySlip = () => {
     const emp = payroll.employees;
     const showLop = payroll.remarks?.includes("[SHOW_LOP]");
 
-    // Earnings remain FIXED as per master record
-    const basicDisplay = payroll.basic_da;
-    const grossDisplay = payroll.gross_salary;
+    const basicDisplay = payroll.basic_da || 0;
+    const grossDisplay = payroll.gross_salary || 0;
+    const totalDeducDisplay = showLop ? (payroll.total_deductions || 0) : ((payroll.total_deductions || 0) - (payroll.lop_amount || 0));
 
-    // Deductions: Hide LOP amount from individual rows and total row unless checked
-    // Deductions: Combine Food Deduction into Other Deductions / LWF / LOP row
-    const otherDeducDisplay = (payroll.lwf || 0) + (payroll.food_deduction || 0) + (showLop ? (payroll.lop_amount || 0) : 0);
-    const totalDeducDisplay = showLop ? payroll.total_deductions : (payroll.total_deductions - (payroll.lop_amount || 0));
+    const otherEarnings = (payroll.increment || 0) + (payroll.arrears || 0) + (payroll.other_earnings || 0) + (payroll.allowance_increase || 0) + (payroll.child_edu || 0) + (payroll.child_hostel || 0);
+    const otherDeducDisplay = (payroll.lwf || 0) + (payroll.other_deduction || 0) + (showLop ? (payroll.lop_amount || 0) : 0);
+
+    // Dynamic Row Generation to keep tables balanced
+    const earningsRows = [
+        { label: 'Basic Salary + DA', value: basicDisplay },
+        { label: 'House Rent Allowance (HRA)', value: payroll.hra || 0 },
+        { label: 'Conveyance Allowance', value: payroll.conveyance || 0 },
+        { label: 'Medical Allowance', value: payroll.med_reimb || 0 },
+        { label: 'Special Allowance', value: payroll.special_allowance || 0 },
+        { label: 'Other Earnings', value: otherEarnings }
+    ];
+
+    if (payroll.bonus_amount > 0) {
+        earningsRows.push({ label: `Bonus (${payroll.bonus_name || 'Festive'})`, value: payroll.bonus_amount, isBonus: true });
+    }
+
+    const deductionsRows = [
+        { label: 'Provident Fund (PF)', value: payroll.pf || 0 },
+        { label: 'ESI', value: payroll.esi || 0 },
+        { label: 'Professional Tax', value: 0 },
+        { label: 'TDS / Income Tax', value: 0 },
+        { label: 'Salary Advance', value: payroll.advance || 0 }
+    ];
+
+    if (payroll.food_deduction > 0) {
+        deductionsRows.push({ label: 'Food Deduction', value: payroll.food_deduction });
+    }
+
+    const otherDeducLabel = `Other Deductions / LWF${showLop ? ' / LOP' : ''}${payroll.other_deduction > 0 ? ' / Others' : ''}`;
+    deductionsRows.push({ label: otherDeducLabel, value: otherDeducDisplay });
+
+    // Balance the rows
+    const maxRows = Math.max(earningsRows.length, deductionsRows.length);
+    while (earningsRows.length < maxRows) earningsRows.push({ label: '', value: null });
+    while (deductionsRows.length < maxRows) deductionsRows.push({ label: '', value: null });
 
     return (
         <div className={styles.pageContainer}>
@@ -75,7 +115,7 @@ const SalarySlip = () => {
                 </div>
 
                 <div className={styles.payslipTitleSection}>
-                    <span className={styles.payslipTitle}>PAYSLIP FOR THE MONTH OF {payroll.pay_period.toUpperCase()}</span>
+                    <span className={styles.payslipTitle}>PAYSLIP FOR THE MONTH OF {formatPayPeriod(payroll.pay_period)}</span>
                 </div>
 
                 <div className={styles.infoSection}>
@@ -96,6 +136,10 @@ const SalarySlip = () => {
                             <div className={styles.infoItem}>
                                 <span className={styles.infoLabel}>Department</span>
                                 <span className={styles.infoValue}>{emp.department}</span>
+                            </div>
+                            <div className={styles.infoItem}>
+                                <span className={styles.infoLabel}>Date of Joining</span>
+                                <span className={styles.infoValue}>{emp.date_of_joining ? new Date(emp.date_of_joining).toLocaleDateString('en-GB') : 'N/A'}</span>
                             </div>
                         </div>
                         <div className={styles.infoCol}>
@@ -131,46 +175,20 @@ const SalarySlip = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr>
-                                    <td>Basic Salary + DA</td>
-                                    <td className={styles.amountCol}>{basicDisplay.toFixed(2)}</td>
-                                    <td>Provident Fund (PF)</td>
-                                    <td className={styles.amountCol}>{payroll.pf.toFixed(2)}</td>
-                                </tr>
-                                <tr>
-                                    <td>House Rent Allowance (HRA)</td>
-                                    <td className={styles.amountCol}>{payroll.hra.toFixed(2)}</td>
-                                    <td>ESI</td>
-                                    <td className={styles.amountCol}>{payroll.esi.toFixed(2)}</td>
-                                </tr>
-                                <tr>
-                                    <td>Conveyance Allowance</td>
-                                    <td className={styles.amountCol}>{payroll.conveyance.toFixed(2)}</td>
-                                    <td>Professional Tax</td>
-                                    <td className={styles.amountCol}>0.00</td>
-                                </tr>
-                                <tr>
-                                    <td>Medical Allowance</td>
-                                    <td className={styles.amountCol}>{payroll.med_reimb.toFixed(2)}</td>
-                                    <td>TDS / Income Tax</td>
-                                    <td className={styles.amountCol}>0.00</td>
-                                </tr>
-                                <tr>
-                                    <td>Special Allowance</td>
-                                    <td className={styles.amountCol}>{payroll.special_allowance.toFixed(2)}</td>
-                                    <td>Salary Advance</td>
-                                    <td className={styles.amountCol}>{payroll.advance.toFixed(2)}</td>
-                                </tr>
-                                <tr>
-                                    <td>Other Earnings</td>
-                                    <td className={styles.amountCol}>{(payroll.increment + payroll.arrears + (payroll.other_earnings || 0) + (payroll.allowance_increase || 0) + (payroll.child_edu || 0) + (payroll.child_hostel || 0)).toFixed(2)}</td>
-                                    <td>
-                                        Other Deductions / LWF
-                                        {showLop ? ' / LOP' : ''}
-                                        {payroll.food_deduction > 0 ? ' / Food' : ''}
-                                    </td>
-                                    <td className={styles.amountCol}>{otherDeducDisplay.toFixed(2)}</td>
-                                </tr>
+                                {Array.from({ length: maxRows }).map((_, index) => (
+                                    <tr key={index}>
+                                        <td style={earningsRows[index].isBonus ? { color: '#10b981', fontWeight: 700 } : {}}>
+                                            {earningsRows[index].label}
+                                        </td>
+                                        <td className={styles.amountCol} style={earningsRows[index].isBonus ? { color: '#10b981', fontWeight: 700 } : {}}>
+                                            {earningsRows[index].value !== null ? earningsRows[index].value.toFixed(2) : ''}
+                                        </td>
+                                        <td>{deductionsRows[index].label}</td>
+                                        <td className={styles.amountCol}>
+                                            {deductionsRows[index].value !== null ? deductionsRows[index].value.toFixed(2) : ''}
+                                        </td>
+                                    </tr>
+                                ))}
                                 <tr className={styles.totalRow}>
                                     <td className={styles.totalLabel}>Total Earnings</td>
                                     <td className={styles.amountCol}>{grossDisplay.toFixed(2)}</td>
@@ -191,6 +209,36 @@ const SalarySlip = () => {
                         {payroll.net_pay.toFixed(2)}
                     </div>
                 </div>
+
+                {payroll.remarks && payroll.remarks.replace(" [SHOW_LOP]", "").trim() !== "" && (
+                    <div style={{ marginTop: '20px', padding: '15px', border: '1px solid #e2e8f0', borderRadius: '8px', background: '#f8fafc' }}>
+                        <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '5px' }}>Remarks / Notes</div>
+                        <div style={{ fontSize: '0.9rem', color: '#1e293b', whiteSpace: 'pre-wrap' }}>
+                            {payroll.remarks.replace(" [SHOW_LOP]", "")}
+                        </div>
+                    </div>
+                )}
+
+                {payroll.show_signatures && (
+                    <div style={{ marginTop: '50px', display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #cbd5e1', paddingTop: '40px' }}>
+                        <div style={{ textAlign: 'center', flex: 1 }}>
+                            <div style={{ width: '120px', borderBottom: '1px solid #94a3b8', margin: '0 auto 8px' }}></div>
+                            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569' }}>HR DEPARTMENT</div>
+                        </div>
+                        <div style={{ textAlign: 'center', flex: 1 }}>
+                            <div style={{ width: '120px', borderBottom: '1px solid #94a3b8', margin: '0 auto 8px' }}></div>
+                            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569' }}>ACCOUNTS DEPT.</div>
+                        </div>
+                        <div style={{ textAlign: 'center', flex: 1 }}>
+                            <div style={{ width: '120px', borderBottom: '1px solid #94a3b8', margin: '0 auto 8px' }}></div>
+                            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569' }}>GENERAL MANAGER</div>
+                        </div>
+                        <div style={{ textAlign: 'center', flex: 1 }}>
+                            <div style={{ width: '120px', borderBottom: '1px solid #94a3b8', margin: '0 auto 8px' }}></div>
+                            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569' }}>MANAGING DIRECTOR</div>
+                        </div>
+                    </div>
+                )}
 
                 <div className={styles.footerNote}>
                     This is a computer-generated document and does not require a physical signature. Generated on {new Date().toLocaleDateString()}
