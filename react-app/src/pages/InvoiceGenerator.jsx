@@ -480,10 +480,18 @@ const InvoiceGenerator = () => {
         return `${day}-${m}-${y}`;
     };
 
-    const getSigName = () => {
-        if (!formData.vendorName) return '';
-        const parts = formData.vendorName.split(' ');
-        return parts[0] + (parts[1] ? ' ' + parts[1] : '');
+    const getSigLines = () => {
+        if (!formData.vendorName) return [];
+        
+        // Remove trailing bracketed content (e.g., "(OWNER NAME)")
+        const cleanName = formData.vendorName.trim().replace(/\s*\([^)]*\)$/, "");
+        
+        const words = cleanName.split(/\s+/);
+        const lines = [];
+        for (let i = 0; i < words.length; i += 3) {
+            lines.push(words.slice(i, i + 3).join(' '));
+        }
+        return lines;
     };
 
     // Filter history by vendor name
@@ -519,7 +527,7 @@ const InvoiceGenerator = () => {
                                 <History size={20} strokeWidth={2.5} />
                             </button>
                         )}
-                        <Button variant="secondary" onClick={openHistoryModal} style={{ padding: '8px 12px' }}>History</Button>
+                        <Button variant="secondary" onClick={openHistoryModal} inline style={{ padding: '8px 12px' }}>History</Button>
                         <Link to="/"><button className={styles.homeBtn}>🏠</button></Link>
                     </div>
                 </div>
@@ -527,14 +535,15 @@ const InvoiceGenerator = () => {
                 <div className={styles.inputGroup}>
                     <label className={styles.label}>Vendor Name</label>
                     <div className={styles.row}>
-                        <SearchableSelect
-                            options={vendors.map(v => v[DB_COLUMNS.NAME])}
-                            value={formData.vendorName}
-                            onChange={handleVendorChange}
-                            placeholder="Select Vendor"
-                            className={styles.select}
-                        />
-                        <Button onClick={() => setIsModalOpen(true)} style={{ padding: '8px 14px' }}>+</Button>
+                        <div style={{ flex: 1 }}>
+                            <SearchableSelect
+                                options={vendors.map(v => v[DB_COLUMNS.NAME])}
+                                value={formData.vendorName}
+                                onChange={handleVendorChange}
+                                placeholder="Select Vendor"
+                            />
+                        </div>
+                        <Button onClick={() => setIsModalOpen(true)} inline style={{ minWidth: '42px', height: '42px', padding: 0, fontSize: '1.2rem' }}>+</Button>
                     </div>
                 </div>
 
@@ -724,7 +733,11 @@ const InvoiceGenerator = () => {
                                 BANK - {formData.bank}
                             </div>
                             <div className={styles.footerSig}>
-                                For {getSigName()}
+                                {getSigLines().map((line, index) => (
+                                    <div key={index}>
+                                        {index === 0 ? 'For ' : ''}{line}
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     </div>

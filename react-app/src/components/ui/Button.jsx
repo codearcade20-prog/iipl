@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styles from './Button.module.css';
 
-export function Button({ children, variant = "primary", className = "", loading = false, loadingText, ...props }) {
+export function Button({ children, variant = "primary", className = "", loading = false, loadingText, inline = false, ...props }) {
     const [isStuck, setIsStuck] = useState(false);
 
     useEffect(() => {
@@ -18,7 +18,7 @@ export function Button({ children, variant = "primary", className = "", loading 
     }, [loading]);
 
     return (
-        <div className={styles.btnWrapper}>
+        <div className={`${styles.btnWrapper} ${inline ? styles.inline : ''}`}>
             <button
                 className={`${styles.btn} ${styles[variant]} ${className} ${loading ? styles.loading : ''}`}
                 disabled={loading || props.disabled}

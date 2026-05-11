@@ -450,7 +450,7 @@ const PaymentRequest = () => {
                                 <History size={20} strokeWidth={2.5} />
                             </button>
                         )}
-                        <Button variant="secondary" onClick={openHistoryModal} style={{ padding: '8px 12px' }}>History</Button>
+                        <Button variant="secondary" onClick={openHistoryModal} inline style={{ padding: '8px 12px' }}>History</Button>
                         <Link to="/"><button className={styles.homeBtn}>🏠</button></Link>
                     </div>
                 </div>
@@ -465,7 +465,7 @@ const PaymentRequest = () => {
                             placeholder="Select Vendor"
                         />
                     </div>
-                    <Button onClick={() => setIsModalOpen(true)} style={{ padding: '8px 12px' }}>+</Button>
+                    <Button onClick={() => setIsModalOpen(true)} inline style={{ minWidth: '42px', height: '42px', padding: 0, fontSize: '1.2rem' }}>+</Button>
                 </div>
 
                 <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>

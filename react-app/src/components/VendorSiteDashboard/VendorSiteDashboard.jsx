@@ -30,6 +30,7 @@ import {
     Settings,
     Home,
     ExternalLink,
+    RotateCcw,
     List,
     Grid
 } from 'lucide-react';
@@ -107,7 +108,7 @@ const StatusBadge = ({ status, url, onPreview, extraStyles = {} }) => {
 const VendorSiteDashboard = ({ readOnly = false }) => {
     const location = useLocation();
     const navigate = useNavigate();
-    const { logout } = useAuth();
+    const { logout, user } = useAuth();
     const { alert, confirm, toast } = useMessage();
     const [currentView, setCurrentView] = useState('overview');
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -164,6 +165,15 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
     const [selectedStatementWO, setSelectedStatementWO] = useState(null);
     const [siteStatementView, setSiteStatementView] = useState('detailed'); // detailed, simple
     const [balancePopup, setBalancePopup] = useState(null);
+    const deleteIdRef = useRef(null);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deleteError, setDeleteError] = useState(null);
+    const [adminSubView, setAdminSubView] = useState('active'); // active, recycle
+
+    // Reset pagination when switching views to prevent "empty page" issues
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [currentView, adminSubView]);
     const [paymentHistoryPopup, setPaymentHistoryPopup] = useState(null);
     const [historyPrintOrientation, setHistoryPrintOrientation] = useState('landscape');
     const [statementSiteSearch, setStatementSiteSearch] = useState(''); // Search for sites within a vendor statement
@@ -227,23 +237,39 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
             if (error) throw error;
 
             // Transform nested relation data into the flat structure required by the UI
-            const flattened = (data || []).map(wo => ({
-                id: wo.id,
-                created_at: wo.created_at,
-                site_name: wo.sites?.name || 'Unknown Site',
-                vendor_name: wo.vendors?.vendor_name || 'Unknown Vendor',
-                wo_no: wo.wo_no,
-                wo_date: wo.wo_date,
-                wo_value: wo.wo_value,
-                bill_certified_value: wo.bill_certified_value,
-                housekeeping: wo.housekeeping,
-                retention: wo.retention,
-                remarks: wo.remarks,
-                wo_pdf_url: wo.wo_pdf_url,
-                bill_status: wo.bill_status || 'N/A',
-                wo_status_url: wo.wo_status_url || '',
-                advance_details: wo.advances // Keep as array, code handles it
-            }));
+            // PRE-CALCULATE totals here to make the UI light and fast
+            const flattened = (data || []).map(wo => {
+                const advs = typeof wo.advances === 'string' ? JSON.parse(wo.advances) : (wo.advances || []);
+                const totalAdv = advs.reduce((a, b) => a + (parseFloat(b.amount) || 0), 0);
+                const woValue = parseFloat(wo.wo_value) || 0;
+                const certified = parseFloat(wo.bill_certified_value) || 0;
+                const hsk = parseFloat(wo.housekeeping) || 0;
+                const ret = parseFloat(wo.retention) || 0;
+                const balance = certified - hsk - ret - totalAdv;
+
+                return {
+                    id: wo.id,
+                    created_at: wo.created_at,
+                    site_name: wo.sites?.name || 'Unknown Site',
+                    vendor_name: wo.vendors?.vendor_name || 'Unknown Vendor',
+                    wo_no: wo.wo_no,
+                    wo_date: wo.wo_date,
+                    wo_value: woValue,
+                    bill_certified_value: certified,
+                    housekeeping: hsk,
+                    retention: ret,
+                    remarks: wo.remarks,
+                    wo_pdf_url: wo.wo_pdf_url,
+                    bill_status: wo.bill_status || 'N/A',
+                    wo_status_url: wo.wo_status_url || '',
+                    is_deleted: wo.is_deleted || false,
+                    deleted_at: wo.deleted_at,
+                    deleted_by_name: wo.deleted_by_name,
+                    advance_details: advs,
+                    total_advance: totalAdv,
+                    balance: balance
+                };
+            });
 
             // Client-side Numerical Sorting by wo_no
             flattened.sort((a, b) => {
@@ -364,9 +390,14 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                 matchesEntity = woNo.startsWith(entityFilter.toUpperCase() + '/');
             }
 
-            return matchesYear && matchesEntity;
+            // Only show deleted items if we are in recycle bin mode, otherwise filter them out
+            // For general views (Overview, Statements, etc.), we ALWAYS filter out deleted items
+            const isRecycleView = currentView === 'admin_panel' && adminSubView === 'recycle';
+            const matchesDeletion = item.is_deleted === isRecycleView;
+
+            return matchesYear && matchesEntity && matchesDeletion;
         });
-    }, [rawData, yearFilter, entityFilter]);
+    }, [rawData, yearFilter, entityFilter, currentView, adminSubView]);
 
     // Derived Data - Now using contextFilteredData instead of rawData
     const sites = useMemo(() => {
@@ -575,13 +606,16 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
     };
 
     // View Navigation
-    const handleSwitchView = (view, id = null) => {
+    const handleSwitchView = (view, id = null, keepFilters = false) => {
         if (readOnly && (view === 'add_entry' || view === 'admin_panel')) return;
         setCurrentView(view);
         if (id) setDetailId(id);
         setSidebarOpen(false);
-        setSearchQuery('');
-        setCurrentPage(1);
+        
+        if (!keepFilters) {
+            setSearchQuery('');
+            setCurrentPage(1);
+        }
 
         // Scroll content area back to top
         if (contentAreaRef.current) {
@@ -620,29 +654,122 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
 
     // --- CRUD Operations ---
 
-    // 1. Delete
-    const handleDelete = async (id) => {
-        if (readOnly) return;
+    // 1. Delete Logic
+    const handleDeleteClick = (id) => {
+        if (!id || readOnly) return;
+        deleteIdRef.current = id;
+        setDeleteError(null);
+        setShowDeleteModal(true);
+    };
 
-        // Password Check
-        const pwd = await prompt("Enter Admin Password to Delete this record:");
-        if (pwd === null) return;
-        if (pwd !== user?.password) {
-            await alert("Incorrect Admin Password!");
+    const confirmDelete = async () => {
+        const id = deleteIdRef.current;
+        if (!id) {
+            setDeleteError("Record ID missing. Please refresh.");
             return;
         }
 
-        if (!await confirm('Are you sure you want to PERMANENTLY delete this entry?')) return;
         setLoading(true);
         try {
-            const { error } = await vendorSupabase.from('work_orders').delete().eq('id', id);
+            // 1. Soft delete the work order and record who did it
+            const deleteTime = new Date().toISOString();
+            const deleteUser = user?.username || user?.full_name || 'Admin';
+            
+            const { error: woError } = await vendorSupabase
+                .from('work_orders')
+                .update({ 
+                    is_deleted: true, 
+                    deleted_at: deleteTime,
+                    deleted_by_name: deleteUser
+                })
+                .eq('id', id);
 
-            if (error) throw error;
-            await fetchData();
-            toast('Entry deleted.');
+            if (woError) throw woError;
+
+            // 2. Soft delete linked advances
+            await vendorSupabase
+                .from('advances')
+                .update({ is_deleted: true })
+                .eq('work_order_id', id);
+
+            // OPTIMISTIC UPDATE: Update local state immediately for instant feedback
+            setRawData(prev => prev.map(item => 
+                item.id === id 
+                    ? { ...item, is_deleted: true, deleted_at: deleteTime, deleted_by_name: deleteUser } 
+                    : item
+            ));
+            
+            setShowDeleteModal(false);
+            if (typeof toast === 'function') toast('Record moved to Recycle Bin.');
         } catch (err) {
-            console.error(err);
-            await alert('Error deleting entry.');
+            console.error('Delete failed:', err);
+            setDeleteError('Delete failed: ' + (err.message || 'Unknown error'));
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleRestore = async (id) => {
+        if (!id || readOnly) return;
+        setLoading(true);
+        try {
+            const { error: woError } = await vendorSupabase
+                .from('work_orders')
+                .update({ is_deleted: false, deleted_at: null, deleted_by_name: null })
+                .eq('id', id);
+            if (woError) throw woError;
+
+            await vendorSupabase
+                .from('advances')
+                .update({ is_deleted: false })
+                .eq('work_order_id', id);
+
+            // OPTIMISTIC UPDATE: Instant restoration in the UI
+            setRawData(prev => prev.map(item => 
+                item.id === id 
+                    ? { ...item, is_deleted: false, deleted_at: null, deleted_by_name: null } 
+                    : item
+            ));
+            
+            if (typeof toast === 'function') toast('Record restored successfully.');
+            else window.alert('Record restored successfully.');
+        } catch (err) {
+            console.error('Restore failed:', err);
+            window.alert('Restore failed: ' + err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handlePermanentDelete = async (id) => {
+        if (!id || readOnly) return;
+        
+        const isConfirmed = await confirm(
+            'CRITICAL: This will permanently remove this record and all associated payments from the database. This CANNOT be undone. Proceed?',
+            {
+                title: 'Permanent Deletion',
+                confirmText: 'Permanently Delete',
+                type: 'danger'
+            }
+        );
+
+        if (!isConfirmed) return;
+        
+        setLoading(true);
+        try {
+            const { error: advError } = await vendorSupabase.from('advances').delete().eq('work_order_id', id);
+            if (advError) throw advError;
+
+            const { error: woError } = await vendorSupabase.from('work_orders').delete().eq('id', id);
+            if (woError) throw woError;
+
+            // OPTIMISTIC UPDATE: Instant removal from UI
+            setRawData(prev => prev.filter(item => item.id !== id));
+            
+            if (typeof toast === 'function') toast('Record permanently removed.');
+        } catch (err) {
+            console.error('Hard delete failed:', err);
+            window.alert('Delete failed: ' + (err.message || 'Unknown database error'));
         } finally {
             setLoading(false);
         }
@@ -673,7 +800,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
         setAdvances(existingAdvances.length > 0 ? existingAdvances : [{ amount: '', date: '', payment_mode: 'M1' }]);
 
         setEditingState({ id: entry.id });
-        handleSwitchView('add_entry');
+        handleSwitchView('add_entry', null, true);
     };
 
     // 3. Submit (Create/Update)
@@ -741,7 +868,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
 
             toast('Saved successfully!');
             await fetchData();
-            handleSwitchView('admin_panel');
+            handleSwitchView('admin_panel', null, true);
 
         } catch (err) {
             console.error(err);
@@ -1171,11 +1298,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
 
         return (
             <div>
-                <div className={styles.detailHeader}>
-                    <Button variant="secondary" onClick={() => handleSwitchView('sites')}>
-                        <ArrowLeft size={16} /> Back to Sites
-                    </Button>
-                </div>
+
                 {viewMode === 'list' ? (
                     <div className={styles.tableContainer} style={{ background: 'white', borderRadius: '12px', padding: '1rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
                         <table className={styles.adminTable}>
@@ -1325,11 +1448,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
 
         return (
             <div>
-                <div className={styles.detailHeader}>
-                    <Button variant="secondary" onClick={() => handleSwitchView('vendors')}>
-                        <ArrowLeft size={16} /> Back to Vendors
-                    </Button>
-                </div>
+
                 {viewMode === 'list' ? (
                     <div className={styles.tableContainer} style={{ background: 'white', borderRadius: '12px', padding: '1rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
                         <table className={styles.adminTable}>
@@ -1467,9 +1586,11 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
 
     const renderAddEntry = () => (
         <div className={styles.formContainer}>
-            <h2 style={{ marginBottom: '1.5rem', fontWeight: 600, fontSize: '1.5rem' }}>
-                {editingState ? 'Edit Entry' : 'New Work Order Entry'}
-            </h2>
+            <div style={{ marginBottom: '1.5rem' }}>
+                <h2 style={{ margin: 0, fontWeight: 600, fontSize: '1.5rem' }}>
+                    {editingState ? 'Edit Entry' : 'New Work Order Entry'}
+                </h2>
+            </div>
             <form onSubmit={handleSubmit}>
                 <div className={styles.formGroup}>
                     <label className={styles.formLabel}>Site Name</label>
@@ -1709,9 +1830,11 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
 
         return (
             <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-                    <h2 style={{ margin: 0, fontWeight: 600, fontSize: '1.5rem' }}>System Records</h2>
-                    <div className={styles.filterBar}>
+                <div style={{ marginBottom: '1.5rem' }}>
+                    {/* Sub-header removed as per request - navigation moved to sidebar */}
+                </div>
+
+                    <div className={styles.filterBar} style={{ background: '#f8fafc', padding: '1rem', borderRadius: '12px', display: 'flex', gap: '1.25rem', alignItems: 'center', flexWrap: 'wrap', border: '1px solid #e2e8f0' }}>
                         <div className={styles.filterGroup}>
                             <label>Date:</label>
                             <input
@@ -1774,7 +1897,6 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                             </Button>
                         )}
                     </div>
-                </div>
                 <div className={styles.tableContainer}>
                     <table className={styles.adminTable}>
                         <thead>
@@ -1782,9 +1904,18 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                 <th>Site Name</th>
                                 <th>Vendor Name</th>
                                 <th>WO No / Date</th>
-                                <th>WO Value</th>
-                                <th>Total Advance</th>
-                                <th>Balance</th>
+                                {adminSubView === 'recycle' ? (
+                                    <>
+                                        <th>Deleted By</th>
+                                        <th>Deleted At</th>
+                                    </>
+                                ) : (
+                                    <>
+                                        <th>WO Value</th>
+                                        <th>Total Advance</th>
+                                        <th>Balance</th>
+                                    </>
+                                )}
                                 {!readOnly && <th>Actions</th>}
                             </tr>
                         </thead>
@@ -1805,30 +1936,66 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                             </div>
                                             <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{formatDate(item.wo_date)}</div>
                                         </td>
-                                        <td>{formatCurrency(item.wo_value)}</td>
-                                        <td>{formatCurrency(totalAdv)}</td>
-                                        <td style={{ color: '#b91c1c', fontWeight: 600 }}>{formatCurrency(balance)}</td>
+                                        {adminSubView === 'recycle' ? (
+                                            <>
+                                                <td style={{ fontWeight: 600, color: '#ef4444' }}>{item.deleted_by_name || 'System'}</td>
+                                                <td style={{ fontSize: '0.8rem', color: '#64748b' }}>{formatDate(item.deleted_at)}</td>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <td>{formatCurrency(item.wo_value)}</td>
+                                                <td>{formatCurrency(totalAdv)}</td>
+                                                <td style={{ color: '#b91c1c', fontWeight: 600 }}>{formatCurrency(balance)}</td>
+                                            </>
+                                        )}
                                         {!readOnly && (
                                             <td style={{ verticalAlign: 'middle' }}>
                                                 <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
-                                                    {item.wo_pdf_url && (
-                                                        <button
-                                                            onClick={() => handlePreviewPdf(item.wo_pdf_url)}
-                                                            className={styles.pdfBtn}
-                                                            title="View Work Order PDF"
-                                                            style={{ padding: '8px', background: '#eef2ff', color: '#4f46e5', border: '1px solid #c7d2fe', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
-                                                            onMouseOver={e => e.currentTarget.style.background = '#e0e7ff'}
-                                                            onMouseOut={e => e.currentTarget.style.background = '#eef2ff'}
-                                                        >
-                                                            <ExternalLink size={18} />
-                                                        </button>
+                                                    {adminSubView === 'recycle' ? (
+                                                        <>
+                                                            {user?.is_admin && (
+                                                                <>
+                                                                    <button 
+                                                                        className={styles.actionBtn} 
+                                                                        style={{ color: '#10b981', background: '#ecfdf5', borderRadius: '6px', padding: '6px' }} 
+                                                                        onClick={() => handleRestore(item.id)} 
+                                                                        title="Restore Record"
+                                                                    >
+                                                                        <RotateCcw size={16} />
+                                                                    </button>
+                                                                    <button 
+                                                                        className={styles.actionBtn} 
+                                                                        style={{ color: '#ef4444', background: '#fef2f2', borderRadius: '6px', padding: '6px' }} 
+                                                                        onClick={() => handlePermanentDelete(item.id)} 
+                                                                        title="Delete Permanently"
+                                                                    >
+                                                                        <Trash2 size={16} />
+                                                                    </button>
+                                                                </>
+                                                            )}
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            {item.wo_pdf_url && (
+                                                                <button
+                                                                    onClick={() => handlePreviewPdf(item.wo_pdf_url)}
+                                                                    className={styles.pdfBtn}
+                                                                    title="View Work Order PDF"
+                                                                    style={{ padding: '8px', background: '#eef2ff', color: '#4f46e5', border: '1px solid #c7d2fe', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
+                                                                    onMouseOver={e => e.currentTarget.style.background = '#e0e7ff'}
+                                                                    onMouseOut={e => e.currentTarget.style.background = '#eef2ff'}
+                                                                >
+                                                                    <ExternalLink size={18} />
+                                                                </button>
+                                                            )}
+                                                            <button className={styles.actionBtn} style={{ color: '#64748b', background: 'transparent', border: 'none', padding: '4px' }} onClick={() => handleEditSetup(item.id)} title="Edit">
+                                                                <Pencil size={16} />
+                                                            </button>
+                                                            <button className={styles.actionBtn} style={{ color: '#ef4444', background: 'transparent', border: 'none', padding: '4px' }} onClick={() => handleDeleteClick(item.id)} title="Delete">
+                                                                <Trash2 size={16} />
+                                                            </button>
+                                                        </>
                                                     )}
-                                                    <button className={styles.actionBtn} style={{ color: '#64748b', background: 'transparent', border: 'none', padding: '4px' }} onClick={() => handleEditSetup(item.id)} title="Edit">
-                                                        <Pencil size={16} />
-                                                    </button>
-                                                    <button className={styles.actionBtn} style={{ color: '#ef4444', background: 'transparent', border: 'none', padding: '4px' }} onClick={() => handleDelete(item.id)} title="Delete">
-                                                        <Trash2 size={16} />
-                                                    </button>
                                                 </div>
                                             </td>
                                         )}
@@ -1941,12 +2108,8 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                 <div className={styles.statementContainer}>
                     <div className={styles.printHide} style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                            <Button variant="secondary" onClick={() => { setStatementMode('menu'); setSearchQuery(''); }}>
-                                <ArrowLeft size={16} /> Back
-                            </Button>
-                            <h2 style={{ fontSize: '1.5rem', fontWeight: 600 }}>Vendor Payment Tracker</h2>
                         </div>
-                        <Button onClick={() => { setPrintOrientation('landscape'); setShowPrintModal(true); }}>
+                        <Button inline onClick={() => { setPrintOrientation('landscape'); setShowPrintModal(true); }}>
                             <Printer size={18} style={{ marginRight: '0.5rem' }} /> Print Tracker
                         </Button>
                     </div>
@@ -2084,12 +2247,8 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                 <div className={styles.statementContainer}>
                     <div className={styles.printHide} style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                            <Button variant="secondary" onClick={() => setStatementMode('menu')}>
-                                <ArrowLeft size={16} /> Back
-                            </Button>
-                            <h2 style={{ fontSize: '1.5rem', fontWeight: 600 }}>Master Site Report</h2>
                         </div>
-                        <Button onClick={() => setShowPrintModal(true)}>
+                        <Button inline onClick={() => setShowPrintModal(true)}>
                             <Printer size={18} style={{ marginRight: '0.5rem' }} /> Print Report
                         </Button>
                     </div>
@@ -2227,9 +2386,6 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                 return (
                     <div style={{ maxWidth: '800px', margin: '0 auto' }}>
                         <div className={styles.detailHeader}>
-                            <button className={styles.backBtn} onClick={() => setStatementMode('menu')}>
-                                <ArrowLeft size={16} /> Back
-                            </button>
                             <h1>Select Site</h1>
                         </div>
                         <div className={styles.searchBar} style={{ width: '100%', marginBottom: '2rem' }}>
@@ -2450,9 +2606,6 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                 <div className={styles.statementContainer}>
                     <div className={styles.printHide} style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', padding: '1rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                            <Button variant="secondary" onClick={() => { setSelectedStatementSite(null); setSiteStatementView('detailed'); setStatementVendorSearch(''); }}>
-                                <ArrowLeft size={16} /> Back to Selection
-                            </Button>
                             <div className={styles.searchBar} style={{ width: '250px', marginBottom: 0 }}>
                                 <Search size={16} />
                                 <input
@@ -2468,6 +2621,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                 <>
                                     <Button
                                         variant="secondary"
+                                        inline
                                         onClick={() => setShowColumnSettings(!showColumnSettings)}
                                         style={{ display: 'flex', gap: '8px' }}
                                     >
@@ -2504,13 +2658,14 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                             )}
                             <Button
                                 variant="secondary"
+                                inline
                                 onClick={() => setSiteStatementView(siteStatementView === 'detailed' ? 'simple' : 'detailed')}
                                 style={{ display: 'flex', gap: '8px' }}
                             >
                                 {siteStatementView === 'detailed' ? <TableIcon size={16} /> : <FileText size={16} />}
                                 Switch to {siteStatementView === 'detailed' ? 'Summary' : 'Detailed'} View
                             </Button>
-                            <Button onClick={() => { setPrintOrientation('portrait'); setShowPrintModal(true); }}>
+                            <Button inline onClick={() => { setPrintOrientation('portrait'); setShowPrintModal(true); }}>
                                 <Printer size={18} style={{ marginRight: '0.5rem' }} /> Print Statement
                             </Button>
                         </div>
@@ -2533,9 +2688,6 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                 return (
                     <div style={{ maxWidth: '800px', margin: '0 auto' }}>
                         <div className={styles.detailHeader}>
-                            <button className={styles.backBtn} onClick={() => setStatementMode('menu')}>
-                                <ArrowLeft size={16} /> Back
-                            </button>
                             <h1>Select Vendor</h1>
                         </div>
                         <div className={styles.searchBar} style={{ width: '100%', marginBottom: '2rem' }}>
@@ -2770,9 +2922,6 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                 <div className={styles.statementContainer}>
                     <div className={styles.printHide} style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', padding: '1rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                            <Button variant="secondary" onClick={() => { setSelectedStatementVendor(null); setVendorStatementView('detailed'); setStatementSiteSearch(''); }}>
-                                <ArrowLeft size={16} /> Back to Selection
-                            </Button>
                             <div className={styles.searchBar} style={{ width: '250px', marginBottom: 0 }}>
                                 <Search size={16} />
                                 <input
@@ -2788,6 +2937,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                 <>
                                     <Button
                                         variant="secondary"
+                                        inline
                                         onClick={() => setShowColumnSettings(!showColumnSettings)}
                                         style={{ display: 'flex', gap: '8px' }}
                                     >
@@ -2830,13 +2980,14 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                             )}
                             <Button
                                 variant="secondary"
+                                inline
                                 onClick={() => setVendorStatementView(vendorStatementView === 'detailed' ? 'simple' : 'detailed')}
                                 style={{ display: 'flex', gap: '8px' }}
                             >
                                 {vendorStatementView === 'detailed' ? <TableIcon size={16} /> : <FileText size={16} />}
                                 Switch to {vendorStatementView === 'detailed' ? 'Summary' : 'Detailed'} View
                             </Button>
-                            <Button onClick={() => { setPrintOrientation('portrait'); setShowPrintModal(true); }}>
+                            <Button inline onClick={() => { setPrintOrientation('portrait'); setShowPrintModal(true); }}>
                                 <Printer size={18} style={{ marginRight: '0.5rem' }} /> Print Statement
                             </Button>
                         </div>
@@ -2868,9 +3019,6 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                 return (
                     <div style={{ maxWidth: '800px', margin: '0 auto' }}>
                         <div className={styles.detailHeader}>
-                            <button className={styles.backBtn} onClick={() => { setStatementMode('menu'); setSearchQuery(''); }}>
-                                <ArrowLeft size={16} /> Back
-                            </button>
                             <h1>Search Work Order</h1>
                         </div>
                         <div className={styles.searchBar} style={{ width: '100%', marginBottom: '2rem' }}>
@@ -2940,6 +3088,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                 <div className={styles.printHide} style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Button
                         variant="secondary"
+                        inline
                         onClick={() => {
                             const from = new URLSearchParams(location.search).get('from');
                             const isDirect = new URLSearchParams(location.search).get('direct') === 'true';
@@ -2954,7 +3103,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                     >
                         <ArrowLeft size={16} /> Back
                     </Button>
-                    <Button onClick={() => { setPrintOrientation('portrait'); setShowPrintModal(true); }}>
+                    <Button inline onClick={() => { setPrintOrientation('portrait'); setShowPrintModal(true); }}>
                         <Printer size={18} style={{ marginRight: '0.5rem' }} /> Print Receipt
                     </Button>
                 </div>
@@ -3625,11 +3774,25 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                 <PlusCircle size={18} /> {editingState ? 'Edit Entry' : 'New WO Entry'}
                             </button>
                             <button
-                                className={`${styles.navItem} ${currentView === 'admin_panel' ? styles.navItemActive : ''}`}
-                                onClick={() => handleSwitchView('admin_panel')}
+                                className={`${styles.navItem} ${(currentView === 'admin_panel' && adminSubView === 'active') ? styles.navItemActive : ''}`}
+                                onClick={() => {
+                                    handleSwitchView('admin_panel');
+                                    setAdminSubView('active');
+                                }}
                             >
                                 <Shield size={18} /> Admin Controls
                             </button>
+                            {user?.is_admin && (
+                                <button
+                                    className={`${styles.navItem} ${(currentView === 'admin_panel' && adminSubView === 'recycle') ? styles.navItemActive : ''}`}
+                                    onClick={() => {
+                                        handleSwitchView('admin_panel');
+                                        setAdminSubView('recycle');
+                                    }}
+                                >
+                                    <Trash2 size={18} /> Recycle Bin
+                                </button>
+                            )}
                         </>
                     )}
                 </nav>
@@ -3655,7 +3818,19 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                     </button>
 
                     <div className={styles.pageTitle}>
-                        <h1>{readOnly && currentView === 'overview' ? 'Project Overview' : currentView.charAt(0).toUpperCase() + currentView.slice(1).replace('_', ' ')}</h1>
+                        <h1>
+                            {readOnly && currentView === 'overview' ? 'Project Overview' : 
+                             (['site_detail', 'vendor_detail'].includes(currentView) && detailId) ? detailId :
+                             (currentView === 'statements' && statementMode !== 'menu') ? 
+                                (statementMode === 'master' ? 'Master Site Report' :
+                                 statementMode === 'tracker' ? 'Vendor Payment Tracker' :
+                                 statementMode === 'site_stmt' ? (selectedStatementSite || 'Site Statement') :
+                                 statementMode === 'vendor_stmt' ? (selectedStatementVendor || 'Vendor Statement') :
+                                 statementMode === 'wo_search' ? 'Work Order Search' : 'Statement Reports') :
+                             (currentView === 'admin_panel' && adminSubView === 'recycle') ? 'Recycle Bin' :
+                             (currentView === 'admin_panel') ? 'Admin Controls' :
+                             currentView.charAt(0).toUpperCase() + currentView.slice(1).replace('_', ' ')}
+                        </h1>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <p className={styles.subtitle}>Innovative Interiors - QS Dashboard</p>
                             {(yearFilter && entityFilter && currentView !== 'statements') && (
@@ -3725,6 +3900,35 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                     )}
 
                     <div className={styles.headerButtons} style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                        {(['site_detail', 'vendor_detail', 'add_entry'].includes(currentView) || (currentView === 'statements' && statementMode !== 'menu')) && (
+                            <button
+                                onClick={() => {
+                                    if (currentView === 'site_detail') handleSwitchView('sites');
+                                    else if (currentView === 'vendor_detail') handleSwitchView('vendors');
+                                    else if (currentView === 'add_entry') handleSwitchView('admin_panel', null, true);
+                                    else if (currentView === 'statements') {
+                                        if (selectedStatementSite) {
+                                            setSelectedStatementSite(null);
+                                            setSiteStatementView('detailed');
+                                            setStatementVendorSearch('');
+                                        } else if (selectedStatementVendor) {
+                                            setSelectedStatementVendor(null);
+                                            setVendorStatementView('detailed');
+                                            setStatementSiteSearch('');
+                                        } else {
+                                            setStatementMode('menu');
+                                            setSearchQuery('');
+                                        }
+                                    }
+                                }}
+                                title="Go Back"
+                                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white', color: '#4f46e5', cursor: 'pointer', transition: 'all 0.2s' }}
+                                onMouseOver={e => { e.currentTarget.style.background = '#f5f3ff'; e.currentTarget.style.borderColor = '#4f46e5'; }}
+                                onMouseOut={e => { e.currentTarget.style.background = 'white'; e.currentTarget.style.borderColor = '#e2e8f0'; }}
+                            >
+                                <ArrowLeft size={18} />
+                            </button>
+                        )}
                         {currentView !== 'statements' && (
                             <button
                                 className={styles.logoutBtn}
@@ -3772,6 +3976,43 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
             {renderPaymentHistoryPopup()}
             {renderPrintModal()}
             {renderPdfPreviewModal()}
+            {showDeleteModal && (
+                <div className={styles.modalOverlay} style={{ zIndex: 9999 }}>
+                    <div className={styles.modalContent} style={{ maxWidth: '400px', textAlign: 'center' }}>
+                        <div style={{ color: '#ef4444', marginBottom: '1rem' }}>
+                            <Trash2 size={48} />
+                        </div>
+                        <h2 style={{ marginBottom: '0.5rem', fontSize: '1.25rem', fontWeight: 700 }}>Move to Recycle Bin</h2>
+                        <p style={{ color: '#64748b', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
+                            Are you sure you want to move this record to the Recycle Bin? It will be hidden from the dashboard but can be restored later by an administrator.
+                        </p>
+                        
+                        {deleteError && (
+                            <div style={{ color: '#ef4444', background: '#fef2f2', padding: '10px', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.85rem', fontWeight: 500, border: '1px solid #fecaca' }}>
+                                {deleteError}
+                            </div>
+                        )}
+
+                        <div style={{ display: 'flex', gap: '1rem' }}>
+                            <Button 
+                                variant="secondary" 
+                                onClick={() => setShowDeleteModal(false)}
+                                style={{ flex: 1 }}
+                            >
+                                Cancel
+                            </Button>
+                            <Button 
+                                variant="danger" 
+                                onClick={confirmDelete}
+                                loading={loading}
+                                style={{ flex: 1, background: '#ef4444', color: 'white' }}
+                            >
+                                Delete
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
             {showSelectionModal && (
                 <div className={styles.modalOverlay}>
                     <div className={styles.selectionModalContent}>
