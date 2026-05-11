@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import { useMessage } from '../context/MessageContext';
 import { LoadingOverlay } from '../components/ui';
 import styles from './PayrollPage.module.css';
@@ -58,6 +59,11 @@ const PayrollPage = () => {
                     advance: data.advance,
                     lwf: data.lwf,
                     lop_amount: data.lop_amount,
+                    bonus_amount: data.bonus_amount || 0,
+                    bonus_name: data.bonus_name || '',
+                    other_deduction: data.other_deduction || 0,
+                    food_deduction: data.food_deduction || 0,
+                    show_signatures: data.show_signatures || false,
                     payment_method: data.payment_method,
                     remarks: data.remarks?.replace(" [SHOW_LOP]", "") || '',
                     showLop: data.remarks?.includes("[SHOW_LOP]") || false,
@@ -65,7 +71,8 @@ const PayrollPage = () => {
                     designation: emp?.designation || '',
                     pan_no: emp?.pan_no || '',
                     bank_name: emp?.bank_name || '',
-                    account_no: emp?.account_no || ''
+                    account_no: emp?.account_no || '',
+                    joining_date: emp?.created_at || ''
                 });
                 setSelectedEmployee(emp || null);
             }
@@ -100,6 +107,11 @@ const PayrollPage = () => {
         advance: 0,
         lwf: 0,
         lop_amount: 0,
+        bonus_amount: 0,
+        bonus_name: '',
+        other_deduction: 0,
+        food_deduction: 0,
+        show_signatures: false,
         payment_method: 'Bank Transfer',
         remarks: '',
         showLop: false,
@@ -107,7 +119,8 @@ const PayrollPage = () => {
         designation: '',
         pan_no: '',
         bank_name: '',
-        account_no: ''
+        account_no: '',
+        joining_date: ''
     };
 
     const [formData, setFormData] = useState(initialFormData);
@@ -160,6 +173,7 @@ const PayrollPage = () => {
                 pan_no: emp.pan_no || '',
                 bank_name: emp.bank_name || '',
                 account_no: emp.account_no || '',
+                joining_date: emp.created_at || '',
                 // Reset transients
                 increment: 0, arrears: 0, other_earnings: 0, allowance_increase: 0,
                 lop_amount: 0, advance: 0, remarks: '', showLop: false
@@ -191,12 +205,12 @@ const PayrollPage = () => {
             getVal(formData.basic_da), getVal(formData.hra), getVal(formData.conveyance),
             getVal(formData.child_edu), getVal(formData.child_hostel), getVal(formData.med_reimb),
             getVal(formData.special_allowance), getVal(formData.increment), getVal(formData.arrears),
-            getVal(formData.other_earnings), getVal(formData.allowance_increase)
+            getVal(formData.other_earnings), getVal(formData.allowance_increase), getVal(formData.bonus_amount)
         ].reduce((a, b) => a + b, 0);
 
         const deductions = [
             getVal(formData.pf), getVal(formData.esi), getVal(formData.advance),
-            getVal(formData.lwf), getVal(formData.lop_amount)
+            getVal(formData.lwf), getVal(formData.lop_amount), getVal(formData.food_deduction), getVal(formData.other_deduction)
         ].reduce((a, b) => a + b, 0);
 
         return {
@@ -251,7 +265,7 @@ const PayrollPage = () => {
                 await supabase.from('payrolls').update(payload).eq('id', editingId);
                 toast("Payroll updated successfully!");
                 // User wants to return to history after an explicit edit, not see the slip again
-                navigate('/payroll-history');
+                navigate('/hr/history');
             } else {
                 // Check if a record already exists for this employee (Any Month) to avoid duplication
                 const { data: existing } = await supabase
@@ -310,6 +324,11 @@ const PayrollPage = () => {
             advance: payroll.advance,
             lwf: payroll.lwf,
             lop_amount: payroll.lop_amount,
+            bonus_amount: payroll.bonus_amount || 0,
+            bonus_name: payroll.bonus_name || '',
+            other_deduction: payroll.other_deduction || 0,
+            food_deduction: payroll.food_deduction || 0,
+            show_signatures: payroll.show_signatures || false,
             payment_method: payroll.payment_method,
             remarks: payroll.remarks?.replace(" [SHOW_LOP]", "") || '',
             showLop: payroll.remarks?.includes("[SHOW_LOP]") || false,
@@ -317,7 +336,8 @@ const PayrollPage = () => {
             designation: emp?.designation || '',
             pan_no: emp?.pan_no || '',
             bank_name: emp?.bank_name || '',
-            account_no: emp?.account_no || ''
+            account_no: emp?.account_no || '',
+            joining_date: emp?.created_at || ''
         });
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
@@ -342,12 +362,12 @@ const PayrollPage = () => {
         <div className={styles.container}>
             {loading && <LoadingOverlay message="Saving Payroll..." />}
             <header className={styles.header}>
-                <div className={styles.headerLeft}>
-                    <Link to="/hr-dashboard" className={styles.homeBtn}>← Back</Link>
-                    <h1 className={styles.formTitle}>Payroll Management</h1>
+                <div className={styles.titleSection}>
+                    <Link to="/hr" className={styles.backBtn}><ArrowLeft size={24} /></Link>
+                    <h1 className={styles.title}>Payroll Management</h1>
                 </div>
-                <div className={styles.headerRight}>
-                    <Link to="/payroll-history" className={styles.payrollLink} style={{ textDecoration: 'none', background: '#3b82f6', color: 'white', padding: '8px 16px', borderRadius: '8px', fontWeight: '600' }}>View History 📜</Link>
+                <div className={styles.headerActions}>
+                    <Link to="/hr/history" className={styles.payrollLink} style={{ textDecoration: 'none', background: '#3b82f6', color: 'white', padding: '8px 16px', borderRadius: '8px', fontWeight: '600' }}>View History 📜</Link>
                 </div>
             </header>
 
@@ -406,6 +426,14 @@ const PayrollPage = () => {
                                 <div className={styles.inputGroup}>
                                     <label className={styles.label}>Account No.</label>
                                     <input id="account_no" className={styles.input} value={formData.account_no} onChange={handleInputChange} />
+                                </div>
+                                <div className={styles.inputGroup}>
+                                    <label className={styles.label}>Date of Joining</label>
+                                    <input 
+                                        className={`${styles.input} ${styles.readOnly}`} 
+                                        value={formData.joining_date ? new Date(formData.joining_date).toLocaleDateString() : 'N/A'} 
+                                        readOnly 
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -480,6 +508,14 @@ const PayrollPage = () => {
                                     <label className={styles.label}>Allowance/Increase</label>
                                     <input type="number" id="allowance_increase" className={styles.input} value={formData.allowance_increase} onChange={handleInputChange} />
                                 </div>
+                                <div className={styles.inputGroup}>
+                                    <label className={styles.label}>Bonus Amount</label>
+                                    <input type="number" id="bonus_amount" className={styles.input} value={formData.bonus_amount} onChange={handleInputChange} />
+                                </div>
+                                <div className={styles.inputGroup}>
+                                    <label className={styles.label}>Bonus Name</label>
+                                    <input type="text" id="bonus_name" className={styles.input} value={formData.bonus_name} onChange={handleInputChange} placeholder="e.g. Diwali Bonus" />
+                                </div>
                             </div>
                         </div>
 
@@ -506,6 +542,14 @@ const PayrollPage = () => {
                                 <div className={styles.inputGroup}>
                                     <label className={styles.label}>LOP (Amount)</label>
                                     <input type="number" id="lop_amount" className={styles.input} value={formData.lop_amount} onChange={handleInputChange} />
+                                </div>
+                                <div className={styles.inputGroup}>
+                                    <label className={styles.label}>Food Deduction</label>
+                                    <input type="number" id="food_deduction" className={styles.input} value={formData.food_deduction} onChange={handleInputChange} />
+                                </div>
+                                <div className={styles.inputGroup}>
+                                    <label className={styles.label}>Other Deduction</label>
+                                    <input type="number" id="other_deduction" className={styles.input} value={formData.other_deduction} onChange={handleInputChange} />
                                 </div>
                             </div>
                         </div>
@@ -534,6 +578,16 @@ const PayrollPage = () => {
                                         onChange={handleInputChange}
                                     />
                                     <label htmlFor="showLop" style={{ fontSize: '0.9rem', fontWeight: 600, color: '#475569', cursor: 'pointer' }}>Show LOP Amount in Payslip</label>
+                                </div>
+                                <div className={styles.inputGroup} style={{ gridColumn: 'span 3', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <input
+                                        type="checkbox"
+                                        id="show_signatures"
+                                        style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                                        checked={formData.show_signatures}
+                                        onChange={handleInputChange}
+                                    />
+                                    <label htmlFor="show_signatures" style={{ fontSize: '0.9rem', fontWeight: 600, color: '#475569', cursor: 'pointer' }}>Include Signature Footer in Payslip</label>
                                 </div>
                             </div>
                         </div>

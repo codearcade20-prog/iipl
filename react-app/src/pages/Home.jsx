@@ -17,7 +17,7 @@ const allModules = [
     { id: 'md', path: '/md', title: 'Managing Director', icon: '👔', text: 'Review and approve petty cash payments with digital signatures and amount adjustment.', permission: ['md', 'admin'] },
     { id: 'gm', path: '/gm', title: 'General Manager', icon: '👔', text: 'Review payment and invoice history with approval workflows and digital signatures.', permission: ['gm', 'admin'] },
     { id: 'approved_payments', path: '/approved-payments', title: 'Approved Payments', icon: '✅', text: 'View and print GM-approved payments and invoices with digital signatures.', permission: ['approved_payments', 'admin'] },
-    { id: 'hr', path: '/hr-dashboard', title: 'HR Module', icon: '👥', text: 'Manage employee registrations, details, and payroll information.', permission: ['hr', 'admin'] },
+    { id: 'hr', path: '/hr', title: 'HR Module', icon: '👥', text: 'Manage employee registrations, details, and payroll information.', permission: ['hr', 'admin'] },
     { id: 'wages', path: '/wages', title: 'Wages', icon: '💰', text: 'Calculate and manage daily/weekly wages for site workers and labor.', permission: ['wages', 'admin'] },
     { id: 'accounts', path: '/accounts', title: 'Accounts', icon: '🏦', text: 'Financial management, generalized ledger, and profit & loss reporting.', permission: ['accounts', 'admin'] },
     { id: 'project_entry', path: '/project-status/entry', title: 'Project Entry', icon: '🏗️', text: 'Create and manage new interior projects, assign coordinators, designers, and site engineers.', permission: 'project_entry' },

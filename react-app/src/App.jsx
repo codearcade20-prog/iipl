@@ -18,6 +18,7 @@ import EmployeeRegistration from './pages/EmployeeRegistration';
 import PayrollPage from './pages/PayrollPage';
 import SalarySlip from './pages/SalarySlip';
 import HRDashboard from './pages/HRDashboard';
+import HRLayout from './pages/HRLayout';
 import EmployeeList from './pages/EmployeeList';
 import PayrollHistory from './pages/PayrollHistory';
 import WagesPage from './pages/WagesPage';
@@ -68,11 +69,13 @@ function App() {
             <Route path="/history" element={<ProtectedRoute module="history"><HistoryPage /></ProtectedRoute>} />
             <Route path="/gm" element={<ProtectedRoute module="gm"><GeneralManager /></ProtectedRoute>} />
             <Route path="/approved-payments" element={<ProtectedRoute module="approved_payments"><ApprovedPayments /></ProtectedRoute>} />
-            <Route path="/hr-dashboard" element={<ProtectedRoute module="hr"><HRDashboard /></ProtectedRoute>} />
-            <Route path="/employee-registration" element={<ProtectedRoute module="hr"><EmployeeRegistration /></ProtectedRoute>} />
-            <Route path="/employee-list" element={<ProtectedRoute module="hr"><EmployeeList /></ProtectedRoute>} />
-            <Route path="/payroll" element={<ProtectedRoute module="hr"><PayrollPage /></ProtectedRoute>} />
-            <Route path="/payroll-history" element={<ProtectedRoute module="hr"><PayrollHistory /></ProtectedRoute>} />
+            <Route path="/hr" element={<ProtectedRoute module="hr"><HRLayout /></ProtectedRoute>}>
+              <Route index element={<HRDashboard />} />
+              <Route path="registration" element={<EmployeeRegistration />} />
+              <Route path="directory" element={<EmployeeList />} />
+              <Route path="payroll" element={<PayrollPage />} />
+              <Route path="history" element={<PayrollHistory />} />
+            </Route>
             <Route path="/salary-slip/:id" element={<ProtectedRoute module="hr"><SalarySlip /></ProtectedRoute>} />
             <Route path="/wages" element={<ProtectedRoute module="wages"><WagesPage /></ProtectedRoute>} />
             <Route path="/md" element={<ProtectedRoute module="md"><MDLayout /></ProtectedRoute>}>

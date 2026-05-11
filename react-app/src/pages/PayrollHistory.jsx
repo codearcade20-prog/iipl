@@ -84,7 +84,7 @@ const PayrollHistory = () => {
 
             <header className={styles.header}>
                 <div className={styles.titleSection}>
-                    <Link to="/hr-dashboard" className={styles.backBtn}>
+                    <Link to="/hr" className={styles.backBtn}>
                         <ArrowLeft size={24} />
                     </Link>
                     <h1 className={styles.title}>Payroll History</h1>
@@ -142,7 +142,7 @@ const PayrollHistory = () => {
                                     </td>
                                     <td>
                                         <div className={styles.actionCell}>
-                                            <Link to={`/payroll?edit=${py.id}`} className={`${styles.actionBtn} ${styles.editBtn}`} title="Edit Payroll Record">
+                                            <Link to={`/hr/payroll?edit=${py.id}`} className={`${styles.actionBtn} ${styles.editBtn}`} title="Edit Payroll Record">
                                                 <Edit size={16} />
                                             </Link>
                                             <button onClick={() => handleDelete(py.id)} className={`${styles.actionBtn} ${styles.deleteBtn}`} title="Delete Record">

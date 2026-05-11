@@ -338,7 +338,7 @@ const EmployeeList = () => {
 
             <header className={styles.header}>
                 <div className={styles.titleSection}>
-                    <Link to="/hr-dashboard" className={styles.backBtn}>
+                    <Link to="/hr" className={styles.backBtn}>
                         <ArrowLeft size={20} />
                     </Link>
                     <h1 className={styles.title}>Employee Records</h1>

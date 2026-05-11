@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Link } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import { useMessage } from '../context/MessageContext';
 import { Input, LoadingOverlay } from '../components/ui';
 import styles from './EmployeeRegistration.module.css';
@@ -95,12 +96,12 @@ const EmployeeRegistration = () => {
             {loading && <LoadingOverlay message="Processing..." />}
 
             <header className={styles.header}>
-                <div className={styles.headerLeft}>
-                    <Link to="/hr-dashboard" className={styles.homeBtn}>← Back</Link>
+                <div className={styles.titleSection}>
+                    <Link to="/hr" className={styles.backBtn}><ArrowLeft size={24} /></Link>
                     <h1 className={styles.title}>New Employee Registration</h1>
                 </div>
-                <div className={styles.headerRight}>
-                    <Link to="/employee-list" className={styles.payrollLink}>View Employee List 👥</Link>
+                <div className={styles.headerActions}>
+                    <Link to="/hr/directory" className={styles.payrollLink}>View Employee List 👥</Link>
                 </div>
             </header>
 
