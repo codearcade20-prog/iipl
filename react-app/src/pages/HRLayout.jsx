@@ -55,7 +55,7 @@ const HRLayout = () => {
                         <h2 className={styles.maintenanceTitle}>Module Under Maintenance</h2>
                         <p className={styles.maintenanceText}>
                             This module is currently under maintenance<br />
-                            Please wait while we improve the experience.
+                            Please wait...
                         </p>
                         <Link to="/" className={styles.maintenanceBtn}>
                             <ArrowLeft size={18} /> Back to Dashboard
