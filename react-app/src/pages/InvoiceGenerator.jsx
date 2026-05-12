@@ -120,9 +120,43 @@ const InvoiceGenerator = () => {
         }
     };
 
-    const handleVendorChange = (val) => {
+    const handleVendorChange = async (val) => {
         setIsSaved(false);
         const vendor = vendors.find(v => v[DB_COLUMNS.NAME] === val);
+        
+        let autoInvoiceNo = '';
+        if (val) {
+            // Get Prefix: First word that is not a single character or abbreviation
+            const match = val.match(/[A-Z]{2,}/i);
+            const prefix = match ? match[0].toUpperCase() : (val.split(/\s+/).find(w => w.length > 0) || '').toUpperCase();
+            
+            // Get Month: 3 characters uppercase
+            const month = new Date().toLocaleString('en-US', { month: 'short' }).toUpperCase();
+            
+            // Get Sequence: Check how many invoices for this vendor this month
+            try {
+                const now = new Date();
+                const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+                const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString();
+
+                const { count, error } = await supabase
+                    .from('payment_history')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('vendor_name', val)
+                    .eq('type', 'invoice')
+                    .gte('created_at', startOfMonth)
+                    .lte('created_at', endOfMonth);
+
+                if (error) throw error;
+                const seq = (count || 0) + 1;
+                const seqStr = seq.toString().padStart(3, '0');
+                autoInvoiceNo = `${prefix}/${month}/${seqStr}`;
+            } catch (e) {
+                console.error('Auto-invoice generation error:', e);
+                autoInvoiceNo = `${prefix}/${month}/001`;
+            }
+        }
+
         const newFormData = {
             ...formData,
             vendorName: val,
@@ -134,7 +168,8 @@ const InvoiceGenerator = () => {
             ifsc: vendor?.[DB_COLUMNS.IFSC] || '',
             accName: vendor?.[DB_COLUMNS.HOLDER] || val,
             project: '', // Reset project
-            woNumber: '' // Reset WO
+            woNumber: '', // Reset WO
+            invoiceNo: autoInvoiceNo // Set auto-filled invoice number
         };
         setFormData(newFormData);
 
