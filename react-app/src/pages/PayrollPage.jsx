@@ -14,6 +14,8 @@ const PayrollPage = () => {
     const [payrolls, setPayrolls] = useState([]);
     const [selectedEmployee, setSelectedEmployee] = useState(null);
     const [editingId, setEditingId] = useState(null);
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [employeeSearch, setEmployeeSearch] = useState('');
 
     const [searchParams] = useSearchParams();
     const editId = searchParams.get('edit');
@@ -386,26 +388,63 @@ const PayrollPage = () => {
                         <div className={`${styles.section} ${styles.fullWidth}`}>
                             <h3 className={styles.sectionHeading}>👤 Employee & Bank Details</h3>
                             <div className={styles.grid}>
-                                <div className={styles.inputGroup}>
+                                <div className={`${styles.inputGroup} ${styles.wideInputGroup}`}>
                                     <label className={styles.label}>Select Employee</label>
-                                    <select className={styles.select} value={formData.employee_id} onChange={handleEmployeeChange}>
-                                        <option value="">Choose Employee...</option>
-                                        {employees
-                                            .filter(emp => {
-                                                // In Edit mode, show only the employee being edited
-                                                if (editingId) return emp.id === formData.employee_id;
+                                    <div className={styles.customSelectContainer}>
+                                        <div
+                                            className={styles.customSelectTrigger}
+                                            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                                        >
+                                            {selectedEmployee ? `${selectedEmployee.full_name} (${selectedEmployee.employee_id})` : 'Employee...'}
+                                            <span className={styles.chevron}>▼</span>
+                                        </div>
 
-                                                // In New mode, hide employees who have already been processed for this specific month
-                                                const alreadyProcessed = payrolls.some(p =>
-                                                    p.employee_id === emp.id && p.pay_period === formData.pay_period
-                                                );
-                                                return !alreadyProcessed;
-                                            })
-                                            .map(emp => (
-                                                <option key={emp.id} value={emp.id}>{emp.full_name} ({emp.employee_id})</option>
-                                            ))
-                                        }
-                                    </select>
+                                        {isDropdownOpen && (
+                                            <div className={styles.customSelectMenu}>
+                                                <div className={styles.selectSearchWrapper}>
+                                                    <input
+                                                        type="text"
+                                                        className={styles.selectSearchInput}
+                                                        placeholder="Search employee..."
+                                                        value={employeeSearch}
+                                                        onChange={(e) => setEmployeeSearch(e.target.value)}
+                                                        autoFocus
+                                                    />
+                                                </div>
+                                                <div className={styles.optionsList}>
+                                                    {employees
+                                                        .filter(emp => {
+                                                            const matchesSearch = emp.full_name?.toLowerCase().includes(employeeSearch.toLowerCase()) ||
+                                                                emp.employee_id?.toLowerCase().includes(employeeSearch.toLowerCase());
+
+                                                            if (editingId) return emp.id === formData.employee_id && matchesSearch;
+
+                                                            const alreadyProcessed = payrolls.some(p =>
+                                                                p.employee_id === emp.id && p.pay_period === formData.pay_period
+                                                            );
+                                                            return !alreadyProcessed && matchesSearch;
+                                                        })
+                                                        .map(emp => (
+                                                            <div
+                                                                key={emp.id}
+                                                                className={styles.optionItem}
+                                                                onClick={() => {
+                                                                    handleEmployeeChange({ target: { value: emp.id } });
+                                                                    setIsDropdownOpen(false);
+                                                                    setEmployeeSearch('');
+                                                                }}
+                                                            >
+                                                                <div className={styles.optionName}>{emp.full_name}</div>
+                                                                <div className={styles.optionId}>{emp.employee_id} • {emp.designation}</div>
+                                                            </div>
+                                                        ))
+                                                    }
+                                                    {employees.length === 0 && <div className={styles.noOptions}>No employees found</div>}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                    {isDropdownOpen && <div className={styles.selectOverlay} onClick={() => setIsDropdownOpen(false)} />}
                                 </div>
                                 <div className={styles.inputGroup}>
                                     <label className={styles.label}>Department</label>
@@ -429,10 +468,10 @@ const PayrollPage = () => {
                                 </div>
                                 <div className={styles.inputGroup}>
                                     <label className={styles.label}>Date of Joining</label>
-                                    <input 
-                                        className={`${styles.input} ${styles.readOnly}`} 
-                                        value={formData.joining_date ? new Date(formData.joining_date).toLocaleDateString() : 'N/A'} 
-                                        readOnly 
+                                    <input
+                                        className={`${styles.input} ${styles.readOnly}`}
+                                        value={formData.joining_date ? new Date(formData.joining_date).toLocaleDateString() : 'N/A'}
+                                        readOnly
                                     />
                                 </div>
                             </div>
@@ -569,26 +608,7 @@ const PayrollPage = () => {
                                     <label className={styles.label}>Remarks</label>
                                     <input type="text" id="remarks" className={styles.input} value={formData.remarks} onChange={handleInputChange} placeholder="Any notes..." />
                                 </div>
-                                <div className={styles.inputGroup} style={{ gridColumn: 'span 3', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    <input
-                                        type="checkbox"
-                                        id="showLop"
-                                        style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                                        checked={formData.showLop}
-                                        onChange={handleInputChange}
-                                    />
-                                    <label htmlFor="showLop" style={{ fontSize: '0.9rem', fontWeight: 600, color: '#475569', cursor: 'pointer' }}>Show LOP Amount in Payslip</label>
-                                </div>
-                                <div className={styles.inputGroup} style={{ gridColumn: 'span 3', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    <input
-                                        type="checkbox"
-                                        id="show_signatures"
-                                        style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                                        checked={formData.show_signatures}
-                                        onChange={handleInputChange}
-                                    />
-                                    <label htmlFor="show_signatures" style={{ fontSize: '0.9rem', fontWeight: 600, color: '#475569', cursor: 'pointer' }}>Include Signature Footer in Payslip</label>
-                                </div>
+
                             </div>
                         </div>
                     </div>

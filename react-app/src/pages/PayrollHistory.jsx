@@ -21,10 +21,16 @@ const PayrollHistory = () => {
     const [loading, setLoading] = useState(false);
     const [payrolls, setPayrolls] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     useEffect(() => {
         fetchPayrolls();
     }, []);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm]);
 
     const fetchPayrolls = async () => {
         setLoading(true);
@@ -74,6 +80,12 @@ const PayrollHistory = () => {
         );
     }, [payrolls, searchTerm]);
 
+    const totalPages = Math.ceil(filteredPayrolls.length / itemsPerPage);
+    const paginatedPayrolls = useMemo(() => {
+        const start = (currentPage - 1) * itemsPerPage;
+        return filteredPayrolls.slice(start, start + itemsPerPage);
+    }, [filteredPayrolls, currentPage]);
+
     const formatCurrency = (val) => {
         return "₹ " + (parseFloat(val) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
     };
@@ -117,8 +129,8 @@ const PayrollHistory = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {filteredPayrolls.length > 0 ? (
-                            filteredPayrolls.map(py => (
+                        {paginatedPayrolls.length > 0 ? (
+                            paginatedPayrolls.map(py => (
                                 <tr key={py.id}>
                                     <td>
                                         <div className={styles.empInfo}>
@@ -163,6 +175,28 @@ const PayrollHistory = () => {
                         )}
                     </tbody>
                 </table>
+
+                {totalPages > 1 && (
+                    <div className={styles.pagination}>
+                        <button 
+                            className={styles.pageBtn} 
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
+                        >
+                            Previous
+                        </button>
+                        <span className={styles.pageInfo}>
+                            Page <strong>{currentPage}</strong> of <strong>{totalPages}</strong>
+                        </span>
+                        <button 
+                            className={styles.pageBtn} 
+                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                            disabled={currentPage === totalPages}
+                        >
+                            Next
+                        </button>
+                    </div>
+                )}
             </main>
         </div>
     );

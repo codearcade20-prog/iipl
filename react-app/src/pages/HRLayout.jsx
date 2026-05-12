@@ -46,7 +46,8 @@ const HRLayout = () => {
             </aside>
 
             <main className={styles.content}>
-                {/* Maintenance Overlay */}
+                {/* Maintenance Overlay - Commented out to revoke maintenance mode locally */}
+                {/* 
                 <div className={styles.maintenanceOverlay}>
                     <div className={styles.maintenanceCard}>
                         <div className={styles.maintenanceIcon}>
@@ -62,7 +63,8 @@ const HRLayout = () => {
                         </Link>
                     </div>
                 </div>
-                <div className={styles.contentBlur}>
+                */}
+                <div className={/* styles.contentBlur */ ''}>
                     <Outlet />
                 </div>
             </main>

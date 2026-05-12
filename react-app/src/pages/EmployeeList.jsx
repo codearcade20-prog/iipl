@@ -60,10 +60,17 @@ const EmployeeList = () => {
     });
     const [editMode, setEditMode] = useState(false); // Master vs Attendance toggle
     const [showMore, setShowMore] = useState(false); // More button toggle
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     useEffect(() => {
         fetchEmployees();
     }, []);
+
+    // Reset pagination when searching
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm]);
 
     const fetchEmployees = async () => {
         setLoading(true);
@@ -301,10 +308,16 @@ const EmployeeList = () => {
             emp.location?.toLowerCase().includes(searchTerm.toLowerCase())
         );
     }, [employees, searchTerm]);
-    
+
+    const totalPages = Math.ceil(filteredEmployees.length / itemsPerPage);
+    const paginatedEmployees = useMemo(() => {
+        const start = (currentPage - 1) * itemsPerPage;
+        return filteredEmployees.slice(start, start + itemsPerPage);
+    }, [filteredEmployees, currentPage]);
+
     const downloadExcel = () => {
         if (filteredEmployees.length === 0) return toast("No data to export");
-        
+
         const data = filteredEmployees.map(emp => ({
             'Employee ID': emp.employee_id,
             'Full Name': emp.full_name,
@@ -345,8 +358,8 @@ const EmployeeList = () => {
                 </div>
 
                 <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-                    <button 
-                        onClick={downloadExcel} 
+                    <button
+                        onClick={downloadExcel}
                         className={styles.exportBtn}
                         style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}
                     >
@@ -386,8 +399,8 @@ const EmployeeList = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {filteredEmployees.length > 0 ? (
-                            filteredEmployees.map(emp => (
+                        {paginatedEmployees.length > 0 ? (
+                            paginatedEmployees.map(emp => (
                                 <tr key={emp.id}>
                                     <td data-label="Employee Details">
                                         <div className={styles.empName}>{emp.full_name}</div>
@@ -443,6 +456,28 @@ const EmployeeList = () => {
                         )}
                     </tbody>
                 </table>
+
+                {totalPages > 1 && (
+                    <div className={styles.pagination}>
+                        <button
+                            className={styles.pageBtn}
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
+                        >
+                            Previous
+                        </button>
+                        <span className={styles.pageInfo}>
+                            Page <strong>{currentPage}</strong> of <strong>{totalPages}</strong>
+                        </span>
+                        <button
+                            className={styles.pageBtn}
+                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                            disabled={currentPage === totalPages}
+                        >
+                            Next
+                        </button>
+                    </div>
+                )}
             </main>
 
             {showPayrollModal && (
