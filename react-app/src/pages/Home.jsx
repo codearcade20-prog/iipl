@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import styles from './Home.module.css';
+import NotificationIcon from '../components/ui/NotificationIcon';
 
 const allModules = [
     { id: 'invoice', path: '/invoice-generator', title: 'Invoice Generator', icon: '📄', text: 'Create and print professional vendor invoices with auto-fill technology.', permission: 'invoice' },
@@ -101,6 +102,7 @@ const Home = () => {
                         <div className={styles.welcomeInfo}>
                             Hello, <strong>{user?.username}</strong>
                         </div>
+                        <NotificationIcon />
                         <button className={styles.topLogoutBtn} onClick={logout}>
                             Logout
                         </button>
@@ -112,6 +114,7 @@ const Home = () => {
                         <div className={styles.welcomeInfo}>
                             Welcome, <strong>{user?.username}</strong>
                         </div>
+                        <NotificationIcon />
                         <button className={styles.classicLogoutBtn} onClick={logout}>
                             Logout <span style={{ marginLeft: '4px' }}>🚪</span>
                         </button>

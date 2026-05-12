@@ -132,27 +132,27 @@ const PayrollHistory = () => {
                         {paginatedPayrolls.length > 0 ? (
                             paginatedPayrolls.map(py => (
                                 <tr key={py.id}>
-                                    <td>
+                                    <td data-label="Employee">
                                         <div className={styles.empInfo}>
                                             <span className={styles.empName}>{py.employees?.full_name}</span>
                                             <span style={{ fontSize: '0.75rem', color: '#64748b' }}>{py.employees?.employee_id} • {py.employees?.designation}</span>
                                         </div>
                                     </td>
-                                    <td>
+                                    <td data-label="Pay Period">
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                             <Calendar size={14} color="#3b82f6" />
                                             <span className={styles.periodBadge}>{py.pay_period}</span>
                                         </div>
                                     </td>
-                                    <td className={styles.amount}>{formatCurrency(py.gross_salary)}</td>
-                                    <td className={styles.amount} style={{ color: '#94a3b8' }}>{formatCurrency(py.total_deductions)}</td>
-                                    <td className={`${styles.amount} ${styles.netPay}`}>{formatCurrency(py.net_pay)}</td>
-                                    <td>
+                                    <td data-label="Gross Pay" className={styles.amount}>{formatCurrency(py.gross_salary)}</td>
+                                    <td data-label="Deductions" className={styles.amount} style={{ color: '#94a3b8' }}>{formatCurrency(py.total_deductions)}</td>
+                                    <td data-label="Net Salary" className={`${styles.amount} ${styles.netPay}`}>{formatCurrency(py.net_pay)}</td>
+                                    <td data-label="Method">
                                         <span style={{ fontSize: '0.85rem', color: '#475569', fontWeight: 600 }}>
                                             {py.payment_method}
                                         </span>
                                     </td>
-                                    <td>
+                                    <td data-label="Actions">
                                         <div className={styles.actionCell}>
                                             <Link to={`/hr/payroll?edit=${py.id}`} className={`${styles.actionBtn} ${styles.editBtn}`} title="Edit Payroll Record">
                                                 <Edit size={16} />

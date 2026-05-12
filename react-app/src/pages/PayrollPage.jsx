@@ -74,7 +74,7 @@ const PayrollPage = () => {
                     pan_no: emp?.pan_no || '',
                     bank_name: emp?.bank_name || '',
                     account_no: emp?.account_no || '',
-                    joining_date: emp?.created_at || ''
+                    joining_date: formatDateForInput(emp?.date_of_joining)
                 });
                 setSelectedEmployee(emp || null);
             }
@@ -175,7 +175,7 @@ const PayrollPage = () => {
                 pan_no: emp.pan_no || '',
                 bank_name: emp.bank_name || '',
                 account_no: emp.account_no || '',
-                joining_date: emp.created_at || '',
+                joining_date: formatDateForInput(emp.date_of_joining),
                 // Reset transients
                 increment: 0, arrears: 0, other_earnings: 0, allowance_increase: 0,
                 lop_amount: 0, advance: 0, remarks: '', showLop: false
@@ -197,6 +197,15 @@ const PayrollPage = () => {
             setFormData(prev => ({ ...prev, [id]: checked }));
         } else {
             setFormData(prev => ({ ...prev, [id]: value }));
+        }
+    };
+
+    const formatDateForInput = (dateStr) => {
+        if (!dateStr) return '';
+        try {
+            return new Date(dateStr).toISOString().split('T')[0];
+        } catch (e) {
+            return '';
         }
     };
 
@@ -245,7 +254,8 @@ const PayrollPage = () => {
                 special_allowance: formData.special_allowance,
                 pf: formData.pf,
                 esi: formData.esi,
-                lwf: formData.lwf
+                lwf: formData.lwf,
+                date_of_joining: formData.joining_date
             }).eq('id', formData.employee_id);
         } catch (e) {
             console.error("Master update failed:", e);
@@ -339,7 +349,7 @@ const PayrollPage = () => {
             pan_no: emp?.pan_no || '',
             bank_name: emp?.bank_name || '',
             account_no: emp?.account_no || '',
-            joining_date: emp?.created_at || ''
+            joining_date: formatDateForInput(emp?.date_of_joining)
         });
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
@@ -469,9 +479,11 @@ const PayrollPage = () => {
                                 <div className={styles.inputGroup}>
                                     <label className={styles.label}>Date of Joining</label>
                                     <input
-                                        className={`${styles.input} ${styles.readOnly}`}
-                                        value={formData.joining_date ? new Date(formData.joining_date).toLocaleDateString() : 'N/A'}
-                                        readOnly
+                                        type="date"
+                                        id="joining_date"
+                                        className={styles.input}
+                                        value={formData.joining_date}
+                                        onChange={handleInputChange}
                                     />
                                 </div>
                             </div>

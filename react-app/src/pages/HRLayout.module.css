@@ -217,19 +217,39 @@
         display: none;
     }
 
+    .wrapper {
+        flex-direction: column;
+    }
+
     .content {
-        padding-bottom: 70px;
+        padding: 0;
+        padding-bottom: 80px; /* Space for mobile nav */
+        width: 100%;
+        overflow-x: hidden;
     }
 
     .mobileNav {
         display: flex;
+        justify-content: space-around;
+        padding: 0.75rem 0.25rem;
     }
 
-    .maintenanceCard {
-        padding: 2.5rem 1.5rem;
+    .mobileNavLink {
+        gap: 2px;
+        min-width: 60px;
     }
 
-    .maintenanceTitle {
-        font-size: 1.5rem;
+    .mobileNavLink span {
+        font-size: 0.6rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .mobileNavLink span {
+        display: none; /* Only icons on very small screens */
+    }
+    
+    .mobileNavLink {
+        padding: 0.5rem;
     }
 }

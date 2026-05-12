@@ -9,6 +9,7 @@ import styles from './AdminDashboard.module.css';
 import TemplateModal from '../components/TemplateModal';
 import { useMessage } from '../context/MessageContext';
 import { formatDate } from '../utils';
+import NotificationIcon from '../components/ui/NotificationIcon';
 import SignatureImage from '../components/SignatureImage';
 import VendorPrintTemplate from '../components/VendorPrintTemplate';
 
@@ -101,6 +102,12 @@ const AdminDashboard = () => {
         summary: { total: 0, passed: 0, failed: 0 }
     });
 
+    // --- ISSUE REPORTS STATE ---
+    const [issueReports, setIssueReports] = useState([]);
+    const [loadingReports, setLoadingReports] = useState(false);
+    const [reportSearch, setReportSearch] = useState('');
+    const [reportFilter, setReportFilter] = useState('all'); // all, pending, resolved
+
     const runDiagnostics = async () => {
         setDiagnostics(prev => ({ ...prev, loading: true, results: [] }));
         const checks = [
@@ -179,6 +186,17 @@ const AdminDashboard = () => {
             else if (currentView === 'users') fetchUsers();
             else if (currentView === 'sessions') fetchSessions();
             else if (currentView === 'system') runDiagnostics();
+            else if (currentView === 'reports') {
+                fetchIssueReports();
+                // Add Realtime Listener for reports
+                const channel = supabase
+                    .channel('admin-reports-realtime')
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'issue_reports' }, () => {
+                        fetchIssueReports();
+                    })
+                    .subscribe();
+                return () => supabase.removeChannel(channel);
+            }
             else fetchHistory();
         }
     }, [isAuthenticated, currentView]);
@@ -841,23 +859,82 @@ const AdminDashboard = () => {
     };
 
     const deleteSession = async (id) => {
-        const pwd = await prompt("Enter your Admin Password to Delete this session:");
-        if (pwd === null) return;
-        
-        if (pwd !== adminUser?.password) {
-            await alert("Incorrect Admin Password!");
-            return;
-        }
-        if (await confirm('Permanently delete this session record?')) {
+        if (await confirm('Permanently remove this session log?')) {
             setSaving(true);
             try {
                 await supabase.from('user_sessions').delete().eq('id', id);
                 setSessions(sessions.filter(s => s.id !== id));
-                toast('Session record deleted.');
             } catch (e) { await alert(e.message); }
             finally { setSaving(false); }
         }
     };
+
+    // --- ISSUE REPORT ACTIONS ---
+    const fetchIssueReports = async () => {
+        setLoadingReports(true);
+        try {
+            const { data, error } = await supabase
+                .from('issue_reports')
+                .select('*')
+                .order('created_at', { ascending: false });
+            if (error) throw error;
+            setIssueReports(data || []);
+        } catch (e) { console.error(e); }
+        finally { setLoadingReports(false); }
+    };
+
+    const deleteReport = async (id, screenshotUrl) => {
+        if (await confirm('Are you sure you want to delete this report?')) {
+            setSaving(true);
+            try {
+                // 1. Delete from Storage if screenshot exists
+                if (screenshotUrl) {
+                    try {
+                        const fileName = screenshotUrl.split('/').pop();
+                        const filePath = `issue-screenshots/${fileName}`;
+                        await supabase.storage.from('issue-reports').remove([filePath]);
+                    } catch (err) {
+                        console.warn('Failed to delete screenshot from storage:', err);
+                    }
+                }
+
+                // 2. Delete from Database
+                const { error } = await supabase.from('issue_reports').delete().eq('id', id);
+                if (error) throw error;
+                
+                setIssueReports(issueReports.filter(r => r.id !== id));
+                toast('Report deleted.');
+            } catch (e) { await alert(e.message); }
+            finally { setSaving(false); }
+        }
+    };
+
+    const updateReportStatus = async (id, newStatus) => {
+        setSaving(true);
+        try {
+            const { error } = await supabase
+                .from('issue_reports')
+                .update({ status: newStatus })
+                .eq('id', id);
+            if (error) throw error;
+            setIssueReports(issueReports.map(r => r.id === id ? { ...r, status: newStatus } : r));
+            toast(`Report marked as ${newStatus}.`);
+        } catch (e) { await alert(e.message); }
+        finally { setSaving(false); }
+    };
+
+    const filteredReports = useMemo(() => {
+        return issueReports.filter(r => {
+            const matchesSearch = !reportSearch || 
+                r.user_name?.toLowerCase().includes(reportSearch.toLowerCase()) ||
+                r.message?.toLowerCase().includes(reportSearch.toLowerCase());
+            const matchesFilter = reportFilter === 'all' || r.status === reportFilter;
+            return matchesSearch && matchesFilter;
+        });
+    }, [issueReports, reportSearch, reportFilter]);
+
+    const totalPagesReports = Math.ceil(filteredReports.length / ROWS_PER_PAGE);
+    const paginatedReports = filteredReports.slice((currentPage - 1) * ROWS_PER_PAGE, currentPage * ROWS_PER_PAGE);
 
     // --- SETTINGS ACTIONS ---
     const fetchSettings = async () => {
@@ -1209,10 +1286,15 @@ const AdminDashboard = () => {
                             className={`${styles.navButton} ${currentView === 'system' ? styles.navButtonActive : ''}`}
                             onClick={() => { setCurrentView('system'); runDiagnostics(); setCurrentPage(1); }}
                         >System Health</button>
+                        <button
+                            className={`${styles.navButton} ${currentView === 'reports' ? styles.navButtonActive : ''}`}
+                            onClick={() => { setCurrentView('reports'); setCurrentPage(1); }}
+                        >Issue Reports</button>
                     </div>
                 </div>
-                <div className={styles.actionButtons}>
+                <div className={styles.actionButtons} style={{ alignItems: 'center' }}>
                     <Link to="/"><Button variant="secondary" fullWidth={false}>Home</Button></Link>
+                    <NotificationIcon />
                     <Button variant="secondary" fullWidth={false} onClick={logout} style={{ color: '#ef4444' }}>Logout</Button>
                 </div>
             </div>
@@ -1942,7 +2024,157 @@ const AdminDashboard = () => {
                     </div>
                 )}
 
+
+                {/* --- ISSUE REPORTS VIEW --- */}
+                {currentView === 'reports' && (
+                    <div className={styles.card}>
+                        <div className={styles.cardHeader}>
+                            <h3 className={styles.cardTitle}>User Feedback & Issue Reports</h3>
+                            <div style={{ display: 'flex', gap: '10px' }}>
+                                <select 
+                                    className={styles.statusSelect}
+                                    value={reportFilter}
+                                    onChange={(e) => setReportFilter(e.target.value)}
+                                    style={{ padding: '8px', borderRadius: '8px', border: '1px solid #e2e8f0' }}
+                                >
+                                    <option value="all">All Status</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="resolved">Resolved</option>
+                                </select>
+                                <input
+                                    type="text"
+                                    placeholder="Search reports..."
+                                    className={styles.searchInput}
+                                    value={reportSearch}
+                                    onChange={(e) => setReportSearch(e.target.value)}
+                                    style={{ padding: '8px 12px', border: '1px solid var(--border-color)', borderRadius: '8px', fontSize: '0.9rem', width: '250px' }}
+                                />
+                                <button onClick={fetchIssueReports} className={styles.actionBtn}>🔄 Refresh</button>
+                            </div>
+                        </div>
+                        <div className={styles.tableWrapper}>
+                            <table className={styles.table}>
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>User</th>
+                                        <th>Message</th>
+                                        <th>Screenshot</th>
+                                        <th>Priority</th>
+                                        <th>Status</th>
+                                        <th style={{ textAlign: 'center' }}>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {paginatedReports.map(report => (
+                                        <tr key={report.id} style={{ 
+                                            background: report.user_acknowledged ? '#f0fdf4' : 'transparent',
+                                            transition: 'background 0.5s ease'
+                                        }}>
+                                            <td data-label="Date" style={{ fontSize: '0.85rem' }}>{formatDate(report.created_at)}</td>
+                                            <td data-label="User">
+                                                <div style={{ fontWeight: 600 }}>{report.user_name}</div>
+                                                <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{report.user_email}</div>
+                                            </td>
+                                            <td data-label="Message">
+                                                <div style={{ maxWidth: '300px', fontSize: '0.9rem' }}>{report.message}</div>
+                                                <div style={{ fontSize: '0.7rem', color: '#3b82f6', marginTop: '4px' }}>
+                                                    On: {report.page_url?.split('/').pop() || 'Home'}
+                                                </div>
+
+                                                {/* --- User Feedback --- */}
+                                                {report.user_acknowledged && (
+                                                    <div style={{ 
+                                                        marginTop: '10px', 
+                                                        padding: '8px', 
+                                                        background: '#f0fdf4', 
+                                                        borderRadius: '8px',
+                                                        border: '1px solid #dcfce7'
+                                                    }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
+                                                            <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#166534', textTransform: 'uppercase' }}>Rating:</span>
+                                                            <span style={{ color: '#f59e0b', fontSize: '0.9rem' }}>
+                                                                {'★'.repeat(report.feedback_rating || 0)}
+                                                                <span style={{ color: '#d1d5db' }}>{'★'.repeat(5 - (report.feedback_rating || 0))}</span>
+                                                            </span>
+                                                        </div>
+                                                        {report.feedback_comment && (
+                                                            <div style={{ fontSize: '0.8rem', color: '#166534', fontStyle: 'italic', borderTop: '1px solid #dcfce7', paddingTop: '4px', marginTop: '4px' }}>
+                                                                "{report.feedback_comment}"
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td data-label="Screenshot">
+                                                {report.screenshot_url ? (
+                                                    <a href={report.screenshot_url} target="_blank" rel="noopener noreferrer">
+                                                        <img 
+                                                            src={report.screenshot_url} 
+                                                            alt="Report Screenshot" 
+                                                            style={{ width: '80px', height: '50px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #e2e8f0' }} 
+                                                        />
+                                                    </a>
+                                                ) : <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>No Image</span>}
+                                            </td>
+                                            <td data-label="Priority">
+                                                <span style={{ 
+                                                    padding: '2px 8px', 
+                                                    borderRadius: '12px', 
+                                                    fontSize: '0.75rem', 
+                                                    fontWeight: 600,
+                                                    background: report.priority === 'high' ? '#fee2e2' : report.priority === 'medium' ? '#fef3c7' : '#f0f9ff',
+                                                    color: report.priority === 'high' ? '#b91c1c' : report.priority === 'medium' ? '#92400e' : '#075985'
+                                                }}>
+                                                    {report.priority?.toUpperCase()}
+                                                </span>
+                                            </td>
+                                            <td data-label="Status">
+                                                <span style={{ 
+                                                    padding: '2px 8px', 
+                                                    borderRadius: '12px', 
+                                                    fontSize: '0.75rem', 
+                                                    fontWeight: 600,
+                                                    background: report.status === 'resolved' ? '#dcfce7' : '#f1f5f9',
+                                                    color: report.status === 'resolved' ? '#166534' : '#475569'
+                                                }}>
+                                                    {report.status?.toUpperCase()}
+                                                </span>
+                                            </td>
+                                            <td data-label="Actions" style={{ textAlign: 'center' }}>
+                                                <div className={styles.actions} style={{ justifyContent: 'center' }}>
+                                                    {report.status !== 'resolved' ? (
+                                                        <Button size="small" variant="primary" onClick={() => updateReportStatus(report.id, 'resolved')}>
+                                                            Resolve
+                                                        </Button>
+                                                    ) : (
+                                                        <Button size="small" variant="secondary" onClick={() => updateReportStatus(report.id, 'pending')}>
+                                                            Re-open
+                                                        </Button>
+                                                    )}
+                                                    <Button size="small" variant="danger" onClick={() => deleteReport(report.id, report.screenshot_url)}>
+                                                        Delete
+                                                    </Button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {filteredReports.length === 0 && (
+                                        <tr><td colSpan="7" style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>No reports found.</td></tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPagesReports}
+                            onPageChange={setCurrentPage}
+                        />
+                    </div>
+                )}
+
                 {/* --- SYSTEM DIAGNOSTICS VIEW --- */}
+
                 {currentView === 'system' && (
                     <div className={styles.card}>
                         <div className={styles.cardHeader}>
@@ -1963,6 +2195,7 @@ const AdminDashboard = () => {
                             <Button
                                 variant="outline"
                                 size="sm"
+                                fullWidth={false}
                                 onClick={runDiagnostics}
                                 disabled={diagnostics.loading}
                                 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}

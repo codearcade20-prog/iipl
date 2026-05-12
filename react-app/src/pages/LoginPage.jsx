@@ -4,11 +4,13 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui';
+import { Eye, EyeOff } from 'lucide-react';
 import styles from './LoginPage.module.css';
 
 const LoginPage = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const { login } = useAuth();
@@ -87,15 +89,23 @@ const LoginPage = () => {
                             required
                         />
                     </div>
-                    <div className={styles.inputGroup}>
+                    <div className={styles.inputGroup} style={{ position: 'relative' }}>
                         <Input
                             label="Password"
-                            type="password"
+                            type={showPassword ? "text" : "password"}
                             placeholder="Enter password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
                         />
+                        <button
+                            type="button"
+                            className={styles.passwordToggle}
+                            onClick={() => setShowPassword(!showPassword)}
+                            tabIndex="-1"
+                        >
+                            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                        </button>
                     </div>
 
                     {error && <div className={styles.error}>{error}</div>}

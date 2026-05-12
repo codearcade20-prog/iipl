@@ -163,16 +163,51 @@
 }
 
 
+@media (max-width: 1024px) {
+    .header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1.25rem;
+        padding: 1.5rem;
+    }
+
+    .titleSection {
+        justify-content: center;
+    }
+
+    .payrollLink {
+        text-align: center;
+    }
+}
+
 @media (max-width: 768px) {
-    .mainContent {
-        padding: 20px;
+    .container {
+        padding: 12px;
     }
 
     .registrationCard {
-        padding: 24px;
+        padding: 1.5rem;
+        border-radius: 16px;
     }
 
     .formGrid {
         grid-template-columns: 1fr;
+        gap: 1.25rem;
+    }
+
+    .sectionTitle {
+        font-size: 1.1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .submitBtn {
+        width: 100%;
+        padding: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .title {
+        font-size: 1.5rem;
     }
 }

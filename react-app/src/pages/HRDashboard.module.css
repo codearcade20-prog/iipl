@@ -135,25 +135,62 @@
     transform: rotate(-10deg);
 }
 
-@media (max-width: 1024px) {
-    .welcomeSection {
-        flex-direction: column;
-        text-align: center;
-        padding: 2rem;
+@media (max-width: 768px) {
+    .overviewContainer {
+        padding: 1.25rem;
     }
-    .welcomeContent {
-        max-width: 100%;
-        margin-bottom: 2rem;
-    }
-}
 
-@media (max-width: 640px) {
     .overviewHeader {
         flex-direction: column;
         align-items: flex-start;
-        gap: 1rem;
+        gap: 1.25rem;
+        margin-bottom: 2rem;
     }
+
+    .overviewTitle {
+        font-size: 1.5rem;
+    }
+
+    .dateDisplay {
+        width: 100%;
+        text-align: center;
+    }
+
     .statsGrid {
         grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .statCard {
+        padding: 1.25rem;
+    }
+
+    .welcomeSection {
+        padding: 2rem 1.5rem;
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .welcomeContent {
+        max-width: 100%;
+        margin-bottom: 1.5rem;
+    }
+
+    .welcomeContent h2 {
+        font-size: 1.5rem;
+    }
+
+    .welcomeContent p {
+        font-size: 1rem;
+    }
+
+    .welcomeImage {
+        display: none; /* Hide large icon on mobile */
+    }
+}
+
+@media (max-width: 480px) {
+    .overviewTitle {
+        font-size: 1.25rem;
     }
 }

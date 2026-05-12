@@ -339,6 +339,12 @@
 }
 
 @media (max-width: 1024px) {
+    .header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1.25rem;
+    }
+
     .formBody {
         grid-template-columns: 1fr;
     }
@@ -349,5 +355,45 @@
 
     .summary {
         grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 12px;
+    }
+
+    .title {
+        font-size: 1.5rem;
+    }
+
+    .formHeader {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .grid {
+        grid-template-columns: 1fr;
+    }
+
+    .actions {
+        flex-direction: column;
+    }
+
+    .actions button {
+        width: 100%;
+    }
+
+    .summaryRow {
+        font-size: 0.9rem;
+    }
+
+    .netPayLabel {
+        font-size: 1.1rem;
+    }
+
+    .netPayValue {
+        font-size: 1.4rem;
     }
 }

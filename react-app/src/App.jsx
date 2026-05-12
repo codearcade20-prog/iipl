@@ -48,6 +48,8 @@ import MasterRegister from './pages/MasterRegister';
 import AssistantBot from './components/AssistantBot';
 import { MessageProvider } from './context/MessageContext';
 import NetworkStatus from './components/NetworkStatus';
+import FeedbackSystem from './components/ui/FeedbackSystem';
+import NotificationListener from './components/ui/NotificationListener';
 
 
 function App() {
@@ -113,6 +115,8 @@ function App() {
           </Routes>
           <AssistantBotWrapper />
           <NetworkStatus />
+          <FeedbackSystem />
+          <NotificationListener />
         </Router>
       </MessageProvider>
 
