@@ -57,8 +57,8 @@ const ApprovedPayments = () => {
                     <span className={styles.gmBadge} style={{ background: '#ffffffff' }}>Approved Records</span>
                 </div>
                 <div style={{ display: 'flex', gap: '10px' }}>
-                    <Link to="/gm"><Button variant="secondary" style={{ color: 'black', borderColor: 'rgba(0,0,0,0.3)' }}>GM Dashboard</Button></Link>
-                    <Link to="/"><Button variant="secondary" style={{ color: 'black', borderColor: 'rgba(0,0,0,0.3)' }}>Home</Button></Link>
+                    <Link to="/gm"><Button variant="secondary" fullWidth={false} style={{ color: 'black', borderColor: 'rgba(0,0,0,0.3)' }}>GM Dashboard</Button></Link>
+                    <Link to="/"><Button variant="secondary" fullWidth={false} style={{ color: 'black', borderColor: 'rgba(0,0,0,0.3)' }}>Home</Button></Link>
                 </div>
             </header>
 
@@ -129,6 +129,7 @@ const ApprovedPayments = () => {
                                         <td style={{ textAlign: 'center' }}>
                                             <Button
                                                 variant="secondary"
+                                                fullWidth={false}
                                                 className={styles.actionBtn}
                                                 style={{ margin: '0 auto' }}
                                                 onClick={() => setViewItem(item)}

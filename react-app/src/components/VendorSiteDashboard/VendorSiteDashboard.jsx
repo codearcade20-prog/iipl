@@ -1885,6 +1885,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                         {hasActiveFilters && (
                             <Button
                                 variant="secondary"
+                                fullWidth={false}
                                 onClick={() => {
                                     setDateFilter('');
                                     setMonthFilter('');
@@ -2029,7 +2030,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                 <div style={{ maxWidth: '900px', margin: '0 auto', textAlign: 'center', paddingTop: '2rem' }}>
                     {readOnly && (
                         <div style={{ textAlign: 'left', marginBottom: '1.5rem' }}>
-                            <Button variant="secondary" onClick={() => handleSwitchView('overview')}>
+                            <Button variant="secondary" fullWidth={false} onClick={() => handleSwitchView('overview')}>
                                 <ArrowLeft size={16} /> Back to Overview
                             </Button>
                         </div>
@@ -3404,6 +3405,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                         <Button
                             variant="secondary"
+                            fullWidth={false}
                             style={{ margin: 0 }}
                             onClick={() => {
                                 const from = new URLSearchParams(location.search).get('from');
@@ -3418,7 +3420,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                         >
                             Back to Form
                         </Button>
-                        <Button onClick={() => {
+                        <Button fullWidth={false} onClick={() => {
                             setShowPrintModal(false);
                             setTimeout(() => {
                                 window.print();
@@ -3541,6 +3543,7 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                             </div>
                             <Button
                                 variant="secondary"
+                                fullWidth={false}
                                 onClick={() => window.print()}
                                 style={{ display: 'flex', alignItems: 'center', gap: '6px', height: '36px' }}
                             >

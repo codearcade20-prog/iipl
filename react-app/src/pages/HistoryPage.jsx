@@ -311,7 +311,7 @@ const HistoryPage = () => {
                     <span style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '2px' }}>Comprehensive audit log for all vendor transactions</span>
                 </div>
                 <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                    <Link to="/"><Button variant="secondary" style={{ borderColor: 'rgba(0,0,0,0.2)', color: 'black' }}>Home</Button></Link>
+                    <Link to="/"><Button variant="secondary" fullWidth={false} style={{ borderColor: 'rgba(0,0,0,0.2)', color: 'black' }}>Home</Button></Link>
                 </div>
             </header>
 
@@ -323,6 +323,7 @@ const HistoryPage = () => {
                             <Button 
                                 onClick={exportToExcel}
                                 variant="secondary"
+                                fullWidth={false}
                                 style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px', fontSize: '0.85rem' }}
                                 title="Export to Excel"
                             >
@@ -530,6 +531,7 @@ const HistoryPage = () => {
                                         <td style={{ textAlign: 'center' }}>
                                             <Button
                                                 variant="secondary"
+                                                fullWidth={false}
                                                 className={styles.actionBtn}
                                                 style={{ padding: '6px 14px' }}
                                                 onClick={() => setViewItem(item)}
@@ -653,8 +655,8 @@ const HistoryPage = () => {
                         </div>
 
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', borderTop: '1px solid #f1f5f9', paddingTop: '20px' }}>
-                            <Button variant="secondary" onClick={() => setShowMoveModal(false)} style={{ padding: '10px 20px' }}>Cancel</Button>
-                            <Button variant="primary" onClick={confirmMoveToAdvances} disabled={savingMove} style={{ padding: '10px 30px', background: '#4338ca', color: 'white' }}>
+                            <Button variant="secondary" fullWidth={false} onClick={() => setShowMoveModal(false)} style={{ padding: '10px 20px' }}>Cancel</Button>
+                            <Button variant="primary" fullWidth={false} onClick={confirmMoveToAdvances} disabled={savingMove} style={{ padding: '10px 30px', background: '#4338ca', color: 'white' }}>
                                 {savingMove ? 'Moving...' : 'Confirm & Sync'}
                             </Button>
                         </div>

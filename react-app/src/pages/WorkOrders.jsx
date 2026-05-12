@@ -255,10 +255,10 @@ const DriveManager = () => {
             <div className={styles.header}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                     <Link to="/">
-                        <Button variant="secondary">← Back</Button>
+                        <Button variant="secondary" fullWidth={false}>← Back</Button>
                     </Link>
                     <h1 className={styles.title}>Drive Module</h1>
-                    <Button variant="outline" onClick={() => setShowLinkModal(true)}>
+                    <Button variant="outline" fullWidth={false} onClick={() => setShowLinkModal(true)}>
                         Update WO Link
                     </Button>
                 </div>
@@ -266,24 +266,24 @@ const DriveManager = () => {
                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                     {token ? (
                         <>
-                            <Button variant="outline" onClick={() => fetchFiles(token, currentFolderId)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <Button variant="outline" fullWidth={false} onClick={() => fetchFiles(token, currentFolderId)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                 <RefreshCw size={16} className={loading ? "animate-spin" : ""} /> Refresh
                             </Button>
-                            <Button variant="outline" onClick={handleCreateFolder} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <Button variant="outline" fullWidth={false} onClick={handleCreateFolder} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                 <FolderPlus size={16} /> New Folder
                             </Button>
-                            <Button variant="primary" onClick={() => fileInputRef.current.click()} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }} disabled={isUploading}>
+                            <Button variant="primary" fullWidth={false} onClick={() => fileInputRef.current.click()} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }} disabled={isUploading}>
                                 {isUploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />} 
                                 {isUploading ? 'Uploading...' : 'Upload File'}
                             </Button>
                             <input type="file" ref={fileInputRef} onChange={handleFileUpload} style={{ display: 'none' }} />
                             
-                            <Button variant="danger" onClick={logout} style={{ marginLeft: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <Button variant="danger" fullWidth={false} onClick={logout} style={{ marginLeft: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                 <LogOut size={16} /> Disconnect
                             </Button>
                         </>
                     ) : (
-                        <Button variant="primary" onClick={() => login()} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#4285F4', color: 'white', border: 'none' }}>
+                        <Button variant="primary" fullWidth={false} onClick={() => login()} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#4285F4', color: 'white', border: 'none' }}>
                             <LogIn size={16} /> Sign in with Google Drive
                         </Button>
                     )}
@@ -292,7 +292,7 @@ const DriveManager = () => {
 
             <div className={styles.pathBar} style={{ display: 'flex', alignItems: 'center', padding: '0.5rem 1rem', backgroundColor: '#f3f4f6', borderRadius: '4px', marginBottom: '1rem' }}>
                 {folderStack.length > 1 && (
-                    <Button variant="secondary" onClick={handleBackClick} style={{ marginRight: '1rem', padding: '0.25rem 0.5rem' }}>
+                    <Button variant="secondary" fullWidth={false} onClick={handleBackClick} style={{ marginRight: '1rem', padding: '0.25rem 0.5rem' }}>
                         <ArrowLeft size={16} /> Back
                     </Button>
                 )}
@@ -435,8 +435,8 @@ const DriveManager = () => {
                         )}
 
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-                            <Button variant="secondary" onClick={() => setShowLinkModal(false)}>Cancel</Button>
-                            <Button variant="primary" onClick={handleUpdateLink} disabled={isUpdatingLink || !selectedWoId || !driveLink}>
+                            <Button variant="secondary" fullWidth={false} onClick={() => setShowLinkModal(false)}>Cancel</Button>
+                            <Button variant="primary" fullWidth={false} onClick={handleUpdateLink} disabled={isUpdatingLink || !selectedWoId || !driveLink}>
                                 {isUpdatingLink ? 'Updating...' : 'Update Link'}
                             </Button>
                         </div>
@@ -450,7 +450,7 @@ const DriveManager = () => {
                     <div style={{ background: '#fff', borderRadius: '12px', width: '100%', maxWidth: '1000px', height: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
                         <div style={{ padding: '12px 20px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc' }}>
                             <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#1e293b', margin: 0 }}>Document Preview</h3>
-                            <Button variant="secondary" onClick={() => setPreviewUrl(null)} style={{ padding: '6px 12px', fontSize: '0.85rem' }}>Close</Button>
+                            <Button variant="secondary" fullWidth={false} onClick={() => setPreviewUrl(null)} style={{ padding: '6px 12px', fontSize: '0.85rem' }}>Close</Button>
                         </div>
                         <iframe 
                             src={previewUrl} 

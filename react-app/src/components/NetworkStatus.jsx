@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useMessage } from '../context/MessageContext';
 import styles from './NetworkStatus.module.css';
 
@@ -6,6 +6,7 @@ const NetworkStatus = () => {
     const [isOnline, setIsOnline] = useState(navigator.onLine);
     const [connectionType, setConnectionType] = useState(navigator.connection?.effectiveType || 'unknown');
     const { toast } = useMessage();
+    const soundPlayedRef = useRef(false);
 
     useEffect(() => {
         const handleOnline = () => {
@@ -38,6 +39,20 @@ const NetworkStatus = () => {
             }
         };
     }, [toast]);
+
+    useEffect(() => {
+        const isBadConnection = !isOnline || (connectionType === '2g' || connectionType === 'slow-2g' || connectionType === '3g');
+        
+        if (isBadConnection) {
+            if (!soundPlayedRef.current) {
+                const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'); // Modern Ping Sound
+                audio.play().catch(e => console.log('Audio play blocked by browser:', e));
+                soundPlayedRef.current = true;
+            }
+        } else {
+            soundPlayedRef.current = false;
+        }
+    }, [isOnline, connectionType]);
 
     if (isOnline && (connectionType === '4g' || connectionType === 'unknown')) {
         return null;

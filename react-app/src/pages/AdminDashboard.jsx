@@ -1212,8 +1212,8 @@ const AdminDashboard = () => {
                     </div>
                 </div>
                 <div className={styles.actionButtons}>
-                    <Link to="/"><Button variant="secondary">Home</Button></Link>
-                    <Button variant="secondary" onClick={logout} style={{ color: '#ef4444' }}>Logout</Button>
+                    <Link to="/"><Button variant="secondary" fullWidth={false}>Home</Button></Link>
+                    <Button variant="secondary" fullWidth={false} onClick={logout} style={{ color: '#ef4444' }}>Logout</Button>
                 </div>
             </div>
 
@@ -1624,7 +1624,7 @@ const AdminDashboard = () => {
                     <div className={styles.card}>
                         <div className={styles.cardHeader}>
                             <h3 className={styles.cardTitle}>Manage Vendors</h3>
-                            <Button onClick={() => openVendorModal()}>+ Add Vendor</Button>
+                            <Button fullWidth={false} onClick={() => openVendorModal()}>+ Add Vendor</Button>
                         </div>
                         <div style={{ padding: '15px 20px', background: '#f8fafc', borderBottom: '1px solid var(--border-color)' }}>
                             <input
@@ -1655,9 +1655,9 @@ const AdminDashboard = () => {
                                             <td data-label="Account">{v.account_number}</td>
                                             <td data-label="Actions">
                                                 <div className={styles.actions}>
-                                                    <Button variant="outline" onClick={() => setPrintVendor(v)}>Share</Button>
-                                                    <Button variant="secondary" onClick={() => openVendorModal(v)}>Edit</Button>
-                                                    <Button variant="danger" onClick={() => deleteVendor(v.id)}>Del</Button>
+                                                    <Button variant="outline" size="small" fullWidth={false} onClick={() => setPrintVendor(v)}>Share</Button>
+                                                    <Button variant="secondary" size="small" fullWidth={false} onClick={() => openVendorModal(v)}>Edit</Button>
+                                                    <Button variant="danger" size="small" fullWidth={false} onClick={() => deleteVendor(v.id)}>Delete</Button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -1711,8 +1711,10 @@ const AdminDashboard = () => {
                                                 <td data-label="Amount">₹{original.amount}</td>
                                                 <td data-label="Details">{original.project}</td>
                                                 <td data-label="Actions">
-                                                    <Button onClick={() => restoreFromBin(bin.id, original)}>Recycle ♻️</Button>
-                                                    <Button onClick={() => permanentDelete(bin.id)}>Delete Forever</Button>
+                                                    <div className={styles.actions}>
+                                                        <Button size="small" fullWidth={false} onClick={() => restoreFromBin(bin.id, original)}>Recycle ♻️</Button>
+                                                        <Button size="small" variant="danger" fullWidth={false} onClick={() => permanentDelete(bin.id)}>Delete Forever</Button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         );
@@ -1733,7 +1735,7 @@ const AdminDashboard = () => {
                     <div className={styles.card}>
                         <div className={styles.cardHeader}>
                             <h3 className={styles.cardTitle}>App User Management</h3>
-                            <Button onClick={() => openUserModal()}>+ Add User</Button>
+                            <Button fullWidth={false} onClick={() => openUserModal()}>+ Add User</Button>
                         </div>
                         <div style={{ padding: '15px 20px', background: '#f8fafc', borderBottom: '1px solid var(--border-color)' }}>
                             <div className={styles.filterGrid}>
@@ -1786,9 +1788,11 @@ const AdminDashboard = () => {
                                             <td data-label="Role / Team">{u.team_role || 'No Role'}</td>
                                             <td data-label="Status">{u.is_approved ? 'Approved' : 'Pending'}</td>
                                             <td data-label="Actions">
-                                                <Button onClick={() => approveUser(u)}>Approve</Button>
-                                                <Button onClick={() => openUserModal(u)}>Edit</Button>
-                                                <Button onClick={() => deleteAppUser(u.id)}>Del</Button>
+                                                <div className={styles.actions}>
+                                                    <Button size="small" fullWidth={false} onClick={() => approveUser(u)}>Approve</Button>
+                                                    <Button size="small" variant="secondary" fullWidth={false} onClick={() => openUserModal(u)}>Edit</Button>
+                                                    <Button size="small" variant="danger" fullWidth={false} onClick={() => deleteAppUser(u.id)}>Delete</Button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}
@@ -1808,7 +1812,7 @@ const AdminDashboard = () => {
                     <div className={styles.card}>
                         <div className={styles.cardHeader}>
                             <h3 className={styles.cardTitle}>Master Site Management</h3>
-                            <Button onClick={() => openSiteModal()}>+ Add New Site</Button>
+                            <Button fullWidth={false} onClick={() => openSiteModal()}>+ Add New Site</Button>
                         </div>
                         <div style={{ padding: '15px 20px', background: '#f8fafc', borderBottom: '1px solid var(--border-color)' }}>
                             <div className={styles.filterGrid}>
@@ -1838,12 +1842,12 @@ const AdminDashboard = () => {
                                             <td data-label="Location">{s.location || '-'}</td>
                                             <td data-label="Client">{s.client || '-'}</td>
                                             <td data-label="Actions">
-                                                <div className={styles.actionButtons}>
+                                                <div className={styles.actions}>
                                                     <Link to={`/vendor-dashboard?site=${encodeURIComponent(s.name)}`}>
-                                                        <Button variant="outline" style={{ padding: '4px 8px', fontSize: '0.8rem', marginRight: '6px' }}>View</Button>
+                                                        <Button variant="outline" size="small" fullWidth={false}>View</Button>
                                                     </Link>
-                                                    <Button variant="secondary" style={{ padding: '4px 8px', fontSize: '0.8rem' }} onClick={() => openSiteModal(s)}>Edit</Button>
-                                                    <Button variant="danger" style={{ padding: '4px 8px', fontSize: '0.8rem', marginLeft: '6px' }} onClick={() => deleteSite(s.id)}>Del</Button>
+                                                    <Button variant="secondary" size="small" fullWidth={false} onClick={() => openSiteModal(s)}>Edit</Button>
+                                                    <Button variant="danger" size="small" fullWidth={false} onClick={() => deleteSite(s.id)}>Delete</Button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -1910,10 +1914,11 @@ const AdminDashboard = () => {
                                                 </span>
                                             </td>
                                             <td data-label="Actions" style={{ textAlign: 'center' }}>
-                                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                                                <div className={styles.actions} style={{ justifyContent: 'center' }}>
                                                     <Button
                                                         variant="danger"
                                                         size="small"
+                                                        fullWidth={false}
                                                         onClick={() => logoutDevice(session.id)}
                                                     >
                                                         Logout Device

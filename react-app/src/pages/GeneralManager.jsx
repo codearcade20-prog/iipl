@@ -115,8 +115,8 @@ const GeneralManager = () => {
                     <span className={styles.gmBadge}>GM Access</span>
                 </div>
                 <div style={{ display: 'flex', gap: '10px' }}>
-                    <Link to="/approved-payments"><Button variant="secondary" style={{ color: 'black', borderColor: 'rgba(0,0,0,0.3)' }}>Approved Payments ✅</Button></Link>
-                    <Link to="/"><Button variant="secondary" style={{ color: 'black', borderColor: 'rgba(0,0,0,0.3)' }}>Home</Button></Link>
+                    <Link to="/approved-payments"><Button variant="secondary" fullWidth={false} style={{ color: 'black', borderColor: 'rgba(0,0,0,0.3)' }}>Approved Payments ✅</Button></Link>
+                    <Link to="/"><Button variant="secondary" fullWidth={false} style={{ color: 'black', borderColor: 'rgba(0,0,0,0.3)' }}>Home</Button></Link>
                 </div>
             </header>
 
@@ -202,6 +202,7 @@ const GeneralManager = () => {
                                             <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                                                 <Button
                                                     variant="secondary"
+                                                    fullWidth={false}
                                                     className={styles.actionBtn}
                                                     onClick={() => setViewItem(item)}
                                                 >
@@ -209,6 +210,7 @@ const GeneralManager = () => {
                                                 </Button>
                                                 <Button
                                                     variant="outline"
+                                                    fullWidth={false}
                                                     className={styles.actionBtn}
                                                     style={{ borderColor: '#6366f1', color: '#6366f1' }}
                                                     onClick={() => handleDigitalSignature(item)}

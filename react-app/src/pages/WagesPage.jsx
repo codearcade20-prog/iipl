@@ -1185,10 +1185,10 @@ const WagesPage = () => {
                             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', background: '#f0f9ff', padding: '8px 16px', borderRadius: '12px', border: '1px solid #bae6fd' }}>
                                 <span style={{ color: '#0369a1', fontWeight: 600, fontSize: '0.9rem' }}>{selectedLabors.size} workers selected</span>
                                 <Button 
-                                    size="sm" 
                                     onClick={saveAttendance}
                                     loading={loading}
                                     loadingText="Saving..."
+                                    fullWidth={false}
                                     style={{ background: '#0ea5e9', color: 'white', border: 'none', borderRadius: '8px' }}
                                 >
                                     <Save size={16} style={{ marginRight: 6 }} /> Save Selected
@@ -1294,7 +1294,7 @@ const WagesPage = () => {
                     </div>
                     {filteredLabors.length > 0 && (
                         <div className={styles.actions} style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end' }}>
-                            <Button onClick={saveAttendance} disabled={selectedLabors.size === 0} className={styles.saveBtn} style={{ padding: '12px 32px', borderRadius: '12px' }}>
+                            <Button onClick={saveAttendance} disabled={selectedLabors.size === 0} fullWidth={false} className={styles.saveBtn} style={{ padding: '12px 32px', borderRadius: '12px' }}>
                                 <Save size={18} style={{ marginRight: 8 }} /> Save Daily Log ({selectedLabors.size})
                             </Button>
                         </div>
@@ -1394,7 +1394,7 @@ const WagesPage = () => {
                             <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
                         </div>
                     </div>
-                    <Button onClick={() => openSubModal()}>
+                    <Button onClick={() => openSubModal()} fullWidth={false}>
                         <UserPlus size={18} style={{ marginRight: 8 }} /> Add Subcontractor
                     </Button>
                 </div>
@@ -1465,11 +1465,12 @@ const WagesPage = () => {
                     <div style={{ display: 'flex', gap: '12px' }}>
                         <Button 
                             onClick={() => setDesignationModalOpen(true)}
+                            fullWidth={false}
                             style={{ background: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca' }}
                         >
                             <Plus size={18} style={{ marginRight: 8 }} /> Add Designation
                         </Button>
-                        <Button onClick={() => openLaborModal()}>
+                        <Button onClick={() => openLaborModal()} fullWidth={false}>
                             <UserPlus size={18} style={{ marginRight: 8 }} /> Add Labor
                         </Button>
                     </div>
@@ -2020,14 +2021,14 @@ const WagesPage = () => {
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', flexWrap: 'wrap' }}>
                         {isSingleLabor && matchedLaborObj && (
-                            <Button onClick={() => printLaborStatement(matchedLaborObj)} style={{ background: '#0f172a', color: 'white', borderColor: '#0f172a' }}>
+                            <Button onClick={() => printLaborStatement(matchedLaborObj)} fullWidth={false} style={{ background: '#0f172a', color: 'white', borderColor: '#0f172a' }}>
                                 <Printer size={16} style={{ marginRight: 8 }} /> Print Labor Statement (Bill)
                             </Button>
                         )}
-                        <Button onClick={exportToExcel} style={{ background: '#10b981', color: 'white', borderColor: '#10b981' }}>
+                        <Button onClick={exportToExcel} fullWidth={false} style={{ background: '#10b981', color: 'white', borderColor: '#10b981' }}>
                             <Download size={16} style={{ marginRight: 8 }} /> Export Excel
                         </Button>
-                        <Button onClick={printSummary} variant="outline" size="sm">
+                        <Button onClick={printSummary} variant="secondary" fullWidth={false}>
                             <Printer size={16} style={{ marginRight: 8 }} /> Print Analytics (All)
                         </Button>
                     </div>
@@ -2254,7 +2255,7 @@ const WagesPage = () => {
                                 value={newDesignation}
                                 onChange={e => setNewDesignation(e.target.value)}
                             />
-                            <Button onClick={saveDesignation}>Add</Button>
+                            <Button onClick={saveDesignation} fullWidth={false}>Add</Button>
                         </div>
                         <div style={{ maxHeight: '300px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
                             {designations.length === 0 ? (
@@ -2273,7 +2274,7 @@ const WagesPage = () => {
                         </div>
                     </div>
                     <div className={styles.modalActions}>
-                        <Button variant="outline" onClick={() => setDesignationModalOpen(false)}>Close</Button>
+                        <Button variant="outline" fullWidth={false} onClick={() => setDesignationModalOpen(false)}>Close</Button>
                     </div>
                 </div>
             </div>
@@ -2308,8 +2309,8 @@ const WagesPage = () => {
                     </div>
                 </div>
                 <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                    <Button variant="secondary" onClick={() => navigate('/')}>Home</Button>
-                    <Button variant="secondary" onClick={() => setGuideModalOpen(true)}>Guide</Button>
+                    <Button variant="secondary" fullWidth={false} onClick={() => navigate('/')}>Home</Button>
+                    <Button variant="secondary" fullWidth={false} onClick={() => setGuideModalOpen(true)}>Guide</Button>
                 </div>
             </div>
 
@@ -2446,8 +2447,8 @@ const WagesPage = () => {
                                 </table>
                             </div>
                             <div className={styles.modalActions}>
-                                <Button variant="outline" onClick={() => setCorrectionModalOpen(false)}>Cancel</Button>
-                                <Button onClick={saveCorrections} disabled={isSavingCorrection}>
+                                <Button variant="outline" fullWidth={false} onClick={() => setCorrectionModalOpen(false)}>Cancel</Button>
+                                <Button onClick={saveCorrections} fullWidth={false} disabled={isSavingCorrection}>
                                     {isSavingCorrection ? 'Saving...' : 'Update All Logs'}
                                 </Button>
                             </div>
@@ -2473,8 +2474,8 @@ const WagesPage = () => {
                             </div>
                         </div>
                         <div className={styles.modalActions}>
-                            <Button variant="outline" onClick={() => setSubModalOpen(false)}>Cancel</Button>
-                            <Button onClick={saveSub}>Save Subcontractor</Button>
+                            <Button variant="outline" fullWidth={false} onClick={() => setSubModalOpen(false)}>Cancel</Button>
+                            <Button onClick={saveSub} fullWidth={false}>Save Subcontractor</Button>
                         </div>
                     </div>
                 </div>
