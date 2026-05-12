@@ -688,10 +688,14 @@ const BillGenerator = () => {
             }
 
             if (data.password === adminPassword) {
-                setPasswordModalOpen(false);
-                setGuideModalOpen(true);
-                setAdminUsername('');
-                setAdminPassword('');
+                if (data.is_admin) {
+                    setPasswordModalOpen(false);
+                    setGuideModalOpen(true);
+                    setAdminUsername('');
+                    setAdminPassword('');
+                } else {
+                    toast("Access Denied! Administrator privileges required.", "error");
+                }
             } else {
                 toast("Incorrect Password!", "error");
             }
@@ -711,18 +715,76 @@ const BillGenerator = () => {
             <div className={styles.sidebar}>
                 <div className={styles.sidebarHeader}>
                     <h2 className={styles.title}>Bill Preparation</h2>
-                    <div style={{ display: 'flex', gap: '10px' }}>
-                        <button className={styles.homeBtn} style={{ background: 'var(--primary-blue)', color: 'white', borderRadius: '12px', padding: '0 16px', fontSize: '0.85rem', fontWeight: '600', height: '40px', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)' }} onClick={() => setPasswordModalOpen(true)}>
-                            <i className="fa-solid fa-lock"></i> Admin Guide
-                        </button>
-                        <Link to="/"><button className={styles.homeBtn} style={{ height: '40px', width: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><i className="fa-solid fa-house" style={{ fontSize: '1.1rem', color: 'var(--text-muted)' }}></i></button></Link>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <Button
+                            variant="secondary"
+                            fullWidth={false}
+                            onClick={handleNewBill}
+                            style={{ padding: '0 12px', height: '36px', minWidth: '40px' }}
+                            title="New Bill"
+                        >
+                            <i className="fa-solid fa-plus"></i>
+                        </Button>
+                        <Button
+                            variant="secondary"
+                            fullWidth={false}
+                            onClick={fetchBillHistory}
+                            style={{ padding: '0 12px', height: '36px', minWidth: '40px' }}
+                            title="Bill History"
+                        >
+                            <i className="fa-solid fa-clock-rotate-left"></i>
+                        </Button>
+                        <Button 
+                            variant="success"
+                            fullWidth={false} 
+                            onClick={handleSaveBill} 
+                            style={{ padding: '0 12px', height: '36px', minWidth: '40px' }}
+                            title="Save Bill"
+                        >
+                            <i className="fa-solid fa-floppy-disk"></i>
+                        </Button>
+                        <Button
+                            fullWidth={false}
+                            onClick={() => setShowPreviewOverlay(true)}
+                            style={{ background: 'var(--primary-blue)', color: 'white', border: 'none', padding: '0 16px', height: '36px', fontWeight: '600' }}
+                        >
+                            <i className="fa-solid fa-magnifying-glass-chart" style={{ marginRight: '8px' }}></i> Preview
+                        </Button>
+                        <Button
+                            fullWidth={false}
+                            onClick={exportToExcel}
+                            style={{ background: '#f59e0b', color: 'white', border: 'none', padding: '0 12px', height: '36px', minWidth: '40px' }}
+                            title="Export Excel"
+                        >
+                            <i className="fa-solid fa-file-excel"></i>
+                        </Button>
+
+                        <div style={{ width: '1px', height: '24px', background: 'rgba(255,255,255,0.1)', margin: '0 4px' }}></div>
+
+                        <Button
+                            fullWidth={false}
+                            onClick={() => setPasswordModalOpen(true)}
+                            style={{ background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.1)', padding: '0 12px', height: '36px', fontSize: '0.8rem' }}
+                        >
+                            <i className="fa-solid fa-lock" style={{ marginRight: '6px' }}></i> Guide
+                        </Button>
+
+                        <Link to="/">
+                            <Button
+                                variant="secondary"
+                                fullWidth={false}
+                                style={{ width: '36px', height: '36px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)' }}
+                            >
+                                <i className="fa-solid fa-house" style={{ color: 'rgba(255,255,255,0.7)' }}></i>
+                            </Button>
+                        </Link>
                     </div>
                 </div>
 
                 <div className={styles.sidebarContent}>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', alignItems: 'start' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', alignItems: 'stretch' }}>
                         {/* General Information Section */}
-                        <div className={styles.inputCard} style={{ margin: 0, height: '100%' }}>
+                        <div className={styles.inputCard}>
                             <h3 className={styles.sectionTitle}><i className="fa-solid fa-file-invoice"></i> General Information</h3>
                             <div className={styles.inputGroup}>
                                 <label className={styles.label}>Bill Type</label>
@@ -759,7 +821,7 @@ const BillGenerator = () => {
                         </div>
 
                         {/* Project Details Section */}
-                        <div className={styles.inputCard} style={{ margin: 0, height: '100%' }}>
+                        <div className={styles.inputCard}>
                             <h3 className={styles.sectionTitle}><i className="fa-solid fa-building"></i> Project Details</h3>
                             <div className={styles.inputGroup}>
                                 <label className={styles.label}>Project Name</label>
@@ -779,7 +841,7 @@ const BillGenerator = () => {
                         </div>
 
                         {/* Order Details & Adjustments Section */}
-                        <div className={styles.inputCard} style={{ margin: 0, height: '100%' }}>
+                        <div className={styles.inputCard}>
                             <h3 className={styles.sectionTitle}><i className="fa-solid fa-clipboard-list"></i> Order & Billing</h3>
                             <div className={styles.inputGroup}>
                                 <label className={styles.label}>Work Order No</label>
@@ -814,9 +876,25 @@ const BillGenerator = () => {
                     <div className={styles.inputCard}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                             <h3 className={styles.sectionTitle} style={{ marginBottom: 0 }}><i className="fa-solid fa-list-check"></i> Bill Items</h3>
-                            <div style={{ display: 'flex', gap: '5px' }}>
-                                <Button variant="secondary" onClick={() => addItem(true)} style={{ padding: '6px 10px', fontSize: '11px', borderRadius: '8px' }}><i className="fa-solid fa-plus"></i> Header</Button>
-                                <Button variant="secondary" onClick={() => addItem(false)} style={{ padding: '6px 10px', fontSize: '11px', borderRadius: '8px' }}><i className="fa-solid fa-plus"></i> Item</Button>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <Button 
+                                    variant="secondary" 
+                                    size="small" 
+                                    fullWidth={false} 
+                                    onClick={() => addItem(true)} 
+                                    style={{ minWidth: '90px' }}
+                                >
+                                    <i className="fa-solid fa-plus" style={{ marginRight: '6px' }}></i> Header
+                                </Button>
+                                <Button 
+                                    variant="secondary" 
+                                    size="small" 
+                                    fullWidth={false} 
+                                    onClick={() => addItem(false)} 
+                                    style={{ minWidth: '90px' }}
+                                >
+                                    <i className="fa-solid fa-plus" style={{ marginRight: '6px' }}></i> Item
+                                </Button>
                             </div>
                         </div>
 
@@ -884,9 +962,25 @@ const BillGenerator = () => {
                     <div className={styles.inputCard}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                             <h3 className={styles.sectionTitle} style={{ marginBottom: 0 }}><i className="fa-solid fa-hand-holding-dollar"></i> Adjustments</h3>
-                            <div style={{ display: 'flex', gap: '5px' }}>
-                                <Button variant="secondary" onClick={() => addAdvance('ADDITION')} style={{ padding: '6px 10px', fontSize: '11px', borderRadius: '8px' }}>+ Add</Button>
-                                <Button variant="secondary" onClick={() => addAdvance('DEDUCTION')} style={{ padding: '6px 10px', fontSize: '11px', borderRadius: '8px' }}>- Deduct</Button>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <Button 
+                                    variant="secondary" 
+                                    size="small" 
+                                    fullWidth={false} 
+                                    onClick={() => addAdvance('ADDITION')} 
+                                    style={{ minWidth: '90px' }}
+                                >
+                                    <i className="fa-solid fa-plus" style={{ marginRight: '6px' }}></i> Add
+                                </Button>
+                                <Button 
+                                    variant="secondary" 
+                                    size="small" 
+                                    fullWidth={false} 
+                                    onClick={() => addAdvance('DEDUCTION')} 
+                                    style={{ minWidth: '90px' }}
+                                >
+                                    <i className="fa-solid fa-minus" style={{ marginRight: '6px' }}></i> Deduct
+                                </Button>
                             </div>
                         </div>
 
@@ -936,23 +1030,7 @@ const BillGenerator = () => {
                         </div>
                     </div>
 
-                    <div style={{ marginTop: '20px', display: 'flex', gap: '15px', paddingBottom: '60px' }}>
-                        <Button onClick={handleNewBill} style={{ width: '60px', height: '56px', borderRadius: '16px', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', color: '#64748b', border: '1px solid #e2e8f0', cursor: 'pointer' }} title="New Bill">
-                            <i className="fa-solid fa-plus"></i>
-                        </Button>
-                        <Button onClick={fetchBillHistory} style={{ width: '60px', height: '56px', borderRadius: '16px', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f1f5f9', color: '#64748b', border: '1px solid #e2e8f0', cursor: 'pointer' }} title="Bill History">
-                            <i className="fa-solid fa-clock-rotate-left"></i>
-                        </Button>
-                        <Button onClick={handleSaveBill} style={{ width: '60px', height: '56px', borderRadius: '16px', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#10b981', color: 'white', border: 'none', cursor: 'pointer', boxShadow: '0 10px 25px -5px rgba(16, 185, 129, 0.3)' }} title="Save Bill">
-                            <i className="fa-solid fa-floppy-disk"></i>
-                        </Button>
-                        <Button onClick={() => setShowPreviewOverlay(true)} style={{ flex: 1, height: '56px', borderRadius: '16px', fontSize: '1.1rem', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', background: 'var(--primary-blue)', color: 'white', border: 'none', cursor: 'pointer', boxShadow: '0 10px 25px -5px rgba(37, 99, 235, 0.4)' }}>
-                            <i className="fa-solid fa-magnifying-glass-chart"></i> Preview Final Bill
-                        </Button>
-                        <Button style={{ height: '56px', width: '60px', borderRadius: '16px', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f59e0b', color: 'white', border: 'none', cursor: 'pointer' }} onClick={exportToExcel} title="Excel">
-                            <i className="fa-solid fa-file-excel"></i>
-                        </Button>
-                    </div>
+
                 </div>
             </div>
 
@@ -966,8 +1044,13 @@ const BillGenerator = () => {
                                 <i className="fa-solid fa-file-invoice-dollar"></i> Bill Preview
                             </h2>
                             <div style={{ display: 'flex', gap: '15px' }}>
-                                <Button onClick={handlePrint} style={{ height: '44px', padding: '0 24px', borderRadius: '12px', fontSize: '0.95rem', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '10px', background: '#10b981', color: 'white', border: 'none' }}>
-                                    <i className="fa-solid fa-print"></i> Print / PDF
+                                <Button 
+                                    variant="success" 
+                                    onClick={handlePrint} 
+                                    fullWidth={false}
+                                    style={{ height: '40px', padding: '0 24px', borderRadius: '10px', fontWeight: '600' }}
+                                >
+                                    <i className="fa-solid fa-print" style={{ marginRight: '8px' }}></i> Print / PDF
                                 </Button>
                                 <button className={styles.overlayCloseBtn} onClick={() => setShowPreviewOverlay(false)}>
                                     <i className="fa-solid fa-xmark"></i>
@@ -1303,8 +1386,19 @@ const BillGenerator = () => {
                         </div>
 
                         <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-                            <Button onClick={() => setPasswordModalOpen(false)} style={{ flex: 1, background: 'transparent', border: '1px solid #334155', color: '#94a3b8' }}>Cancel</Button>
-                            <Button onClick={handleVerifyAdmin} disabled={verifyingAdmin} style={{ flex: 2, background: 'var(--primary-blue)' }}>
+                            <Button 
+                                variant="secondary" 
+                                onClick={() => setPasswordModalOpen(false)} 
+                                style={{ flex: 1 }}
+                            >
+                                Cancel
+                            </Button>
+                            <Button 
+                                variant="primary" 
+                                onClick={handleVerifyAdmin} 
+                                disabled={verifyingAdmin} 
+                                style={{ flex: 2 }}
+                            >
                                 {verifyingAdmin ? 'Verifying...' : 'Unlock Guide'}
                             </Button>
                         </div>
@@ -1360,8 +1454,22 @@ const BillGenerator = () => {
                                             </td>
                                             <td style={{ padding: '15px' }}>
                                                 <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                                                    <Button onClick={() => loadBillFromHistory(bill)} style={{ padding: '6px 12px', fontSize: '0.8rem', background: '#3b82f6' }}>Load</Button>
-                                                    <Button onClick={() => deleteBillFromHistory(bill.id)} style={{ padding: '6px 12px', fontSize: '0.8rem', background: '#ef4444' }}>Delete</Button>
+                                                    <Button 
+                                                        variant="primary" 
+                                                        size="small" 
+                                                        onClick={() => loadBillFromHistory(bill)} 
+                                                        style={{ minWidth: '70px' }}
+                                                    >
+                                                        Load
+                                                    </Button>
+                                                    <Button 
+                                                        variant="danger" 
+                                                        size="small" 
+                                                        onClick={() => deleteBillFromHistory(bill.id)} 
+                                                        style={{ minWidth: '70px' }}
+                                                    >
+                                                        Delete
+                                                    </Button>
                                                 </div>
                                             </td>
                                         </tr>

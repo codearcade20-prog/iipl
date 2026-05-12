@@ -105,14 +105,25 @@
 .secondary {
     background: white;
     color: var(--text-secondary);
-    border-color: var(--border-color);
-    box-shadow: var(--shadow-sm);
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow-xs);
 }
 
 .secondary:hover:not(:disabled) {
     background: #f8fafc;
     border-color: var(--primary-light);
     color: var(--primary);
+}
+
+.success {
+    background: var(--success);
+    color: white;
+    box-shadow: var(--shadow-sm);
+}
+
+.success:hover:not(:disabled) {
+    background: #047857;
+    box-shadow: var(--shadow-md);
 }
 
 .ghost {
@@ -123,5 +134,4 @@
 .ghost:hover {
     color: var(--primary);
     background: rgba(59, 130, 246, 0.08);
-    /* primary color with opacity */
 }
