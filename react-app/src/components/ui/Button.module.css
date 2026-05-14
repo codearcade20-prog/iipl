@@ -1,5 +1,5 @@
 .btn {
-    border-radius: 8px;
+    border-radius: 99px;
     font-weight: 600;
     border: 1px solid transparent;
     cursor: pointer;
@@ -9,15 +9,20 @@
     justify-content: center;
     gap: 8px;
     letter-spacing: 0.3px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    height: fit-content;
 }
 
 .small {
-    padding: 6px 14px;
+    padding: 0 16px;
+    height: 32px;
     font-size: 0.8rem;
 }
 
 .medium {
-    padding: 10px 24px;
+    padding: 0 24px;
+    height: 42px;
     font-size: 0.95rem;
 }
 
@@ -134,4 +139,18 @@
 .ghost:hover {
     color: var(--primary);
     background: rgba(59, 130, 246, 0.08);
+}
+
+.outline {
+    background: white;
+    color: #475569;
+    border-color: #cbd5e1;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.outline:hover:not(:disabled) {
+    background: #f8fafc;
+    border-color: #94a3b8;
+    color: #0f172a;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
 }

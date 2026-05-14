@@ -145,11 +145,11 @@ const SearchableSelect = ({ value, onChange, options, placeholder, disabled }) =
                 }
             }
         };
-        
+
         document.addEventListener('mousedown', handleClickOutside);
         window.addEventListener('scroll', handleScroll, true);
         window.addEventListener('resize', handleScroll);
-        
+
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
             window.removeEventListener('scroll', handleScroll, true);
@@ -178,7 +178,7 @@ const SearchableSelect = ({ value, onChange, options, placeholder, disabled }) =
 
     return (
         <div className={styles.searchableContainer} ref={dropdownRef}>
-            <div 
+            <div
                 className={`${styles.dropdownTrigger} ${disabled ? styles.disabled : ''}`}
                 onClick={handleOpen}
             >
@@ -186,14 +186,14 @@ const SearchableSelect = ({ value, onChange, options, placeholder, disabled }) =
                     {selectedLabel}
                 </div>
             </div>
-            
+
             {isOpen && ReactDOM.createPortal(
-                <div 
-                    className={styles.dropdownMenu} 
-                    style={{ 
-                        position: 'absolute', 
-                        top: dropdownPos.top, 
-                        left: dropdownPos.left, 
+                <div
+                    className={styles.dropdownMenu}
+                    style={{
+                        position: 'absolute',
+                        top: dropdownPos.top,
+                        left: dropdownPos.left,
                         width: dropdownPos.width,
                         minWidth: Math.max(dropdownPos.width, 260),
                         maxWidth: '90vw',
@@ -203,7 +203,7 @@ const SearchableSelect = ({ value, onChange, options, placeholder, disabled }) =
                 >
                     <div className={styles.searchBox}>
                         <Search size={14} color="#94a3b8" />
-                        <input 
+                        <input
                             autoFocus
                             placeholder="Type to search..."
                             value={search}
@@ -214,7 +214,7 @@ const SearchableSelect = ({ value, onChange, options, placeholder, disabled }) =
                     <div className={styles.optionsList}>
                         {filteredOptions.length > 0 ? (
                             filteredOptions.map(opt => (
-                                <div 
+                                <div
                                     key={opt.value}
                                     className={`${styles.optionItem} ${opt.value === value ? styles.selectedOption : ''}`}
                                     style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
@@ -257,7 +257,7 @@ const WagesPage = () => {
 
     const getPhotoUrl = (url) => {
         if (!url) return null;
-        
+
         // 1. If it's a local/uploaded Supabase URL, return as is
         if (url.includes('.supabase.co')) return url;
 
@@ -266,11 +266,11 @@ const WagesPage = () => {
             let fileId = '';
             if (url.includes('/d/')) fileId = url.split('/d/')[1]?.split('/')[0];
             else if (url.includes('id=')) fileId = url.split('id=')[1]?.split('&')[0];
-            
+
             // lh3.googleusercontent.com is cookie-less and bypasses most anti-tracking blocks
             if (fileId) return `https://lh3.googleusercontent.com/d/${fileId}=w400`;
         }
-        
+
         return url;
     };
 
@@ -349,7 +349,7 @@ const WagesPage = () => {
 
     useEffect(() => {
         window.scrollTo(0, 0);
-        
+
         const hasSeen = localStorage.getItem('iipl_photo_permission_v1');
         if (!hasSeen) {
             // Show guide after a small delay for a smooth entrance
@@ -428,8 +428,8 @@ const WagesPage = () => {
 
                 // Only populate the entry for the current selected site AND category
                 // Fallback: If category is NULL, treat it as 'Direct wages'
-                const isMatch = rec.site_id == selectedSite && 
-                               (rec.wage_category === selectedCategory || (!rec.wage_category && selectedCategory === 'Direct wages'));
+                const isMatch = rec.site_id == selectedSite &&
+                    (rec.wage_category === selectedCategory || (!rec.wage_category && selectedCategory === 'Direct wages'));
 
                 if (isMatch) {
                     const laborObj = labors.find(l => l.id === rec.labor_id);
@@ -494,8 +494,8 @@ const WagesPage = () => {
     const deleteAttendanceRecordAndPhotos = async (record, source = 'portal') => {
         const isPortal = source === 'portal';
         const name = record.labors?.name || record.name || 'this worker';
-        
-        const confirmMsg = isPortal 
+
+        const confirmMsg = isPortal
             ? `Are you sure you want to delete this portal log for ${name}? This will permanently delete the check-in photos and the attendance record.`
             : `Are you sure you want to delete this daily log for ${name}? If it has portal check-in photos, they will also be deleted from storage.`;
 
@@ -529,13 +529,13 @@ const WagesPage = () => {
                     console.log("Storage files removed successfully:", data);
                 }
             }
-            
+
             // Delete the database record
             const { error: dbError } = await supabase.from('labor_attendance_wages').delete().eq('id', record.id);
             if (dbError) throw dbError;
-            
+
             toast('Attendance record deleted successfully.');
-            
+
             if (isPortal) {
                 fetchPortalLogs();
             } else {
@@ -562,7 +562,7 @@ const WagesPage = () => {
         const [h2, m2] = timeOut.split(':').map(Number);
         const t1 = h1 + m1 / 60;
         let t2 = h2 + m2 / 60;
-        
+
         // Handle midnight crossing
         if (t2 < t1) t2 += 24;
         if (t2 === t1) return 0;
@@ -601,7 +601,7 @@ const WagesPage = () => {
             };
 
             const updated = { ...current, [field]: value };
-            
+
             // Auto-select the labor if they interact with the time or other fields
             if (value && field === 'time_in') {
                 setSelectedLabors(prevSet => {
@@ -659,7 +659,7 @@ const WagesPage = () => {
         setLoading(true);
         try {
             const recordsToUpsert = [];
-            
+
             for (const laborId of selectedLabors) {
                 const entry = attendanceEntry[laborId] || { time_in: '', time_out: '', attn_val: 0, wages: 0 };
                 const labor = labors.find(l => l.id === laborId);
@@ -707,17 +707,17 @@ const WagesPage = () => {
 
             const results = await Promise.all(promises);
             const errors = results.filter(r => r.error).map(r => r.error.message);
-            
+
             if (errors.length > 0) throw new Error(errors.join(', '));
 
             toast(`Successfully saved attendance for ${recordsToUpsert.length} workers.`);
             setSelectedLabors(new Set());
             fetchAttendance();
-        } catch (error) { 
+        } catch (error) {
             console.error('Save Attendance Error:', error);
-            alert('Save failed: ' + error.message); 
-        } finally { 
-            setLoading(false); 
+            alert('Save failed: ' + error.message);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -776,7 +776,7 @@ const WagesPage = () => {
                 const { data: { publicUrl } } = supabase.storage
                     .from('labors')
                     .getPublicUrl(filePath);
-                
+
                 photoUrl = publicUrl;
             }
 
@@ -789,11 +789,11 @@ const WagesPage = () => {
             setLaborModalOpen(false);
             fetchInitialData(true);
             toast('Labor saved!');
-        } catch (error) { 
+        } catch (error) {
             console.error('Save Labor Error:', error);
-            alert('Save failed: ' + error.message); 
-        } finally { 
-            setLoading(false); 
+            alert('Save failed: ' + error.message);
+        } finally {
+            setLoading(false);
             setUploadingLaborPhoto(false);
         }
     };
@@ -1006,16 +1006,16 @@ const WagesPage = () => {
             alert('Please enter a valid amount for the daily wage.', 'Invalid Amount');
             return;
         }
-        
+
         setCorrectionRecords(prev => {
             const updated = [...prev];
             const record = updated[idx];
-            
+
             const rawWage = record.new_attn_val * newRate;
             const roundedWage = Math.round(rawWage);
             const remarkAddition = `Per day value changed to ${newRate}`;
             const newRemarks = record.new_remarks ? `${record.new_remarks} | ${remarkAddition}` : remarkAddition;
-            
+
             updated[idx] = {
                 ...record,
                 new_actual_wages: parseFloat(rawWage.toFixed(2)),
@@ -1035,18 +1035,18 @@ const WagesPage = () => {
 
             if (field === 'new_time_in' || field === 'new_time_out') {
                 updated[idx].new_attn_val = calculateAttendanceValue(updated[idx].new_time_in, updated[idx].new_time_out);
-                
+
                 const laborObj = labors.find(l => l.id === record.labor_id);
                 const dailyRate = record.new_daily_rate || laborObj?.daily_rate || 0;
-                
+
                 updated[idx].new_actual_wages = parseFloat((updated[idx].new_attn_val * dailyRate).toFixed(2));
                 updated[idx].new_wages = customRound(updated[idx].new_actual_wages);
             } else if (field === 'new_attn_val') {
                 updated[idx].new_attn_val = parseFloat(value) || 0;
-                
+
                 const laborObj = labors.find(l => l.id === record.labor_id);
                 const dailyRate = record.new_daily_rate || laborObj?.daily_rate || 0;
-                
+
                 updated[idx].new_actual_wages = parseFloat((updated[idx].new_attn_val * dailyRate).toFixed(2));
                 updated[idx].new_wages = customRound(updated[idx].new_actual_wages);
             }
@@ -1112,7 +1112,7 @@ const WagesPage = () => {
 
     const renderAttendance = () => {
         let filteredLabors = labors.filter(l =>
-            l.status === 'Active' && 
+            l.status === 'Active' &&
             (selectedSubcontractor === 'ALL' || !selectedSubcontractor || l.subcontractor_id === selectedSubcontractor)
         );
 
@@ -1184,7 +1184,7 @@ const WagesPage = () => {
                         {selectedLabors.size > 0 && (
                             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', background: '#f0f9ff', padding: '8px 16px', borderRadius: '12px', border: '1px solid #bae6fd' }}>
                                 <span style={{ color: '#0369a1', fontWeight: 600, fontSize: '0.9rem' }}>{selectedLabors.size} workers selected</span>
-                                <Button 
+                                <Button
                                     onClick={saveAttendance}
                                     loading={loading}
                                     loadingText="Saving..."
@@ -1202,9 +1202,9 @@ const WagesPage = () => {
                             <thead>
                                 <tr>
                                     <th style={{ paddingLeft: '24px', width: '40px' }}>
-                                        <input 
-                                            type="checkbox" 
-                                            checked={allSelected} 
+                                        <input
+                                            type="checkbox"
+                                            checked={allSelected}
                                             onChange={() => toggleSelectAll(filteredLabors)}
                                             style={{ cursor: 'pointer', width: '18px', height: '18px' }}
                                         />
@@ -1225,16 +1225,16 @@ const WagesPage = () => {
                                     return (
                                         <tr key={l.id} style={{ backgroundColor: isSelected ? '#f0f9ff' : 'transparent' }}>
                                             <td style={{ paddingLeft: '24px' }}>
-                                                <input 
-                                                    type="checkbox" 
-                                                    checked={isSelected} 
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isSelected}
                                                     onChange={() => toggleLaborSelection(l.id)}
                                                     style={{ cursor: 'pointer', width: '18px', height: '18px' }}
                                                 />
                                             </td>
                                             <td data-label="Worker Details">
-                                                <div 
-                                                    className={styles.strong} 
+                                                <div
+                                                    className={styles.strong}
                                                     style={{ cursor: 'pointer', display: 'inline-block' }}
                                                     onMouseEnter={(e) => {
                                                         setHoveredLabor(l);
@@ -1312,9 +1312,9 @@ const WagesPage = () => {
                     <span className={styles.stepLabel}>Step 01 • Project Site</span>
                     {isSiteSelected && <Check size={14} color="#10b981" strokeWidth={3} />}
                 </div>
-                <SearchableSelect 
+                <SearchableSelect
                     placeholder="Select Project Site..."
-                    value={selectedSite} 
+                    value={selectedSite}
                     onChange={e => setSelectedSite(e.target.value)}
                     options={sites.map(s => ({ value: s.id, label: s.name }))}
                 />
@@ -1326,10 +1326,10 @@ const WagesPage = () => {
                     <span className={styles.stepLabel}>Step 02 • Subcontractor</span>
                     {isSubSelected && <Check size={14} color="#10b981" strokeWidth={3} />}
                 </div>
-                <SearchableSelect 
+                <SearchableSelect
                     disabled={!isSiteSelected}
                     placeholder="Select Partner..."
-                    value={selectedSubcontractor} 
+                    value={selectedSubcontractor}
                     onChange={e => setSelectedSubcontractor(e.target.value)}
                     options={[
                         { value: 'ALL', label: 'All Subcontractors' },
@@ -1344,13 +1344,13 @@ const WagesPage = () => {
                     <span className={styles.stepLabel}>Step 03 • Wage Category</span>
                     {isCategorySelected && <Check size={14} color="#10b981" strokeWidth={3} />}
                 </div>
-                <SearchableSelect 
+                <SearchableSelect
                     disabled={!isSubSelected}
                     placeholder="Choose Category..."
-                    value={selectedCategory} 
+                    value={selectedCategory}
                     onChange={e => setSelectedCategory(e.target.value)}
-                    options={['Direct wages', 'NMR wages', 'Snag wages', 'Third party subvendor work', 'weekly payment agst order'].map(cat => ({ 
-                        value: cat, label: cat 
+                    options={['Direct wages', 'NMR wages', 'Snag wages', 'Third party subvendor work', 'weekly payment agst order'].map(cat => ({
+                        value: cat, label: cat
                     }))}
                 />
             </div>
@@ -1360,10 +1360,10 @@ const WagesPage = () => {
                 <div className={styles.stepHeader}>
                     <span className={styles.stepLabel}>Step 04 • Work Date</span>
                 </div>
-                <input 
-                    type="date" 
+                <input
+                    type="date"
                     className={`${styles.stepInput} ${styles.filterDate}`}
-                    value={selectedDate} 
+                    value={selectedDate}
                     onChange={e => setSelectedDate(e.target.value)}
                     disabled={!isCategorySelected}
                 />
@@ -1463,7 +1463,7 @@ const WagesPage = () => {
                         </div>
                     </div>
                     <div style={{ display: 'flex', gap: '12px' }}>
-                        <Button 
+                        <Button
                             onClick={() => setDesignationModalOpen(true)}
                             fullWidth={false}
                             style={{ background: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca' }}
@@ -1507,10 +1507,10 @@ const WagesPage = () => {
                                                 {l.status}
                                             </span>
                                             {l.photo_url && (
-                                                <a 
-                                                    href={l.photo_url} 
-                                                    target="_blank" 
-                                                    rel="noopener noreferrer" 
+                                                <a
+                                                    href={l.photo_url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
                                                     className={styles.attnBtn}
                                                     title="View Photos"
                                                     style={{ padding: '4px 8px', fontSize: '0.7rem' }}
@@ -1543,157 +1543,157 @@ const WagesPage = () => {
     const renderReports = () => {
         const filteredReports = weeklyReports.filter(r => {
             const laborObj = labors.find(l => l.id === r.labor_id);
-            const matchesLabor = (r.name || '').toLowerCase().includes(searchPaymentLabor.toLowerCase()) || 
-                                 (r.phone || '').toLowerCase().includes(searchPaymentLabor.toLowerCase());
+            const matchesLabor = (r.name || '').toLowerCase().includes(searchPaymentLabor.toLowerCase()) ||
+                (r.phone || '').toLowerCase().includes(searchPaymentLabor.toLowerCase());
             const matchesSub = searchPaymentSubcontractor === 'All' || laborObj?.subcontractor_id === searchPaymentSubcontractor;
             return matchesLabor && matchesSub;
         });
 
         return (
-        <div className={styles.card}>
-            <div className={styles.header} style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', borderRadius: '12px 12px 0 0', padding: '20px' }}>
-                <div className={styles.filterMenuBar} style={{ margin: 0, width: '100%', maxWidth: '800px' }}>
-                    <div className={styles.filterMenuItem}>
-                        <label className={styles.filterMenuItemLabel}>Search Labor</label>
-                        <div style={{ position: 'relative' }}>
-                            <input
-                                type="text"
-                                className={styles.filterMenuInput}
-                                placeholder="Type name or phone..."
-                                value={searchPaymentLabor}
-                                onChange={e => setSearchPaymentLabor(e.target.value)}
-                                style={{ paddingLeft: '24px' }}
-                            />
-                            <Search size={14} style={{ position: 'absolute', left: '2px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+            <div className={styles.card}>
+                <div className={styles.header} style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', borderRadius: '12px 12px 0 0', padding: '20px' }}>
+                    <div className={styles.filterMenuBar} style={{ margin: 0, width: '100%', maxWidth: '800px' }}>
+                        <div className={styles.filterMenuItem}>
+                            <label className={styles.filterMenuItemLabel}>Search Labor</label>
+                            <div style={{ position: 'relative' }}>
+                                <input
+                                    type="text"
+                                    className={styles.filterMenuInput}
+                                    placeholder="Type name or phone..."
+                                    value={searchPaymentLabor}
+                                    onChange={e => setSearchPaymentLabor(e.target.value)}
+                                    style={{ paddingLeft: '24px' }}
+                                />
+                                <Search size={14} style={{ position: 'absolute', left: '2px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                            </div>
                         </div>
-                    </div>
-                    <div className={styles.filterMenuDivider}></div>
-                    <div className={styles.filterMenuItem}>
-                        <label className={styles.filterMenuItemLabel}>Subcontractor</label>
-                        <SearchableSelect
-                            value={searchPaymentSubcontractor}
-                            onChange={e => setSearchPaymentSubcontractor(e.target.value)}
-                            options={[
-                                { value: 'All', label: 'All Subcontractors' },
-                                ...subcontractors.map(s => ({ value: s.id, label: s.name }))
-                            ]}
-                            placeholder="All Subcontractors"
-                        />
-                    </div>
-                    <div className={styles.filterMenuDivider}></div>
-                    <div className={styles.filterMenuItem}>
-                        <label className={styles.filterMenuItemLabel}>Period Selection</label>
-                        <div className={styles.dateFilterGroup}>
-                            <input type="date" className={styles.filterDateInput} value={reportStartDate} onChange={e => setReportStartDate(e.target.value)} />
-                            <span className={styles.muted} style={{ fontSize: '0.8rem', padding: '0 4px' }}>to</span>
-                            <input type="date" className={styles.filterDateInput} value={reportEndDate} onChange={e => setReportEndDate(e.target.value)} />
+                        <div className={styles.filterMenuDivider}></div>
+                        <div className={styles.filterMenuItem}>
+                            <label className={styles.filterMenuItemLabel}>Subcontractor</label>
+                            <SearchableSelect
+                                value={searchPaymentSubcontractor}
+                                onChange={e => setSearchPaymentSubcontractor(e.target.value)}
+                                options={[
+                                    { value: 'All', label: 'All Subcontractors' },
+                                    ...subcontractors.map(s => ({ value: s.id, label: s.name }))
+                                ]}
+                                placeholder="All Subcontractors"
+                            />
+                        </div>
+                        <div className={styles.filterMenuDivider}></div>
+                        <div className={styles.filterMenuItem}>
+                            <label className={styles.filterMenuItemLabel}>Period Selection</label>
+                            <div className={styles.dateFilterGroup}>
+                                <input type="date" className={styles.filterDateInput} value={reportStartDate} onChange={e => setReportStartDate(e.target.value)} />
+                                <span className={styles.muted} style={{ fontSize: '0.8rem', padding: '0 4px' }}>to</span>
+                                <input type="date" className={styles.filterDateInput} value={reportEndDate} onChange={e => setReportEndDate(e.target.value)} />
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-            <div className={styles.tableContainer} style={{ overflowX: 'hidden' }}>
-                <table className={styles.table}>
-                    <thead>
-                        <tr>
-                            <th>Labor Name / Contact</th>
-                            <th>Days Worked</th>
-                            <th>Weekly Wages</th>
-                            <th>Payment Status</th>
-                            <th>Remarks</th>
-                            <th style={{ textAlign: 'right' }}>Management</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filteredReports.map((r, i) => {
-                            const laborObj = labors.find(l => l.id === r.labor_id);
-                            return (
-                            <tr key={i}>
-                                <td data-label="Labor Name / Contact">
-                                    <div 
-                                        className={styles.strong}
-                                        style={{ cursor: 'pointer', display: 'inline-block' }}
-                                        onMouseEnter={(e) => {
-                                            if (laborObj) {
-                                                setHoveredLabor(laborObj);
-                                                setMousePos({ x: e.clientX, y: e.clientY });
-                                            }
-                                        }}
-                                        onMouseMove={(e) => {
-                                            setMousePos({ x: e.clientX, y: e.clientY });
-                                        }}
-                                        onMouseLeave={() => setHoveredLabor(null)}
-                                        onTouchStart={(e) => {
-                                            if (hoveredLabor?.id === laborObj?.id) setHoveredLabor(null);
-                                            else if (laborObj) {
-                                                setHoveredLabor(laborObj);
-                                                const touch = e.touches[0];
-                                                setMousePos({ x: touch.clientX, y: touch.clientY });
-                                            }
-                                        }}
-                                    >
-                                        {r.name}
-                                    </div>
-                                    <div className={styles.muted}>{r.phone}</div>
-                                </td>
-                                <td data-label="Days Worked">
-                                    <span style={{ fontWeight: 600 }}>{r.days_present}</span> <span className={styles.muted}>days</span>
-                                </td>
-                                <td data-label="Weekly Wages">
-                                    <span className={styles.price} style={{ fontSize: '1.1rem', color: '#0f172a' }}>
-                                        ₹{parseFloat(r.total_wages).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                                    </span>
-                                </td>
-                                <td data-label="Payment Status">
-                                    <span className={`${styles.badge} ${r.status === 'Paid' ? styles.badgePaid : styles.badgePending}`}>
-                                        <DollarSign size={12} style={{ marginRight: 4 }} /> {r.status}
-                                    </span>
-                                </td>
-                                <td data-label="Remarks">
-                                    <div style={{ position: 'relative' }}>
-                                        <button 
-                                            className={styles.remarksHoverBtn}
-                                            onMouseEnter={(e) => {
-                                                const allRemarks = r.records.map(rec => rec.remarks).filter(Boolean).join(' | ');
-                                                if (allRemarks) {
-                                                    setHoveredLabor({ name: 'Aggregate Remarks', remarks: allRemarks });
-                                                    setMousePos({ x: e.clientX, y: e.clientY });
-                                                }
-                                            }}
-                                            onMouseLeave={() => setHoveredLabor(null)}
-                                        >
-                                            👁️ View
-                                        </button>
-                                    </div>
-                                </td>
-                                <td data-label="Management" style={{ textAlign: 'right' }}>
-                                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                                        <Button size="sm" variant="outline" onClick={() => openCorrectionModal(r)}>
-                                            <Edit size={14} style={{ marginRight: 4 }} /> Correction
-                                        </Button>
-                                        {r.status !== 'Paid' && (
-                                            <Button size="sm" onClick={() => markAsPaid(r)}>
-                                                Confirm Payment
-                                            </Button>
-                                        )}
-                                        <button className={`${styles.attnBtn} ${styles.btnA}`} onClick={() => deleteWeeklyRecords(r)} title="Delete Records">
-                                            <Trash2 size={16} />
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            );
-                        })}
-                        {filteredReports.length === 0 && (
+                <div className={styles.tableContainer} style={{ overflowX: 'hidden' }}>
+                    <table className={styles.table}>
+                        <thead>
                             <tr>
-                                <td colSpan="5" style={{ textAlign: 'center', padding: 48 }}>
-                                    <div className={styles.muted}>No payment records found for your search.</div>
-                                </td>
+                                <th>Labor Name / Contact</th>
+                                <th>Days Worked</th>
+                                <th>Weekly Wages</th>
+                                <th>Payment Status</th>
+                                <th>Remarks</th>
+                                <th style={{ textAlign: 'right' }}>Management</th>
                             </tr>
-                        )}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {filteredReports.map((r, i) => {
+                                const laborObj = labors.find(l => l.id === r.labor_id);
+                                return (
+                                    <tr key={i}>
+                                        <td data-label="Labor Name / Contact">
+                                            <div
+                                                className={styles.strong}
+                                                style={{ cursor: 'pointer', display: 'inline-block' }}
+                                                onMouseEnter={(e) => {
+                                                    if (laborObj) {
+                                                        setHoveredLabor(laborObj);
+                                                        setMousePos({ x: e.clientX, y: e.clientY });
+                                                    }
+                                                }}
+                                                onMouseMove={(e) => {
+                                                    setMousePos({ x: e.clientX, y: e.clientY });
+                                                }}
+                                                onMouseLeave={() => setHoveredLabor(null)}
+                                                onTouchStart={(e) => {
+                                                    if (hoveredLabor?.id === laborObj?.id) setHoveredLabor(null);
+                                                    else if (laborObj) {
+                                                        setHoveredLabor(laborObj);
+                                                        const touch = e.touches[0];
+                                                        setMousePos({ x: touch.clientX, y: touch.clientY });
+                                                    }
+                                                }}
+                                            >
+                                                {r.name}
+                                            </div>
+                                            <div className={styles.muted}>{r.phone}</div>
+                                        </td>
+                                        <td data-label="Days Worked">
+                                            <span style={{ fontWeight: 600 }}>{r.days_present}</span> <span className={styles.muted}>days</span>
+                                        </td>
+                                        <td data-label="Weekly Wages">
+                                            <span className={styles.price} style={{ fontSize: '1.1rem', color: '#0f172a' }}>
+                                                ₹{parseFloat(r.total_wages).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                            </span>
+                                        </td>
+                                        <td data-label="Payment Status">
+                                            <span className={`${styles.badge} ${r.status === 'Paid' ? styles.badgePaid : styles.badgePending}`}>
+                                                <DollarSign size={12} style={{ marginRight: 4 }} /> {r.status}
+                                            </span>
+                                        </td>
+                                        <td data-label="Remarks">
+                                            <div style={{ position: 'relative' }}>
+                                                <button
+                                                    className={styles.remarksHoverBtn}
+                                                    onMouseEnter={(e) => {
+                                                        const allRemarks = r.records.map(rec => rec.remarks).filter(Boolean).join(' | ');
+                                                        if (allRemarks) {
+                                                            setHoveredLabor({ name: 'Aggregate Remarks', remarks: allRemarks });
+                                                            setMousePos({ x: e.clientX, y: e.clientY });
+                                                        }
+                                                    }}
+                                                    onMouseLeave={() => setHoveredLabor(null)}
+                                                >
+                                                    👁️ View
+                                                </button>
+                                            </div>
+                                        </td>
+                                        <td data-label="Management" style={{ textAlign: 'right' }}>
+                                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
+                                                <Button size="sm" variant="outline" fullWidth={false} onClick={() => openCorrectionModal(r)} style={{ width: '160px', height: '32px' }}>
+                                                    <Edit size={14} style={{ marginRight: 4 }} /> Correction
+                                                </Button>
+                                                {r.status !== 'Paid' && (
+                                                    <Button size="sm" fullWidth={false} onClick={() => markAsPaid(r)} style={{ width: '160px', height: '32px' }}>
+                                                        Confirm Payment
+                                                    </Button>
+                                                )}
+                                                <button className={`${styles.attnBtn} ${styles.btnA}`} onClick={() => deleteWeeklyRecords(r)} title="Delete Records">
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                            {filteredReports.length === 0 && (
+                                <tr>
+                                    <td colSpan="5" style={{ textAlign: 'center', padding: 48 }}>
+                                        <div className={styles.muted}>No payment records found for your search.</div>
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
-        </div>
         );
     };
     // Format Time to 12h (AM/PM)
@@ -1709,7 +1709,7 @@ const WagesPage = () => {
 
     const renderSummary = () => {
         const getCategoryStyles = (cat) => {
-            switch(cat) {
+            switch (cat) {
                 case 'Direct wages': return { bg: '#eff6ff', text: '#1e40af', border: '#dbeafe' };
                 case 'NMR wages': return { bg: '#fdf2f8', text: '#9d174d', border: '#fce7f3' };
                 case 'Snag wages': return { bg: '#f0fdf4', text: '#166534', border: '#dcfce7' };
@@ -1851,8 +1851,8 @@ const WagesPage = () => {
                             </thead>
                             <tbody>
                                 ${filteredData.map((r, i) => {
-                                    const styles = getCategoryStyles(r.wage_category);
-                                    return `
+                const styles = getCategoryStyles(r.wage_category);
+                return `
                                     <tr>
                                         <td>${i + 1}</td>
                                         <td>${new Date(r.work_date).toLocaleDateString('en-GB')}</td>
@@ -1863,7 +1863,8 @@ const WagesPage = () => {
                                         <td style="text-align: center;">${r.attendance_value}</td>
                                         <td style="text-align: right;">₹${parseFloat(r.wages_amount).toLocaleString('en-IN')}</td>
                                     </tr>
-                                `;}).join('')}
+                                `;
+            }).join('')}
                                 <tr class="total-row">
                                     <td colspan="6" style="text-align: right; text-transform: uppercase;">Total Payable Amount:</td>
                                     <td style="text-align: right;">₹${filteredData.reduce((sum, r) => sum + (parseFloat(r.wages_amount) || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
@@ -1949,10 +1950,10 @@ const WagesPage = () => {
                             </div>
                         </div>
                         <div className={styles.filterMenuDivider}></div>
-                        
+
                         <div className={styles.filterMenuItem}>
                             <label className={styles.filterMenuItemLabel}>Site Filter</label>
-                            <SearchableSelect 
+                            <SearchableSelect
                                 placeholder="All Sites"
                                 value={searchSiteReport}
                                 onChange={e => setSearchSiteReport(e.target.value)}
@@ -1966,14 +1967,14 @@ const WagesPage = () => {
 
                         <div className={styles.filterMenuItem}>
                             <label className={styles.filterMenuItemLabel}>Category Filter</label>
-                            <SearchableSelect 
+                            <SearchableSelect
                                 placeholder="All Categories"
                                 value={searchCategoryReport}
                                 onChange={e => setSearchCategoryReport(e.target.value)}
                                 options={[
                                     { value: 'All', label: 'All Categories' },
-                                    ...['Direct wages', 'NMR wages', 'Snag wages', 'Third party subvendor work', 'weekly payment agst order'].map(cat => ({ 
-                                        value: cat, label: cat 
+                                    ...['Direct wages', 'NMR wages', 'Snag wages', 'Third party subvendor work', 'weekly payment agst order'].map(cat => ({
+                                        value: cat, label: cat
                                     }))
                                 ]}
                             />
@@ -1982,7 +1983,7 @@ const WagesPage = () => {
 
                         <div className={styles.filterMenuItem}>
                             <label className={styles.filterMenuItemLabel}>Subvendor Filter</label>
-                            <SearchableSelect 
+                            <SearchableSelect
                                 placeholder="All Subvendors"
                                 value={searchSubcontractorReport}
                                 onChange={e => setSearchSubcontractorReport(e.target.value)}
@@ -1996,14 +1997,14 @@ const WagesPage = () => {
 
                         <div className={styles.filterMenuItem}>
                             <label className={styles.filterMenuItemLabel}>Designation</label>
-                            <SearchableSelect 
+                            <SearchableSelect
                                 placeholder="All Designations"
                                 value={searchDesignationReport}
                                 onChange={e => setSearchDesignationReport(e.target.value)}
                                 options={[
                                     { value: 'All', label: 'All Designations' },
-                                    ...[...new Set(rawReportData.map(r => r.labors?.designation).filter(Boolean))].map(d => ({ 
-                                        value: d, label: d 
+                                    ...[...new Set(rawReportData.map(r => r.labors?.designation).filter(Boolean))].map(d => ({
+                                        value: d, label: d
                                     }))
                                 ]}
                             />
@@ -2076,7 +2077,7 @@ const WagesPage = () => {
                                         <td data-label="Time Out" style={{ fontWeight: 600, color: '#2563eb' }}>{formatTime12h(r.time_out)}</td>
                                         <td data-label="Remarks" style={{ fontSize: '0.85rem' }}>
                                             {r.remarks ? (
-                                                <button 
+                                                <button
                                                     className={styles.remarksHoverBtn}
                                                     onMouseEnter={(e) => {
                                                         setHoveredLabor({ name: 'Entry Remark', remarks: r.remarks });
@@ -2117,11 +2118,11 @@ const WagesPage = () => {
                         <p style={{ margin: '4px 0 0 0', color: '#cbd5e1' }}>Review selfies and GPS locations captured directly from the Labor Portal</p>
                     </div>
                     <div>
-                        <input 
-                            type="date" 
-                            className={styles.filterDateInput} 
-                            value={portalLogDate} 
-                            onChange={(e) => setPortalLogDate(e.target.value)} 
+                        <input
+                            type="date"
+                            className={styles.filterDateInput}
+                            value={portalLogDate}
+                            onChange={(e) => setPortalLogDate(e.target.value)}
                         />
                     </div>
                 </div>
@@ -2219,7 +2220,7 @@ const WagesPage = () => {
                                         )}
                                     </td>
                                     <td data-label="Action" style={{ paddingRight: '24px', textAlign: 'center' }}>
-                                        <button 
+                                        <button
                                             onClick={() => deleteAttendanceRecordAndPhotos(log, 'portal')}
                                             style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '8px', borderRadius: '8px', transition: 'all 0.2s' }}
                                             onMouseOver={e => e.currentTarget.style.background = '#fef2f2'}
@@ -2249,7 +2250,7 @@ const WagesPage = () => {
                     </div>
                     <div style={{ padding: '20px' }}>
                         <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
-                            <input 
+                            <input
                                 className={styles.input}
                                 placeholder="New Designation (e.g. Foreman)"
                                 value={newDesignation}
@@ -2263,7 +2264,7 @@ const WagesPage = () => {
                             ) : designations.map(d => (
                                 <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid #f1f5f9' }}>
                                     <span style={{ fontWeight: 600, color: '#334155' }}>{d.name}</span>
-                                    <button 
+                                    <button
                                         onClick={() => deleteDesignation(d.id)}
                                         style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}
                                     >
@@ -2317,13 +2318,13 @@ const WagesPage = () => {
             <div className={styles.mainContent}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
                     <div className={styles.strong} style={{ color: '#2563eb' }}>{new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
-                    
+
                     {activeTab === 'summary' && (
                         <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 600, color: '#475569', fontSize: '0.9rem', background: 'white', padding: '10px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-                            <input 
-                                type="checkbox" 
-                                checked={showRawData} 
-                                onChange={e => setShowRawData(e.target.checked)} 
+                            <input
+                                type="checkbox"
+                                checked={showRawData}
+                                onChange={e => setShowRawData(e.target.checked)}
                                 style={{ width: '16px', height: '16px', accentColor: '#2563eb', cursor: 'pointer' }}
                             />
                             Show Raw Data (Calc Units & Raw Wages)
@@ -2338,123 +2339,123 @@ const WagesPage = () => {
                 {activeTab === 'labors' && renderLaborsList()}
                 {activeTab === 'portalLogs' && renderPortalLogs()}
             </div>
-                {/* --- DESIGNATION MODAL --- */}
-                {designationModalOpen && renderDesignationModal()}
+            {/* --- DESIGNATION MODAL --- */}
+            {designationModalOpen && renderDesignationModal()}
 
-                {/* --- CORRECTION MODAL --- */}
-                {correctionModalOpen && (
-                    <div className={styles.modalOverlay}>
-                        <div className={styles.modal} style={{ maxWidth: '900px' }}>
-                            <div className={styles.modalHeader}>
-                                <h3>Daily Logs Correction: {correctionLabor?.name}</h3>
-                                <p className={styles.muted}>Review and edit daily logs for the selected period</p>
-                            </div>
-                            <div className={styles.tableContainer} style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                                <table className={styles.table}>
-                                    <thead>
-                                        <tr>
-                                            <th>Date</th>
-                                            <th>Site / Project</th>
-                                            <th>Category</th>
-                                            <th>Hours (In - Out)</th>
-                                            <th style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>Units (Calc / Edit)</th>
-                                            <th style={{ whiteSpace: 'nowrap' }}>Actual (₹)</th>
-                                            <th style={{ whiteSpace: 'nowrap' }}>Rounded (₹)</th>
-                                            <th>Remarks</th>
-                                            <th style={{ textAlign: 'right' }}>Actions</th>
+            {/* --- CORRECTION MODAL --- */}
+            {correctionModalOpen && (
+                <div className={styles.modalOverlay}>
+                    <div className={styles.modal} style={{ maxWidth: '900px' }}>
+                        <div className={styles.modalHeader}>
+                            <h3>Daily Logs Correction: {correctionLabor?.name}</h3>
+                            <p className={styles.muted}>Review and edit daily logs for the selected period</p>
+                        </div>
+                        <div className={styles.tableContainer} style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                            <table className={styles.table}>
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Site / Project</th>
+                                        <th>Category</th>
+                                        <th>Hours (In - Out)</th>
+                                        <th style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>Units (Calc / Edit)</th>
+                                        <th style={{ whiteSpace: 'nowrap' }}>Actual (₹)</th>
+                                        <th style={{ whiteSpace: 'nowrap' }}>Rounded (₹)</th>
+                                        <th>Remarks</th>
+                                        <th style={{ textAlign: 'right' }}>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {correctionRecords.map((r, idx) => (
+                                        <tr key={r.id}>
+                                            <td data-label="Work Date"><div className={styles.strong}>{formatDate(r.work_date)}</div></td>
+                                            <td data-label="Site">
+                                                <div style={{ minWidth: '180px' }}>
+                                                    <SearchableSelect
+                                                        placeholder="Select Site..."
+                                                        value={r.new_site_id || ''}
+                                                        onChange={e => handleCorrectionChange(idx, 'new_site_id', e.target.value)}
+                                                        options={sites.map(s => ({ value: s.id, label: s.name }))}
+                                                    />
+                                                </div>
+                                            </td>
+                                            <td data-label="Category">
+                                                <div style={{ minWidth: '180px' }}>
+                                                    <SearchableSelect
+                                                        placeholder="Select Category..."
+                                                        value={r.new_category}
+                                                        onChange={e => handleCorrectionChange(idx, 'new_category', e.target.value)}
+                                                        options={['Direct wages', 'NMR wages', 'Snag wages', 'Third party subvendor work', 'weekly payment agst order'].map(cat => ({ value: cat, label: cat }))}
+                                                    />
+                                                </div>
+                                            </td>
+                                            <td data-label="Time (In/Out)">
+                                                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
+                                                    <TimePicker className={styles.input} value={r.new_time_in} onChange={val => handleCorrectionChange(idx, 'new_time_in', val)} />
+                                                    <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>to</span>
+                                                    <TimePicker className={styles.input} value={r.new_time_out} onChange={val => handleCorrectionChange(idx, 'new_time_out', val)} />
+                                                </div>
+                                            </td>
+                                            <td data-label="Attendance Units" style={{ textAlign: 'center' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
+                                                    <span style={{ color: '#64748b', fontSize: '0.85rem' }} title="Calculated Units">
+                                                        {calculateAttendanceValue(r.new_time_in || '00:00', r.new_time_out || '00:00').toFixed(3)}
+                                                    </span>
+                                                    <input
+                                                        type="number"
+                                                        step="0.01"
+                                                        min="0"
+                                                        className={styles.input}
+                                                        style={{ width: '60px', padding: '6px', textAlign: 'center', fontWeight: 'bold' }}
+                                                        value={r.new_attn_val}
+                                                        onChange={(e) => handleCorrectionChange(idx, 'new_attn_val', e.target.value)}
+                                                        title="Final Edited Units"
+                                                        disabled={!r.new_time_in || !r.new_time_out}
+                                                    />
+                                                </div>
+                                            </td>
+                                            <td data-label="Raw Wages">
+                                                <input type="number" readOnly className={styles.input} style={{ width: '90px', background: '#f8fafc', color: '#64748b' }} value={r.new_actual_wages} />
+                                            </td>
+                                            <td data-label="Final Wages">
+                                                <input type="number" className={styles.input} style={{ width: '100px', fontWeight: 700 }} value={r.new_wages} onChange={e => handleCorrectionChange(idx, 'new_wages', e.target.value)} disabled={!r.new_time_in || !r.new_time_out} />
+                                            </td>
+                                            <td data-label="Remarks">
+                                                <input type="text" className={styles.input} style={{ width: '100%' }} value={r.new_remarks} onChange={e => handleCorrectionChange(idx, 'new_remarks', e.target.value)} />
+                                            </td>
+                                            <td data-label="Actions" style={{ textAlign: 'right' }}>
+                                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', flexWrap: 'nowrap' }}>
+                                                    <button
+                                                        className={styles.attnBtn}
+                                                        onClick={() => handleChangeCorrectionRate(idx)}
+                                                        title="Edit Per Day Wage"
+                                                        style={{ color: '#0284c7', background: '#e0f2fe' }}
+                                                    >
+                                                        <DollarSign size={16} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => deleteAttendanceRecordAndPhotos(r, 'correction')}
+                                                        className={`${styles.attnBtn} ${styles.btnA}`}
+                                                        title="Delete Day Log"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                            </td>
                                         </tr>
-                                    </thead>
-                                    <tbody>
-                                        {correctionRecords.map((r, idx) => (
-                                            <tr key={r.id}>
-                                                <td data-label="Work Date"><div className={styles.strong}>{formatDate(r.work_date)}</div></td>
-                                                <td data-label="Site">
-                                                    <div style={{ minWidth: '180px' }}>
-                                                        <SearchableSelect 
-                                                            placeholder="Select Site..."
-                                                            value={r.new_site_id || ''}
-                                                            onChange={e => handleCorrectionChange(idx, 'new_site_id', e.target.value)}
-                                                            options={sites.map(s => ({ value: s.id, label: s.name }))}
-                                                        />
-                                                    </div>
-                                                </td>
-                                                <td data-label="Category">
-                                                    <div style={{ minWidth: '180px' }}>
-                                                        <SearchableSelect 
-                                                            placeholder="Select Category..."
-                                                            value={r.new_category}
-                                                            onChange={e => handleCorrectionChange(idx, 'new_category', e.target.value)}
-                                                            options={['Direct wages', 'NMR wages', 'Snag wages', 'Third party subvendor work', 'weekly payment agst order'].map(cat => ({ value: cat, label: cat }))}
-                                                        />
-                                                    </div>
-                                                </td>
-                                                <td data-label="Time (In/Out)">
-                                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
-                                                        <TimePicker className={styles.input} value={r.new_time_in} onChange={val => handleCorrectionChange(idx, 'new_time_in', val)} />
-                                                        <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>to</span>
-                                                        <TimePicker className={styles.input} value={r.new_time_out} onChange={val => handleCorrectionChange(idx, 'new_time_out', val)} />
-                                                    </div>
-                                                </td>
-                                                <td data-label="Attendance Units" style={{ textAlign: 'center' }}>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
-                                                        <span style={{ color: '#64748b', fontSize: '0.85rem' }} title="Calculated Units">
-                                                            {calculateAttendanceValue(r.new_time_in || '00:00', r.new_time_out || '00:00').toFixed(3)}
-                                                        </span>
-                                                        <input
-                                                            type="number"
-                                                            step="0.01"
-                                                            min="0"
-                                                            className={styles.input}
-                                                            style={{ width: '60px', padding: '6px', textAlign: 'center', fontWeight: 'bold' }}
-                                                            value={r.new_attn_val}
-                                                            onChange={(e) => handleCorrectionChange(idx, 'new_attn_val', e.target.value)}
-                                                            title="Final Edited Units"
-                                                            disabled={!r.new_time_in || !r.new_time_out}
-                                                        />
-                                                    </div>
-                                                </td>
-                                                <td data-label="Raw Wages">
-                                                    <input type="number" readOnly className={styles.input} style={{ width: '90px', background: '#f8fafc', color: '#64748b' }} value={r.new_actual_wages} />
-                                                </td>
-                                                <td data-label="Final Wages">
-                                                    <input type="number" className={styles.input} style={{ width: '100px', fontWeight: 700 }} value={r.new_wages} onChange={e => handleCorrectionChange(idx, 'new_wages', e.target.value)} disabled={!r.new_time_in || !r.new_time_out} />
-                                                </td>
-                                                <td data-label="Remarks">
-                                                    <input type="text" className={styles.input} style={{ width: '100%' }} value={r.new_remarks} onChange={e => handleCorrectionChange(idx, 'new_remarks', e.target.value)} />
-                                                </td>
-                                                <td data-label="Actions" style={{ textAlign: 'right' }}>
-                                                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', flexWrap: 'nowrap' }}>
-                                                        <button 
-                                                            className={styles.attnBtn} 
-                                                            onClick={() => handleChangeCorrectionRate(idx)} 
-                                                            title="Edit Per Day Wage" 
-                                                            style={{ color: '#0284c7', background: '#e0f2fe' }}
-                                                        >
-                                                            <DollarSign size={16} />
-                                                        </button>
-                                                        <button 
-                                                            onClick={() => deleteAttendanceRecordAndPhotos(r, 'correction')} 
-                                                            className={`${styles.attnBtn} ${styles.btnA}`} 
-                                                            title="Delete Day Log"
-                                                        >
-                                                            <Trash2 size={16} />
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                            <div className={styles.modalActions}>
-                                <Button variant="outline" fullWidth={false} onClick={() => setCorrectionModalOpen(false)}>Cancel</Button>
-                                <Button onClick={saveCorrections} fullWidth={false} disabled={isSavingCorrection}>
-                                    {isSavingCorrection ? 'Saving...' : 'Update All Logs'}
-                                </Button>
-                            </div>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div className={styles.modalActions}>
+                            <Button variant="outline" fullWidth={false} onClick={() => setCorrectionModalOpen(false)}>Cancel</Button>
+                            <Button onClick={saveCorrections} fullWidth={false} disabled={isSavingCorrection}>
+                                {isSavingCorrection ? 'Saving...' : 'Update All Logs'}
+                            </Button>
                         </div>
                     </div>
-                )}
+                </div>
+            )}
 
             {/* Subcontractor Modal */}
             {subModalOpen && (
@@ -2515,9 +2516,9 @@ const WagesPage = () => {
                                 </div>
                                 <div className={styles.formGroup}>
                                     <label className={styles.label}>Designation</label>
-                                    <select 
-                                        className={styles.input} 
-                                        value={laborForm.designation} 
+                                    <select
+                                        className={styles.input}
+                                        value={laborForm.designation}
                                         onChange={e => setLaborForm({ ...laborForm, designation: e.target.value })}
                                     >
                                         <option value="">-- Select Designation --</option>
@@ -2530,25 +2531,25 @@ const WagesPage = () => {
                             <div className={styles.formGroup} style={{ marginTop: '12px' }}>
                                 <label className={styles.label}>Labor Photo (Upload or URL)</label>
                                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                    <input 
-                                        type="file" 
+                                    <input
+                                        type="file"
                                         accept="image/*"
                                         id="laborPhotoInput"
                                         style={{ display: 'none' }}
                                         onChange={(e) => setSelectedLaborFile(e.target.files[0])}
                                     />
-                                    <Button 
-                                        variant="secondary" 
+                                    <Button
+                                        variant="secondary"
                                         style={{ flexShrink: 0, padding: '8px 12px', fontSize: '13px' }}
                                         onClick={() => document.getElementById('laborPhotoInput').click()}
                                     >
                                         {selectedLaborFile ? 'Change Photo' : 'Browse Photo'}
                                     </Button>
-                                    <input 
-                                        className={styles.input} 
-                                        placeholder="Or paste Drive URL link here" 
-                                        value={selectedLaborFile ? selectedLaborFile.name : laborForm.photo_url} 
-                                        onChange={e => setLaborForm({ ...laborForm, photo_url: e.target.value })} 
+                                    <input
+                                        className={styles.input}
+                                        placeholder="Or paste Drive URL link here"
+                                        value={selectedLaborFile ? selectedLaborFile.name : laborForm.photo_url}
+                                        onChange={e => setLaborForm({ ...laborForm, photo_url: e.target.value })}
                                         readOnly={!!selectedLaborFile}
                                     />
                                 </div>
@@ -2560,8 +2561,8 @@ const WagesPage = () => {
                             </div>
                         </div>
                         <div className={styles.modalActions}>
-                            <Button variant="outline" onClick={() => setLaborModalOpen(false)}>Cancel</Button>
-                            <Button onClick={saveLabor}>Confirm Save</Button>
+                            <Button variant="outline" fullWidth={false} onClick={() => setLaborModalOpen(false)}>Cancel</Button>
+                            <Button fullWidth={false} onClick={saveLabor}>Confirm Save</Button>
                         </div>
                     </div>
                 </div>
@@ -2581,9 +2582,9 @@ const WagesPage = () => {
                             <button onClick={() => setGuideModalOpen(false)} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '1.5rem', lineHeight: '1' }}>&times;</button>
                         </div>
                         <div style={{ padding: '24px', maxHeight: '60vh', overflowY: 'auto', fontSize: '0.95rem', color: '#334155', lineHeight: '1.6' }}>
-                            
+
                             <h4 style={{ color: '#0f172a', borderBottom: '2px solid #e2e8f0', paddingBottom: '6px', marginBottom: '12px' }}>📌 Labour Attendance Calculation Logic</h4>
-                            
+
                             <h5 style={{ color: '#2563eb', marginBottom: '8px' }}>Time Slabs & Hourly Rates:</h5>
                             <p style={{ fontSize: '0.85rem', marginBottom: '12px', color: '#64748b' }}>Rates are calculated as <em>Multipliers</em> of the Daily Wage Rate.</p>
                             <ul style={{ listStyleType: 'none', paddingLeft: '12px', marginBottom: '16px' }}>
@@ -2621,12 +2622,12 @@ const WagesPage = () => {
                                 <li><strong style={{ color: '#ea580c' }}>Raw Wage:</strong> Attendance Unit &times; Daily Rate</li>
                                 <li><strong style={{ color: '#16a34a' }}>Rounded Wage Final:</strong> Automatically rounded to the nearest Rupee.</li>
                             </ul>
-                            
+
                             <div style={{ background: '#f0fdf4', padding: '12px', borderRadius: '8px', borderLeft: '4px solid #22c55e', marginBottom: '8px' }}>
-                                <strong>Rounding Rule:</strong><br/>
+                                <strong>Rounding Rule:</strong><br />
                                 Standard mathematical rounding is applied. For example, ₹1482.14 becomes <strong>₹1482</strong>.
                             </div>
-                            
+
                             <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '12px', marginBottom: '24px', fontSize: '0.9rem', textAlign: 'left' }}>
                                 <thead>
                                     <tr style={{ background: '#e2e8f0' }}>
@@ -2682,14 +2683,14 @@ const WagesPage = () => {
 
                         </div>
                         <div className={styles.modalActions} style={{ padding: '16px 24px', background: '#f8fafc', borderRadius: '0 0 16px 16px', borderTop: '1px solid #e2e8f0' }}>
-                            <Button onClick={() => setGuideModalOpen(false)}>Close Guide</Button>
+                            <Button fullWidth={false} onClick={() => setGuideModalOpen(false)}>Close Guide</Button>
                         </div>
                     </div>
                 </div>
             )}
 
             {hoveredLabor && (hoveredLabor.photo_url || hoveredLabor.remarks) && (
-                <div 
+                <div
                     style={{
                         position: 'fixed',
                         left: mousePos.x + 20,
@@ -2709,11 +2710,11 @@ const WagesPage = () => {
                     }}
                 >
                     {hoveredLabor.photo_url ? (
-                        <div style={{ 
-                            width: '200px', 
-                            height: '200px', 
-                            borderRadius: '12px', 
-                            background: '#f1f5f9', 
+                        <div style={{
+                            width: '200px',
+                            height: '200px',
+                            borderRadius: '12px',
+                            background: '#f1f5f9',
                             overflow: 'hidden',
                             display: 'flex',
                             alignItems: 'center',
@@ -2721,12 +2722,12 @@ const WagesPage = () => {
                             position: 'relative',
                             marginBottom: '10px'
                         }}>
-                            <img 
-                                src={getPhotoUrl(hoveredLabor.photo_url)} 
-                                alt={hoveredLabor.name} 
-                                style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                            <img
+                                src={getPhotoUrl(hoveredLabor.photo_url)}
+                                alt={hoveredLabor.name}
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                 referrerPolicy="no-referrer"
-                                onError={(e) => { 
+                                onError={(e) => {
                                     e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23f1f5f9'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='14' fill='%2364748b'%3EPhoto Unavailable%3C/text%3E%3C/svg%3E";
                                 }}
                             />
@@ -2739,13 +2740,13 @@ const WagesPage = () => {
                             <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e3a8a' }}>{hoveredLabor.name}</span>
                         </div>
                     )}
-                    
+
                     {hoveredLabor.remarks && (
-                        <div style={{ 
-                            background: '#f1f5f9', 
-                            padding: '10px', 
-                            borderRadius: '10px', 
-                            fontSize: '13px', 
+                        <div style={{
+                            background: '#f1f5f9',
+                            padding: '10px',
+                            borderRadius: '10px',
+                            fontSize: '13px',
                             color: '#475569',
                             lineHeight: '1.4',
                             borderLeft: '4px solid #3b82f6'
@@ -2762,7 +2763,7 @@ const WagesPage = () => {
                             </div>
                         </div>
                     )}
-                    
+
                     <style>{`
                         @keyframes fadeIn {
                             from { opacity: 0; transform: scale(0.95) translateY(10px); }
@@ -2776,13 +2777,13 @@ const WagesPage = () => {
             {showPermissionGuide && (
                 <div className={styles.modalOverlay} style={{ zIndex: 2000 }}>
                     <div className={styles.modal} style={{ maxWidth: '450px', textAlign: 'center', padding: '40px 30px' }}>
-                        <div style={{ 
-                            width: '70px', 
-                            height: '70px', 
-                            background: '#eff6ff', 
-                            borderRadius: '20px', 
-                            display: 'flex', 
-                            alignItems: 'center', 
+                        <div style={{
+                            width: '70px',
+                            height: '70px',
+                            background: '#eff6ff',
+                            borderRadius: '20px',
+                            display: 'flex',
+                            alignItems: 'center',
                             justifyContent: 'center',
                             margin: '0 auto 24px auto'
                         }}>
@@ -2792,7 +2793,7 @@ const WagesPage = () => {
                             Worker Photo Previews
                         </h3>
                         <p style={{ color: '#64748b', lineHeight: '1.6', fontSize: '0.95rem', marginBottom: '24px' }}>
-                            We have enabled <strong>instant photo previews</strong> for the attendance log. 
+                            We have enabled <strong>instant photo previews</strong> for the attendance log.
                             To see worker photos smoothly:
                         </p>
                         <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', textAlign: 'left', marginBottom: '32px' }}>
