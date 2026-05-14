@@ -12,6 +12,7 @@
     white-space: nowrap;
     flex-shrink: 0;
     height: fit-content;
+    text-decoration: none;
 }
 
 .small {
