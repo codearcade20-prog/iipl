@@ -60,7 +60,8 @@ const EmployeeRegistration = () => {
                 .insert([
                     {
                         ...formData,
-                        basic_salary: parseFloat(formData.basic_salary) || 0
+                        basic_salary: parseFloat(formData.basic_salary) || 0,
+                        status: 'Active'
                     }
                 ]);
 

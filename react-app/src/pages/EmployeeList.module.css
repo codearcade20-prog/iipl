@@ -134,6 +134,16 @@
     color: #475569;
 }
 
+.greenBadge {
+    background: #ecfdf5;
+    color: #10b981;
+}
+
+.redBadge {
+    background: #fef2f2;
+    color: #ef4444;
+}
+
 .deleteBtn {
     background: #fff1f2;
     color: #e11d48;

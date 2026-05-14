@@ -12,7 +12,9 @@ import {
     MapPin,
     Mail,
     Phone,
-    FileSpreadsheet
+    FileSpreadsheet,
+    UserMinus,
+    ShieldAlert
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import styles from './EmployeeList.module.css';
@@ -113,6 +115,39 @@ const EmployeeList = () => {
             }
         } else if (password !== null) {
             alert("Incorrect password! Deletion cancelled.");
+        }
+    };
+    
+    const handleResign = async (emp) => {
+        const reason = window.prompt(`Enter resignation reason for ${emp.full_name}:`);
+        
+        if (reason === null) return; // User cancelled
+        if (!reason.trim()) {
+            alert("A reason is required to process resignation.");
+            return;
+        }
+
+        const confirmed = await confirm(`Are you sure you want to mark ${emp.full_name} as Resigned? This will disable their active status.`);
+        if (!confirmed) return;
+
+        setLoading(true);
+        try {
+            const { error } = await supabase
+                .from('employees')
+                .update({ 
+                    status: 'Resigned',
+                    resignation_reason: reason.trim(),
+                    resigned_at: new Date().toISOString()
+                })
+                .eq('id', emp.id);
+
+            if (error) throw error;
+            toast("Employee status updated to Resigned.");
+            fetchEmployees();
+        } catch (e) {
+            alert("Error updating status: " + e.message);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -394,6 +429,7 @@ const EmployeeList = () => {
                             <th>Role & Department</th>
                             <th>Location</th>
                             <th>Contact Info</th>
+                            <th>Status</th>
                             <th>Basic Salary</th>
                             <th>Actions</th>
                         </tr>
@@ -421,6 +457,16 @@ const EmployeeList = () => {
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Phone size={12} /> {emp.phone || '-'}</div>
                                         </div>
                                     </td>
+                                    <td data-label="Status">
+                                        <span className={`${styles.badge} ${emp.status === 'Resigned' ? styles.redBadge : styles.greenBadge}`}>
+                                            {emp.status || 'Active'}
+                                        </span>
+                                        {emp.status === 'Resigned' && emp.resignation_reason && (
+                                            <div style={{ fontSize: '10px', color: '#ef4444', marginTop: '4px', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', white-space: 'nowrap' }} title={emp.resignation_reason}>
+                                                Reason: {emp.resignation_reason}
+                                            </div>
+                                        )}
+                                    </td>
                                     <td data-label="Basic Salary">
                                         <span className={`${styles.badge} ${styles.blueBadge}`}>
                                             ₹{(parseFloat(emp.basic_salary) || 0).toLocaleString('en-IN')}
@@ -431,10 +477,30 @@ const EmployeeList = () => {
                                             <button
                                                 onClick={() => handleProcessPayroll(emp)}
                                                 className={styles.processBtn}
-                                                style={{ padding: '6px 12px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 600, fontSize: '0.75rem' }}
+                                                style={{ 
+                                                    padding: '6px 12px', 
+                                                    background: emp.status === 'Resigned' ? '#cbd5e1' : '#3b82f6', 
+                                                    color: 'white', 
+                                                    border: 'none', 
+                                                    borderRadius: '4px', 
+                                                    cursor: emp.status === 'Resigned' ? 'not-allowed' : 'pointer', 
+                                                    fontWeight: 600, 
+                                                    fontSize: '0.75rem' 
+                                                }}
+                                                disabled={emp.status === 'Resigned'}
                                             >
                                                 Process Pay
                                             </button>
+                                            {emp.status !== 'Resigned' && (
+                                                <button
+                                                    onClick={() => handleResign(emp)}
+                                                    className={styles.resignBtn}
+                                                    title="Mark as Resigned"
+                                                    style={{ padding: '6px', background: '#fef2f2', color: '#ef4444', border: '1px solid #fee2e2', borderRadius: '4px', cursor: 'pointer' }}
+                                                >
+                                                    <UserMinus size={16} />
+                                                </button>
+                                            )}
                                             <button
                                                 onClick={() => deleteEmployee(emp.id)}
                                                 className={styles.deleteBtn}
