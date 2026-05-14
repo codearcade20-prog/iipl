@@ -462,7 +462,7 @@ const EmployeeList = () => {
                                             {emp.status || 'Active'}
                                         </span>
                                         {emp.status === 'Resigned' && emp.resignation_reason && (
-                                            <div style={{ fontSize: '10px', color: '#ef4444', marginTop: '4px', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', white-space: 'nowrap' }} title={emp.resignation_reason}>
+                                            <div style={{ fontSize: '10px', color: '#ef4444', marginTop: '4px', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={emp.resignation_reason}>
                                                 Reason: {emp.resignation_reason}
                                             </div>
                                         )}
