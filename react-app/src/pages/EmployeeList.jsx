@@ -63,6 +63,8 @@ const EmployeeList = () => {
     const [editMode, setEditMode] = useState(false); // Master vs Attendance toggle
     const [showMore, setShowMore] = useState(false); // More button toggle
     const [currentPage, setCurrentPage] = useState(1);
+    const [showResignModal, setShowResignModal] = useState(false);
+    const [resignationData, setResignationData] = useState({ emp: null, reason: '' });
     const itemsPerPage = 10;
 
     useEffect(() => {
@@ -118,16 +120,19 @@ const EmployeeList = () => {
         }
     };
     
-    const handleResign = async (emp) => {
-        const reason = window.prompt(`Enter resignation reason for ${emp.full_name}:`);
-        
-        if (reason === null) return; // User cancelled
+    const handleResign = (emp) => {
+        setResignationData({ emp, reason: '' });
+        setShowResignModal(true);
+    };
+
+    const confirmResignation = async () => {
+        const { emp, reason } = resignationData;
         if (!reason.trim()) {
-            alert("A reason is required to process resignation.");
+            alert("Please provide a reason for resignation.");
             return;
         }
 
-        const confirmed = await confirm(`Are you sure you want to mark ${emp.full_name} as Resigned? This will disable their active status.`);
+        const confirmed = await confirm(`Are you sure you want to mark ${emp.full_name} as Resigned?`);
         if (!confirmed) return;
 
         setLoading(true);
@@ -143,6 +148,7 @@ const EmployeeList = () => {
 
             if (error) throw error;
             toast("Employee status updated to Resigned.");
+            setShowResignModal(false);
             fetchEmployees();
         } catch (e) {
             alert("Error updating status: " + e.message);
@@ -707,6 +713,35 @@ const EmployeeList = () => {
                             >
                                 {existingPayrollId ? '✅ Update Records & Slip' : '🚀 Generate Monthly Payslip'}
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showResignModal && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1001 }}>
+                    <div style={{ background: 'white', padding: '25px', borderRadius: '12px', width: '400px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)' }}>
+                        <h2 style={{ fontSize: '1.2rem', marginBottom: '10px' }}>Process Resignation</h2>
+                        <p style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '20px' }}>Please enter the reason for <strong>{resignationData.emp?.full_name}</strong>'s resignation.</p>
+                        
+                        <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '8px' }}>Resignation Reason</label>
+                        <textarea 
+                            style={{ width: '100%', padding: '12px', border: '1px solid #e2e8f0', borderRadius: '8px', minHeight: '100px', fontSize: '0.95rem', marginBottom: '20px', fontFamily: 'inherit' }}
+                            placeholder="e.g. Better opportunity / Personal reasons..."
+                            value={resignationData.reason}
+                            onChange={(e) => setResignationData({ ...resignationData, reason: e.target.value })}
+                            autoFocus
+                        />
+
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                            <button 
+                                onClick={() => setShowResignModal(false)}
+                                style={{ flex: 1, padding: '10px', background: '#f1f5f9', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer' }}
+                            >Cancel</button>
+                            <button 
+                                onClick={confirmResignation}
+                                style={{ flex: 1, padding: '10px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer' }}
+                            >Mark Resigned</button>
                         </div>
                     </div>
                 </div>
