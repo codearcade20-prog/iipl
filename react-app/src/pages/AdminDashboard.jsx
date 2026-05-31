@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Input, LoadingOverlay, Pagination } from '../components/ui';
-import { Shield } from 'lucide-react';
+import { Shield, MessageSquare, Upload, X, Image, Send, Loader2 } from 'lucide-react';
 import styles from './AdminDashboard.module.css';
 import TemplateModal from '../components/TemplateModal';
 import { useMessage } from '../context/MessageContext';
@@ -107,6 +107,13 @@ const AdminDashboard = () => {
     const [loadingReports, setLoadingReports] = useState(false);
     const [reportSearch, setReportSearch] = useState('');
     const [reportFilter, setReportFilter] = useState('all'); // all, pending, resolved
+
+    const [replyModalOpen, setReplyModalOpen] = useState(false);
+    const [replyReport, setReplyReport] = useState(null);
+    const [replyMessage, setReplyMessage] = useState('');
+    const [replyImageFile, setReplyImageFile] = useState(null);
+    const [replyImagePreview, setReplyImagePreview] = useState(null);
+    const [isSendingReply, setIsSendingReply] = useState(false);
 
     const runDiagnostics = async () => {
         setDiagnostics(prev => ({ ...prev, loading: true, results: [] }));
@@ -883,14 +890,14 @@ const AdminDashboard = () => {
         finally { setLoadingReports(false); }
     };
 
-    const deleteReport = async (id, screenshotUrl) => {
+    const deleteReport = async (report) => {
         if (await confirm('Are you sure you want to delete this report?')) {
             setSaving(true);
             try {
                 // 1. Delete from Storage if screenshot exists
-                if (screenshotUrl) {
+                if (report.screenshot_url) {
                     try {
-                        const fileName = screenshotUrl.split('/').pop();
+                        const fileName = report.screenshot_url.split('/').pop();
                         const filePath = `issue-screenshots/${fileName}`;
                         await supabase.storage.from('issue-reports').remove([filePath]);
                     } catch (err) {
@@ -898,11 +905,22 @@ const AdminDashboard = () => {
                     }
                 }
 
-                // 2. Delete from Database
-                const { error } = await supabase.from('issue_reports').delete().eq('id', id);
+                // 2. Delete Admin reply image if exists
+                if (report.admin_reply_image) {
+                    try {
+                        const fileName = report.admin_reply_image.split('/').pop();
+                        const filePath = `admin-replies/${fileName}`;
+                        await supabase.storage.from('issue-reports').remove([filePath]);
+                    } catch (err) {
+                        console.warn('Failed to delete reply screenshot from storage:', err);
+                    }
+                }
+
+                // 3. Delete from Database
+                const { error } = await supabase.from('issue_reports').delete().eq('id', report.id);
                 if (error) throw error;
                 
-                setIssueReports(issueReports.filter(r => r.id !== id));
+                setIssueReports(issueReports.filter(r => r.id !== report.id));
                 toast('Report deleted.');
             } catch (e) { await alert(e.message); }
             finally { setSaving(false); }
@@ -921,6 +939,76 @@ const AdminDashboard = () => {
             toast(`Report marked as ${newStatus}.`);
         } catch (e) { await alert(e.message); }
         finally { setSaving(false); }
+    };
+
+    const openReplyModal = (report) => {
+        setReplyReport(report);
+        setReplyMessage(report.admin_comment || '');
+        setReplyImageFile(null);
+        setReplyImagePreview(report.admin_reply_image || null);
+        setReplyModalOpen(true);
+    };
+
+    const handleSendReply = async () => {
+        if (!replyMessage.trim() && !replyImageFile) {
+            toast('Please enter a message or upload an image.', 'warning');
+            return;
+        }
+
+        setIsSendingReply(true);
+        try {
+            let uploadedImageUrl = replyImagePreview;
+
+            // If there's a new file selected for upload
+            if (replyImageFile) {
+                const fileExt = replyImageFile.name.split('.').pop();
+                const fileName = `reply_${replyReport.id}_${Date.now()}.${fileExt}`;
+                const filePath = `admin-replies/${fileName}`;
+
+                const { data: uploadData, error: uploadError } = await supabase.storage
+                    .from('issue-reports')
+                    .upload(filePath, replyImageFile, {
+                        contentType: replyImageFile.type,
+                        upsert: true
+                    });
+
+                if (uploadError) throw uploadError;
+
+                const { data: publicUrlData } = supabase.storage
+                    .from('issue-reports')
+                    .getPublicUrl(filePath);
+
+                uploadedImageUrl = publicUrlData.publicUrl;
+            }
+
+            // Update database: save reply comment and image, and also mark as resolved
+            const { error: dbError } = await supabase
+                .from('issue_reports')
+                .update({
+                    admin_comment: replyMessage,
+                    admin_reply_image: uploadedImageUrl,
+                    status: 'resolved',
+                    user_acknowledged: false // Ensure user can see it again in notifications
+                })
+                .eq('id', replyReport.id);
+
+            if (dbError) throw dbError;
+
+            // Update local state in admin panel
+            setIssueReports(issueReports.map(r => 
+                r.id === replyReport.id 
+                    ? { ...r, admin_comment: replyMessage, admin_reply_image: uploadedImageUrl, status: 'resolved', user_acknowledged: false } 
+                    : r
+            ));
+
+            toast('Reply sent and issue marked as resolved!');
+            setReplyModalOpen(false);
+        } catch (err) {
+            console.error('Failed to send reply:', err);
+            await alert('Error sending reply: ' + err.message);
+        } finally {
+            setIsSendingReply(false);
+        }
     };
 
     const filteredReports = useMemo(() => {
@@ -2142,7 +2230,10 @@ const AdminDashboard = () => {
                                                 </span>
                                             </td>
                                             <td data-label="Actions" style={{ textAlign: 'center' }}>
-                                                <div className={styles.actions} style={{ justifyContent: 'center' }}>
+                                                <div className={styles.actions} style={{ justifyContent: 'center', gap: '8px' }}>
+                                                    <Button size="small" variant="secondary" onClick={() => openReplyModal(report)} style={{ background: '#4f46e5', color: 'white', border: 'none' }}>
+                                                        Reply
+                                                    </Button>
                                                     {report.status !== 'resolved' ? (
                                                         <Button size="small" variant="primary" onClick={() => updateReportStatus(report.id, 'resolved')}>
                                                             Resolve
@@ -2152,7 +2243,7 @@ const AdminDashboard = () => {
                                                             Re-open
                                                         </Button>
                                                     )}
-                                                    <Button size="small" variant="danger" onClick={() => deleteReport(report.id, report.screenshot_url)}>
+                                                    <Button size="small" variant="danger" onClick={() => deleteReport(report)}>
                                                         Delete
                                                     </Button>
                                                 </div>
@@ -2857,6 +2948,109 @@ const AdminDashboard = () => {
                     vendor={printVendor}
                     onClose={() => setPrintVendor(null)}
                 />
+            )}
+            {replyModalOpen && replyReport && (
+                <div className={styles.modalOverlay}>
+                    <div className={styles.modalContent} style={{ maxWidth: '550px' }}>
+                        <div className={styles.modalHeader}>
+                            <h3 className={styles.modalTitle}>Reply to {replyReport.user_name}</h3>
+                            <button onClick={() => setReplyModalOpen(false)} className={styles.closeBtn}>×</button>
+                        </div>
+                        <div className={styles.modalBody} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', padding: '16px 24px' }}>
+                            {/* Original issue message block */}
+                            <div style={{ padding: '0.75rem 1rem', background: '#f8fafc', borderRadius: '12px', borderLeft: '4px solid #f59e0b', textAlign: 'left' }}>
+                                <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px' }}>Original Message</div>
+                                <div style={{ fontSize: '0.85rem', color: '#334155', fontStyle: 'italic' }}>"{replyReport.message}"</div>
+                            </div>
+
+                            {/* Reply message textarea */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', textAlign: 'left' }}>
+                                <label style={{ fontSize: '0.9rem', fontWeight: 600, color: '#475569' }}>Reply Message</label>
+                                <textarea
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.75rem',
+                                        borderRadius: '8px',
+                                        border: '1px solid #e2e8f0',
+                                        minHeight: '120px',
+                                        fontSize: '0.9rem',
+                                        outline: 'none',
+                                        resize: 'vertical'
+                                    }}
+                                    placeholder="Type your response here..."
+                                    value={replyMessage}
+                                    onChange={e => setReplyMessage(e.target.value)}
+                                />
+                            </div>
+
+                            {/* Reply screenshot/image upload */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', textAlign: 'left' }}>
+                                <label style={{ fontSize: '0.9rem', fontWeight: 600, color: '#475569' }}>Attachment / Visual Evidence (Optional)</label>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                    <input
+                                        type="file"
+                                        id="reply-image-upload"
+                                        accept="image/*"
+                                        style={{ display: 'none' }}
+                                        onChange={(e) => {
+                                            const file = e.target.files[0];
+                                            if (file) {
+                                                setReplyImageFile(file);
+                                                setReplyImagePreview(URL.createObjectURL(file));
+                                            }
+                                        }}
+                                    />
+                                    <label
+                                        htmlFor="reply-image-upload"
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '0.5rem',
+                                            padding: '0.5rem 1rem',
+                                            border: '1px dashed #cbd5e1',
+                                            borderRadius: '8px',
+                                            cursor: 'pointer',
+                                            fontSize: '0.85rem',
+                                            color: '#64748b',
+                                            background: '#f8fafc',
+                                            transition: 'all 0.2s'
+                                        }}
+                                        onMouseOver={e => e.currentTarget.style.borderColor = '#3b82f6'}
+                                        onMouseOut={e => e.currentTarget.style.borderColor = '#cbd5e1'}
+                                    >
+                                        <Upload size={16} /> Upload Image
+                                    </label>
+                                    {replyImagePreview && (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            <img
+                                                src={replyImagePreview}
+                                                alt="Reply preview"
+                                                style={{ width: '60px', height: '40px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #e2e8f0' }}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setReplyImageFile(null);
+                                                    setReplyImagePreview(null);
+                                                }}
+                                                style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#ef4444', padding: '2px' }}
+                                                title="Remove Image"
+                                            >
+                                                <X size={16} />
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                        <div className={styles.modalFooter}>
+                            <Button variant="secondary" onClick={() => setReplyModalOpen(false)} disabled={isSendingReply}>Cancel</Button>
+                            <Button onClick={handleSendReply} disabled={isSendingReply}>
+                                {isSendingReply ? 'Sending...' : 'Send Reply & Resolve'}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div >
     );
