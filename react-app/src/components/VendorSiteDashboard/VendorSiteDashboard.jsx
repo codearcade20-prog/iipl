@@ -32,7 +32,8 @@ import {
     ExternalLink,
     RotateCcw,
     List,
-    Grid
+    Grid,
+    SlidersHorizontal
 } from 'lucide-react';
 import { useMessage } from '../../context/MessageContext';
 import { formatDate } from '../../utils';
@@ -105,6 +106,25 @@ const StatusBadge = ({ status, url, onPreview, extraStyles = {} }) => {
 
 
 
+const trackerColumns = [
+    { key: 'sno', label: 'SNO' },
+    { key: 'projectName', label: 'PROJECT NAME' },
+    { key: 'woStatus', label: 'WO NO / STATUS' },
+    { key: 'orderDate', label: 'ORDER DATE' },
+    { key: 'orderValue', label: 'ORDER VALUE' },
+    { key: 'billCertified', label: 'BILL CERTIFIED' },
+    { key: 'hsk', label: 'HSK' },
+    { key: 'ret', label: 'RET' },
+    { key: 'netPayable', label: 'NET PAYABLE' },
+    { key: 'm1', label: 'M1' },
+    { key: 'm2', label: 'M2' },
+    { key: 'm35', label: 'M3+M5' },
+    { key: 'm4', label: 'M4' },
+    { key: 'totalPaid', label: 'TOTAL PAID' },
+    { key: 'balance', label: 'BALANCE' },
+    { key: 'remarks', label: 'REMARKS' }
+];
+
 const VendorSiteDashboard = ({ readOnly = false }) => {
     const location = useLocation();
     const navigate = useNavigate();
@@ -159,6 +179,46 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
 
     // Statements State
     const [statementMode, setStatementMode] = useState('menu'); // menu, master, vendor, tracker
+    const [visibleColumns, setVisibleColumns] = useState({
+        sno: true,
+        projectName: true,
+        woStatus: true,
+        orderDate: true,
+        orderValue: true,
+        billCertified: true,
+        hsk: true,
+        ret: true,
+        netPayable: true,
+        m1: true,
+        m2: true,
+        m35: true,
+        m4: true,
+        totalPaid: true,
+        balance: true,
+        remarks: true
+    });
+    const [showColumnDropdown, setShowColumnDropdown] = useState(false);
+    const columnDropdownRef = useRef(null);
+
+    const [trackerPage, setTrackerPage] = useState(1);
+    const [trackerVendorsPerPage, setTrackerVendorsPerPage] = useState(5);
+    const [isPrinting, setIsPrinting] = useState(false);
+
+    useEffect(() => {
+        setTrackerPage(1);
+    }, [searchQuery, trackerVendorsPerPage, statementMode]);
+
+    useEffect(() => {
+        function handleClickOutside(event) {
+            if (columnDropdownRef.current && !columnDropdownRef.current.contains(event.target)) {
+                setShowColumnDropdown(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [columnDropdownRef]);
     const [vendorStatementView, setVendorStatementView] = useState('detailed'); // detailed, simple
     const [selectedStatementVendor, setSelectedStatementVendor] = useState(null);
     const [selectedStatementSite, setSelectedStatementSite] = useState(null);
@@ -2104,19 +2164,115 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
         if (statementMode === 'tracker') {
             const vendorGroups = fullTrackerVendors;
             const sortedVendors = Object.keys(vendorGroups).sort();
+            const visibleColCount = Object.values(visibleColumns).filter(Boolean).length;
+            const labelColSpan = (visibleColumns.sno ? 1 : 0) + 
+                                 (visibleColumns.projectName ? 1 : 0) + 
+                                 (visibleColumns.woStatus ? 1 : 0) + 
+                                 (visibleColumns.orderDate ? 1 : 0);
+
+            const totalVendors = sortedVendors.length;
+            const displayedVendors = trackerVendorsPerPage === 'all'
+                ? sortedVendors
+                : sortedVendors.slice((trackerPage - 1) * trackerVendorsPerPage, trackerPage * trackerVendorsPerPage);
 
             return (
                 <div className={styles.statementContainer}>
                     <div className={styles.printHide} style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                         </div>
-                        <Button inline onClick={() => { setPrintOrientation('landscape'); setShowPrintModal(true); }}>
-                            <Printer size={18} style={{ marginRight: '0.5rem' }} /> Print Tracker
-                        </Button>
+                        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', position: 'relative' }}>
+                            <div ref={columnDropdownRef} style={{ position: 'relative' }}>
+                                <Button 
+                                    variant="secondary" 
+                                    inline 
+                                    onClick={() => setShowColumnDropdown(!showColumnDropdown)}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', height: '40px', padding: '0 1rem' }}
+                                >
+                                    <SlidersHorizontal size={16} /> Manage Columns
+                                </Button>
+                                {showColumnDropdown && (
+                                    <div style={{
+                                        position: 'absolute',
+                                        right: 0,
+                                        top: '110%',
+                                        backgroundColor: 'white',
+                                        border: '1px solid #e2e8f0',
+                                        borderRadius: '12px',
+                                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                                        zIndex: 100,
+                                        width: '250px',
+                                        maxHeight: '380px',
+                                        overflowY: 'auto',
+                                        padding: '0.75rem',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: '0.4rem'
+                                    }}>
+                                        <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#1e293b', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem', marginBottom: '0.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <span>Show/Hide Columns</span>
+                                            <button 
+                                                onClick={() => {
+                                                    const allVisible = Object.values(visibleColumns).every(v => v);
+                                                    const nextVal = !allVisible;
+                                                    const newCols = {};
+                                                    Object.keys(visibleColumns).forEach(k => {
+                                                        newCols[k] = nextVal;
+                                                    });
+                                                    setVisibleColumns(newCols);
+                                                }}
+                                                style={{ fontSize: '0.75rem', color: '#4f46e5', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500 }}
+                                            >
+                                                {Object.values(visibleColumns).every(v => v) ? 'Deselect All' : 'Select All'}
+                                            </button>
+                                        </div>
+                                        {trackerColumns.map(col => (
+                                            <label 
+                                                key={col.key} 
+                                                style={{ 
+                                                    display: 'flex', 
+                                                    alignItems: 'center', 
+                                                    gap: '0.5rem', 
+                                                    fontSize: '0.8rem', 
+                                                    cursor: 'pointer', 
+                                                    color: '#334155', 
+                                                    padding: '0.3rem 0.5rem', 
+                                                    borderRadius: '6px', 
+                                                    transition: 'background-color 0.2s',
+                                                    userSelect: 'none'
+                                                }}
+                                                onMouseOver={e => e.currentTarget.style.backgroundColor = '#f1f5f9'}
+                                                onMouseOut={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                                            >
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={visibleColumns[col.key]} 
+                                                    onChange={() => {
+                                                        setVisibleColumns(prev => ({
+                                                            ...prev,
+                                                            [col.key]: !prev[col.key]
+                                                        }));
+                                                    }}
+                                                    style={{ 
+                                                        accentColor: '#4f46e5', 
+                                                        cursor: 'pointer', 
+                                                        width: '14px', 
+                                                        height: '14px' 
+                                                    }} 
+                                                />
+                                                <span>{col.label}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                            <Button inline onClick={() => { setPrintOrientation('landscape'); setShowPrintModal(true); }} style={{ height: '40px' }}>
+                                <Printer size={18} style={{ marginRight: '0.5rem' }} /> Print Tracker
+                            </Button>
+                        </div>
                     </div>
 
-                    <div className={styles.printHide} style={{ marginBottom: '1rem' }}>
-                        <div className={styles.searchBar} style={{ width: '100%' }}>
+                    <div className={styles.printHide} style={{ marginBottom: '1rem', display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <div className={styles.searchBar} style={{ flex: 1, minWidth: '250px', marginBottom: 0 }}>
                             <Search size={16} />
                             <input
                                 type="text"
@@ -2124,6 +2280,30 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#f8fafc', padding: '0.4rem 0.75rem', borderRadius: '12px', border: '1px solid #e2e8f0', height: '40px' }}>
+                            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', whiteSpace: 'nowrap' }}>Vendors Per Page:</span>
+                            <select
+                                value={trackerVendorsPerPage}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    setTrackerVendorsPerPage(val === 'all' ? 'all' : parseInt(val, 10));
+                                }}
+                                style={{
+                                    border: 'none',
+                                    background: 'transparent',
+                                    fontSize: '0.8rem',
+                                    fontWeight: 700,
+                                    color: '#1e40af',
+                                    cursor: 'pointer',
+                                    outline: 'none'
+                                }}
+                            >
+                                <option value={5}>5 Vendors</option>
+                                <option value={10}>10 Vendors</option>
+                                <option value={20}>20 Vendors</option>
+                                <option value="all">Show All</option>
+                            </select>
                         </div>
                     </div>
 
@@ -2136,35 +2316,38 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                             <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: '0.75rem', border: '2px solid #000' }}>
                                 <thead>
                                     <tr style={{ backgroundColor: '#4f46e5', color: 'white' }}>
-                                        <th style={{ padding: '6px', border: '1px solid #000' }}>SNO</th>
-                                        <th style={{ padding: '6px', border: '1px solid #000', textAlign: 'left' }}>PROJECT NAME</th>
-                                        <th style={{ padding: '6px', border: '1px solid #000' }}>WO NO / STATUS</th>
-                                        <th style={{ padding: '6px', border: '1px solid #000' }}>ORDER DATE</th>
-                                        <th style={{ padding: '6px', border: '1px solid #000', textAlign: 'right' }}>ORDER VALUE</th>
-                                        <th style={{ padding: '6px', border: '1px solid #000', textAlign: 'right' }}>BILL CERTIFIED</th>
-                                        <th style={{ padding: '6px', border: '1px solid #000', textAlign: 'right' }}>HSK</th>
-                                        <th style={{ padding: '6px', border: '1px solid #000', textAlign: 'right' }}>RET</th>
-                                        <th style={{ padding: '6px', border: '1px solid #000', textAlign: 'right' }}>NET PAYABLE</th>
-                                        <th style={{ padding: '4px', border: '1px solid #000', textAlign: 'right' }}>M1</th>
-                                        <th style={{ padding: '4px', border: '1px solid #000', textAlign: 'right' }}>M2</th>
-                                        <th style={{ padding: '4px', border: '1px solid #000', textAlign: 'right' }}>M3+M5</th>
-                                        <th style={{ padding: '4px', border: '1px solid #000', textAlign: 'right' }}>M4</th>
-                                        <th style={{ padding: '6px', border: '1px solid #000', textAlign: 'right' }}>TOTAL PAID</th>
-                                        <th style={{ padding: '6px', border: '1px solid #000', textAlign: 'right' }}>BALANCE</th>
-                                        <th style={{ padding: '6px', border: '1px solid #000' }}>REMARKS</th>
+                                        {visibleColumns.sno && <th style={{ padding: '6px', border: '1px solid #000' }}>SNO</th>}
+                                        {visibleColumns.projectName && <th style={{ padding: '6px', border: '1px solid #000', textAlign: 'left' }}>PROJECT NAME</th>}
+                                        {visibleColumns.woStatus && <th style={{ padding: '6px', border: '1px solid #000' }}>WO NO / STATUS</th>}
+                                        {visibleColumns.orderDate && <th style={{ padding: '6px', border: '1px solid #000' }}>ORDER DATE</th>}
+                                        {visibleColumns.orderValue && <th style={{ padding: '6px', border: '1px solid #000', textAlign: 'right' }}>ORDER VALUE</th>}
+                                        {visibleColumns.billCertified && <th style={{ padding: '6px', border: '1px solid #000', textAlign: 'right' }}>BILL CERTIFIED</th>}
+                                        {visibleColumns.hsk && <th style={{ padding: '6px', border: '1px solid #000', textAlign: 'right' }}>HSK</th>}
+                                        {visibleColumns.ret && <th style={{ padding: '6px', border: '1px solid #000', textAlign: 'right' }}>RET</th>}
+                                        {visibleColumns.netPayable && <th style={{ padding: '6px', border: '1px solid #000', textAlign: 'right' }}>NET PAYABLE</th>}
+                                        {visibleColumns.m1 && <th style={{ padding: '4px', border: '1px solid #000', textAlign: 'right' }}>M1</th>}
+                                        {visibleColumns.m2 && <th style={{ padding: '4px', border: '1px solid #000', textAlign: 'right' }}>M2</th>}
+                                        {visibleColumns.m35 && <th style={{ padding: '4px', border: '1px solid #000', textAlign: 'right' }}>M3+M5</th>}
+                                        {visibleColumns.m4 && <th style={{ padding: '4px', border: '1px solid #000', textAlign: 'right' }}>M4</th>}
+                                        {visibleColumns.totalPaid && <th style={{ padding: '6px', border: '1px solid #000', textAlign: 'right' }}>TOTAL PAID</th>}
+                                        {visibleColumns.balance && <th style={{ padding: '6px', border: '1px solid #000', textAlign: 'right' }}>BALANCE</th>}
+                                        {visibleColumns.remarks && <th style={{ padding: '6px', border: '1px solid #000' }}>REMARKS</th>}
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {sortedVendors.map((vName, vIdx) => {
+                                    {displayedVendors.map((vName, vIdx) => {
                                         const entries = vendorGroups[vName];
                                         let vOrderTotal = 0, vCertifiedTotal = 0, vHskTotal = 0, vRetTotal = 0, vNetTotal = 0;
                                         let vM1 = 0, vM2 = 0, vM35 = 0, vM4 = 0, vTotalPaid = 0, vBalance = 0;
+                                        const actualIndex = trackerVendorsPerPage === 'all'
+                                            ? vIdx
+                                            : (trackerPage - 1) * trackerVendorsPerPage + vIdx;
 
                                         return (
                                             <React.Fragment key={vName}>
                                                 <tr style={{ backgroundColor: '#bfdbfe', fontWeight: 'bold' }}>
-                                                    <td colSpan="16" style={{ padding: '8px', fontSize: '1rem', textAlign: 'center', border: '1px solid #000', color: '#1e40af' }}>
-                                                        {vIdx + 1}. {vName.toUpperCase()}
+                                                    <td colSpan={visibleColCount} style={{ padding: '8px', fontSize: '1rem', textAlign: 'center', border: '1px solid #000', color: '#1e40af' }}>
+                                                        {actualIndex + 1}. {vName.toUpperCase()}
                                                     </td>
                                                 </tr>
                                                 {entries.map((entry, eIdx) => {
@@ -2193,42 +2376,44 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
 
                                                     return (
                                                         <tr key={entry.id} style={{ backgroundColor: eIdx % 2 === 0 ? '#fef9c3' : '#fff' }}>
-                                                            <td style={{ border: '1px solid #000', textAlign: 'center' }}>{eIdx + 1}</td>
-                                                            <td style={{ border: '1px solid #000', fontWeight: 500 }}>{entry.site_name.toUpperCase()}</td>
-                                                            <td style={{ border: '1px solid #000', textAlign: 'center' }}>
+                                                            {visibleColumns.sno && <td style={{ border: '1px solid #000', textAlign: 'center' }}>{eIdx + 1}</td>}
+                                                            {visibleColumns.projectName && <td style={{ border: '1px solid #000', fontWeight: 500 }}>{entry.site_name.toUpperCase()}</td>}
+                                                            {visibleColumns.woStatus && <td style={{ border: '1px solid #000', textAlign: 'center' }}>
                                                                 <div>{entry.wo_no || '-'}</div>
                                                                 <StatusBadge status={entry.bill_status} url={entry.wo_status_url} onPreview={handlePreviewPdf} extraStyles={{ fontSize: '0.6rem', border: 'none' }} />
-                                                            </td>
-                                                            <td style={{ border: '1px solid #000', textAlign: 'center' }}>{formatDate(entry.wo_date)}</td>
-                                                            <td style={{ border: '1px solid #000', textAlign: 'right' }}>{orderVal ? Math.round(orderVal).toLocaleString() : '-'}</td>
-                                                            <td style={{ border: '1px solid #000', textAlign: 'right', fontWeight: 600 }}>{certVal ? Math.round(certVal).toLocaleString() : '-'}</td>
-                                                            <td style={{ border: '1px solid #000', textAlign: 'right' }}>{hsk ? Math.round(hsk).toLocaleString() : '-'}</td>
-                                                            <td style={{ border: '1px solid #000', textAlign: 'right' }}>{ret ? Math.round(ret).toLocaleString() : '-'}</td>
-                                                            <td style={{ border: '1px solid #000', textAlign: 'right', fontWeight: 700 }}>{Math.round(netPayable).toLocaleString()}</td>
-                                                            <td style={{ border: '1px solid #000', textAlign: 'right' }}>{m1 ? Math.round(m1).toLocaleString() : '-'}</td>
-                                                            <td style={{ border: '1px solid #000', textAlign: 'right' }}>{m2 ? Math.round(m2).toLocaleString() : '-'}</td>
-                                                            <td style={{ border: '1px solid #000', textAlign: 'right' }}>{m35 ? Math.round(m35).toLocaleString() : '-'}</td>
-                                                            <td style={{ border: '1px solid #000', textAlign: 'right' }}>{m4 ? Math.round(m4).toLocaleString() : '-'}</td>
-                                                            <td style={{ border: '1px solid #000', textAlign: 'right', fontWeight: 700 }}>{Math.round(rowPaid).toLocaleString()}</td>
-                                                            <td style={{ border: '1px solid #000', textAlign: 'right', fontWeight: 800, color: balance >= -1 && balance <= 1 ? '#000' : (balance > 0 ? '#16a34a' : '#dc2626') }}>{Math.round(balance).toLocaleString()}</td>
-                                                            <td style={{ border: '1px solid #000', fontSize: '0.65rem', fontStyle: 'italic' }}>{entry.remarks}</td>
+                                                            </td>}
+                                                            {visibleColumns.orderDate && <td style={{ border: '1px solid #000', textAlign: 'center' }}>{formatDate(entry.wo_date)}</td>}
+                                                            {visibleColumns.orderValue && <td style={{ border: '1px solid #000', textAlign: 'right' }}>{orderVal ? Math.round(orderVal).toLocaleString() : '-'}</td>}
+                                                            {visibleColumns.billCertified && <td style={{ border: '1px solid #000', textAlign: 'right', fontWeight: 600 }}>{certVal ? Math.round(certVal).toLocaleString() : '-'}</td>}
+                                                            {visibleColumns.hsk && <td style={{ border: '1px solid #000', textAlign: 'right' }}>{hsk ? Math.round(hsk).toLocaleString() : '-'}</td>}
+                                                            {visibleColumns.ret && <td style={{ border: '1px solid #000', textAlign: 'right' }}>{ret ? Math.round(ret).toLocaleString() : '-'}</td>}
+                                                            {visibleColumns.netPayable && <td style={{ border: '1px solid #000', textAlign: 'right', fontWeight: 700 }}>{Math.round(netPayable).toLocaleString()}</td>}
+                                                            {visibleColumns.m1 && <td style={{ border: '1px solid #000', textAlign: 'right' }}>{m1 ? Math.round(m1).toLocaleString() : '-'}</td>}
+                                                            {visibleColumns.m2 && <td style={{ border: '1px solid #000', textAlign: 'right' }}>{m2 ? Math.round(m2).toLocaleString() : '-'}</td>}
+                                                            {visibleColumns.m35 && <td style={{ border: '1px solid #000', textAlign: 'right' }}>{m35 ? Math.round(m35).toLocaleString() : '-'}</td>}
+                                                            {visibleColumns.m4 && <td style={{ border: '1px solid #000', textAlign: 'right' }}>{m4 ? Math.round(m4).toLocaleString() : '-'}</td>}
+                                                            {visibleColumns.totalPaid && <td style={{ border: '1px solid #000', textAlign: 'right', fontWeight: 700 }}>{Math.round(rowPaid).toLocaleString()}</td>}
+                                                            {visibleColumns.balance && <td style={{ border: '1px solid #000', textAlign: 'right', fontWeight: 800, color: balance >= -1 && balance <= 1 ? '#000' : (balance > 0 ? '#16a34a' : '#dc2626') }}>{Math.round(balance).toLocaleString()}</td>}
+                                                            {visibleColumns.remarks && <td style={{ border: '1px solid #000', fontSize: '0.65rem', fontStyle: 'italic' }}>{entry.remarks}</td>}
                                                         </tr>
                                                     );
                                                 })}
                                                 <tr style={{ backgroundColor: '#94a3b8', color: 'white', fontWeight: 'bold' }}>
-                                                    <td colSpan="4" style={{ border: '1px solid #000', textAlign: 'right', padding: '4px 8px' }}>TOTAL</td>
-                                                    <td style={{ border: '1px solid #000', textAlign: 'right' }}>{Math.round(vOrderTotal).toLocaleString()}</td>
-                                                    <td style={{ border: '1px solid #000', textAlign: 'right' }}>{Math.round(vCertifiedTotal).toLocaleString()}</td>
-                                                    <td style={{ border: '1px solid #000', textAlign: 'right' }}>{Math.round(vHskTotal).toLocaleString()}</td>
-                                                    <td style={{ border: '1px solid #000', textAlign: 'right' }}>{Math.round(vRetTotal).toLocaleString()}</td>
-                                                    <td style={{ border: '1px solid #000', textAlign: 'right' }}>{Math.round(vNetTotal).toLocaleString()}</td>
-                                                    <td style={{ border: '1px solid #000', textAlign: 'right' }}>{Math.round(vM1).toLocaleString()}</td>
-                                                    <td style={{ border: '1px solid #000', textAlign: 'right' }}>{Math.round(vM2).toLocaleString()}</td>
-                                                    <td style={{ border: '1px solid #000', textAlign: 'right' }}>{Math.round(vM35).toLocaleString()}</td>
-                                                    <td style={{ border: '1px solid #000', textAlign: 'right' }}>{Math.round(vM4).toLocaleString()}</td>
-                                                    <td style={{ border: '1px solid #000', textAlign: 'right' }}>{Math.round(vTotalPaid).toLocaleString()}</td>
-                                                    <td style={{ border: '1px solid #000', textAlign: 'right' }}>{Math.round(vBalance).toLocaleString()}</td>
-                                                    <td style={{ border: '1px solid #000' }}></td>
+                                                    {labelColSpan > 0 && (
+                                                        <td colSpan={labelColSpan} style={{ border: '1px solid #000', textAlign: 'right', padding: '4px 8px' }}>TOTAL</td>
+                                                    )}
+                                                    {visibleColumns.orderValue && <td style={{ border: '1px solid #000', textAlign: 'right' }}>{Math.round(vOrderTotal).toLocaleString()}</td>}
+                                                    {visibleColumns.billCertified && <td style={{ border: '1px solid #000', textAlign: 'right' }}>{Math.round(vCertifiedTotal).toLocaleString()}</td>}
+                                                    {visibleColumns.hsk && <td style={{ border: '1px solid #000', textAlign: 'right' }}>{Math.round(vHskTotal).toLocaleString()}</td>}
+                                                    {visibleColumns.ret && <td style={{ border: '1px solid #000', textAlign: 'right' }}>{Math.round(vRetTotal).toLocaleString()}</td>}
+                                                    {visibleColumns.netPayable && <td style={{ border: '1px solid #000', textAlign: 'right' }}>{Math.round(vNetTotal).toLocaleString()}</td>}
+                                                    {visibleColumns.m1 && <td style={{ border: '1px solid #000', textAlign: 'right' }}>{Math.round(vM1).toLocaleString()}</td>}
+                                                    {visibleColumns.m2 && <td style={{ border: '1px solid #000', textAlign: 'right' }}>{Math.round(vM2).toLocaleString()}</td>}
+                                                    {visibleColumns.m35 && <td style={{ border: '1px solid #000', textAlign: 'right' }}>{Math.round(vM35).toLocaleString()}</td>}
+                                                    {visibleColumns.m4 && <td style={{ border: '1px solid #000', textAlign: 'right' }}>{Math.round(vM4).toLocaleString()}</td>}
+                                                    {visibleColumns.totalPaid && <td style={{ border: '1px solid #000', textAlign: 'right' }}>{Math.round(vTotalPaid).toLocaleString()}</td>}
+                                                    {visibleColumns.balance && <td style={{ border: '1px solid #000', textAlign: 'right' }}>{Math.round(vBalance).toLocaleString()}</td>}
+                                                    {visibleColumns.remarks && <td style={{ border: '1px solid #000' }}></td>}
                                                 </tr>
                                             </React.Fragment>
                                         );
@@ -2236,6 +2421,17 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                                 </tbody>
                             </table>
                         </div>
+                        
+                        {!isPrinting && trackerVendorsPerPage !== 'all' && totalVendors > trackerVendorsPerPage && (
+                            <div className={styles.printHide} style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'center' }}>
+                                <Pagination
+                                    currentPage={trackerPage}
+                                    totalItems={totalVendors}
+                                    itemsPerPage={trackerVendorsPerPage}
+                                    onPageChange={setTrackerPage}
+                                />
+                            </div>
+                        )}
                     </div>
                 </div>
             );
@@ -3422,12 +3618,14 @@ const VendorSiteDashboard = ({ readOnly = false }) => {
                         </Button>
                         <Button fullWidth={false} onClick={() => {
                             setShowPrintModal(false);
+                            setIsPrinting(true);
                             setTimeout(() => {
                                 window.print();
+                                setIsPrinting(false);
                                 if (new URLSearchParams(location.search).get('direct') === 'true') {
                                     window.onafterprint = () => window.close();
                                 }
-                            }, 300);
+                            }, 400);
                         }}>
                             Print Now
                         </Button>
